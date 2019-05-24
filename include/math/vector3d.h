@@ -5,6 +5,11 @@
 #include <ostream>
 #include <stddef.h>
 
+///
+/// Contains mathematical primitives.
+/// 
+/// \since	1.0
+///
 namespace Math
 {
 
@@ -108,30 +113,98 @@ public:
 	Vector3D normalized() const;
 	
 	///
-	/// Calculates the cosinus between \a left and \a right.
+	/// Calculates and returns the cosinus between \a left and \a right.
 	/// 
 	/// \since	1.0
 	///
 	double cos(const Vector3D &left, const Vector3D &right);
 	
+	///
+	/// Adds \a other to the vector and returns a reference to it.
+	/// 
+	/// \since	1.0
+	///
 	Vector3D &operator+=(const Vector3D &other);
+	
+	///
+	/// Subtracts \a other from the vector and returns a reference to it.
+	/// 
+	/// \since	1.0
+	///
 	Vector3D &operator-=(const Vector3D &other);
+	
+	///
+	/// Multiplies the vector by \a scalar and returns a reference to it.
+	/// 
+	/// \since	1.0
+	///
 	Vector3D &operator*=(const double scalar);
+	
+	///
+	/// Divides the vector by \a scalar and returns a reference to it.
+	/// 
+	/// \since	1.0
+	///
 	Vector3D &operator/=(const double scalar);
 	
+	///
+	/// Returns a reference to the coordinate at \a index.
+	/// 
+	/// \since	1.0
+	///
 	double &operator[](const size_t index);
+	
+	///
+	/// Returns the coordinate at \a index.
+	/// 
+	/// \since	1.0
+	///
 	double operator[](const size_t index) const;
 	
 private:
 	std::array<double, 4> _coordinates;
 };
 
+///
+/// Adds \a left and \a right and returns the result.
+/// 
+/// \since	1.0
+///
 Vector3D operator+(const Vector3D &left, const Vector3D &right);
+
+///
+/// Subtracts \a right from \a left and returns the result.
+/// 
+/// \since	1.0
+///
 Vector3D operator-(const Vector3D &left, const Vector3D &right);
+
+///
+/// Returns the dot product of \a left and \a right.
+/// 
+/// \since	1.0
+///
 double operator*(const Vector3D &left, const Vector3D &right);
+
+///
+/// Multiplies \a left by \a right and returns the result.
+/// 
+/// \since	1.0
+///
 Vector3D operator*(const Vector3D &left, const double right);
+
+///
+/// Multiplies \a right by \a left and returns the result.
+/// 
+/// \since	1.0
+///
 Vector3D operator*(const double left, const Vector3D right);
 
+///
+/// Writes a JSON representation of \a vector to \a stream.
+/// 
+/// \since	1.0
+///
 std::ostream &operator<<(std::ostream &stream, const Vector3D &vector);
 
 } // namespace Math
