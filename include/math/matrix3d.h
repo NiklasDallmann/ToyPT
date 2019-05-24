@@ -43,7 +43,7 @@ public:
 	Vector3D &operator[](const size_t index) const;
 	
 private:
-	constexpr size_t _dimension = 3;
+	static constexpr size_t _dimension = 3;
 	std::array<Vector3D, 4> _vectors;
 };
 
