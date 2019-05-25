@@ -14,13 +14,13 @@ class Matrix3D
 public:
 	friend std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix);
 	
-	Matrix3D(const Vector3D &x = {}, const Vector3D &y = {}, const Vector3D &z = {});
+	Matrix3D(const Vector3D &a = {}, const Vector3D &b = {}, const Vector3D &c = {});
 	
 	Matrix3D &transpose();
 	Matrix3D transposed() const;
 	
-	Matrix3D &invert();
-	Matrix3D inverted() const;
+	Matrix3D &invert(bool *invertible = nullptr);
+	Matrix3D inverted(bool *invertible = nullptr) const;
 	
 	double determinant() const;
 	
@@ -50,6 +50,8 @@ private:
 Matrix3D operator+(const Matrix3D &left, const Matrix3D &right);
 Matrix3D operator-(const Matrix3D &left, const Matrix3D &right);
 Matrix3D operator*(const Matrix3D &left, const Matrix3D &right);
+Matrix3D operator*(const Matrix3D &left, const double right);
+Matrix3D operator*(const double left, const Matrix3D &right);
 
 std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix);
 

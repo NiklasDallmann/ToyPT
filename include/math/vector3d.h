@@ -14,9 +14,7 @@ namespace Math
 {
 
 ///
-/// Implements a three-dimensional vector.
-/// 
-/// For cache alignment a forth coordinate is used in the internal storage. It is ignored by any operation.
+/// Implements a four-dimensional vector for 3D space.
 /// 
 /// \since	1.0
 ///
@@ -31,7 +29,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D(const double x = 0, const double y = 0, const double z = 0);
+	Vector3D(const double x = 0, const double y = 0, const double z = 0, const double w = 1);
 	
 	///
 	/// Returns the x coordinate.
@@ -111,6 +109,13 @@ public:
 	/// \since	1.0
 	///
 	Vector3D normalized() const;
+	
+	///
+	/// Returns the cross product of the vector and \a other.
+	/// 
+	/// \since	1.0
+	///
+	Vector3D crossProduct(const Vector3D &other);
 	
 	///
 	/// Calculates and returns the cosinus between \a left and \a right.

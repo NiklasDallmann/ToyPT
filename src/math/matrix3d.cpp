@@ -34,28 +34,45 @@ Matrix3D Matrix3D::transposed() const
 	return returnValue;
 }
 
-Matrix3D &Matrix3D::invert()
+Matrix3D &Matrix3D::invert(bool *invertible)
 {
-	// FIXME implement
+	(*this) = this->inverted(invertible);
+	
 	return *this;
 }
 
-Matrix3D Matrix3D::inverted() const
+Matrix3D Matrix3D::inverted(bool *invertible) const
 {
-	Matrix3D returnValue = Matrix3D::identityMatrix();
-	Matrix3D copy = *this;
+	Matrix3D returnValue;
+	Matrix3D temporary;
+	double determinant = this->determinant();
 	
-	// Gauß-Jordan
-	for (size_t i = 0; i < _dimension; i++)
+	if (determinant == 0.0)
 	{
-		double factor = copy[i][i];
-		copy[i] /= factor;
-		returnValue[i] *= factor;
-		
-		for (size_t j = i; j < _dimension; j++)
+		goto exit;
+	}
+	
+	returnValue = *this;
+	returnValue.transpose();
+	
+	temporary = {
+		returnValue[1].crossProduct(returnValue[2]),
+		returnValue[2].crossProduct(returnValue[0]),
+		returnValue[0].crossProduct(returnValue[1])
+	};
+	
+	returnValue = (1 / determinant) * temporary;
+	
+exit:
+	if (invertible != nullptr)
+	{
+		if (determinant == 0.0)
 		{
-			copy[j] -= copy[j][i] * copy[i];
-			returnValue[j] -= returnValue[j][i] * copy[i];
+			*invertible = false;
+		}
+		else
+		{
+			*invertible = true;
 		}
 	}
 	
@@ -263,6 +280,19 @@ Matrix3D operator*(const Matrix3D &left, const Matrix3D &right)
 	returnValue *= right;
 	
 	return returnValue;
+}
+
+Matrix3D operator*(const Matrix3D &left, const double right)
+{
+	Matrix3D returnValue = left;
+	returnValue *= right;
+	
+	return returnValue;
+}
+
+Matrix3D operator*(const double left, const Matrix3D &right)
+{
+	return right * left;
 }
 
 }

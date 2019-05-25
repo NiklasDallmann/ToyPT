@@ -6,8 +6,8 @@
 namespace Math
 {
 
-Vector3D::Vector3D(const double x, const double y, const double z) :
-	_coordinates({x, y, z, 0})
+Vector3D::Vector3D(const double x, const double y, const double z, const double w) :
+	_coordinates({x, y, z, w})
 {
 }
 
@@ -62,6 +62,17 @@ Vector3D Vector3D::normalized() const
 	Vector3D returnValue = *this;
 	
 	returnValue.normalize();
+	
+	return returnValue;
+}
+
+Vector3D Vector3D::crossProduct(const Vector3D &other)
+{
+	Vector3D returnValue;
+	
+	returnValue[0] = (*this)[1] * other[2] - (*this)[2] * other[1];
+	returnValue[1] = (*this)[2] * other[0] - (*this)[0] * other[2];
+	returnValue[2] = (*this)[0] * other[1] - (*this)[1] * other[0];
 	
 	return returnValue;
 }

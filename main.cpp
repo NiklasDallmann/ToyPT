@@ -20,6 +20,8 @@ int main()
 	};
 	
 	std::cout << (left * right) << std::endl;
+	std::cout << left.determinant() << std::endl;
+	std::cout << left.inverted() << std::endl;
 	
 	return 0;
 }
