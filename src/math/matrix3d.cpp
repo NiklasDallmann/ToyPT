@@ -7,8 +7,8 @@
 namespace Math
 {
 
-Matrix3D::Matrix3D(const Vector3D &x, const Vector3D &y, const Vector3D &z) :
-	_vectors({x, y, z, Vector3D()})
+Matrix3D::Matrix3D(const Vector3D &a, const Vector3D &b, const Vector3D &c, const Vector3D &d) :
+	_vectors({a, b, c, d})
 {
 }
 

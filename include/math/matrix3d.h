@@ -14,7 +14,7 @@ class Matrix3D
 public:
 	friend std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix);
 	
-	Matrix3D(const Vector3D &a = {}, const Vector3D &b = {}, const Vector3D &c = {});
+	Matrix3D(const Vector3D &a = {}, const Vector3D &b = {}, const Vector3D &c = {}, const Vector3D &d = {});
 	
 	Matrix3D &transpose();
 	Matrix3D transposed() const;
@@ -43,7 +43,7 @@ public:
 	Vector3D &operator[](const size_t index) const;
 	
 private:
-	static constexpr size_t _dimension = 3;
+	static constexpr size_t _dimension = 4;
 	std::array<Vector3D, 4> _vectors;
 };
 
