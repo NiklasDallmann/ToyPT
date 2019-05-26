@@ -45,7 +45,7 @@ Matrix3D Matrix3D::inverted(bool *invertible) const
 {
 	Matrix3D returnValue;
 	Matrix3D temporary;
-	double determinant = this->determinant();
+	double determinant = this->determinant3x3();
 	
 	if (determinant == 0.0)
 	{
@@ -70,7 +70,7 @@ exit:
 	return returnValue;
 }
 
-double Matrix3D::determinant() const
+double Matrix3D::determinant3x3() const
 {
 	double returnValue = 0;
 	
@@ -82,6 +82,43 @@ double Matrix3D::determinant() const
 		(*this)[1][2] * (*this)[2][1] * (*this)[0][0] -
 		(*this)[2][2] * (*this)[0][1] * (*this)[1][0]
 	);
+	
+	return returnValue;
+}
+
+double Matrix3D::determinant() const
+{
+	double returnValue = 0;
+	double d0, d1, d2, d3;
+	
+	double a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p;
+	
+	a = (*this)[0][0];
+	b = (*this)[0][1];
+	c = (*this)[0][2];
+	d = (*this)[0][3];
+	e = (*this)[1][0];
+	f = (*this)[1][1];
+	g = (*this)[1][2];
+	h = (*this)[1][3];
+	i = (*this)[2][0];
+	j = (*this)[2][1];
+	k = (*this)[2][2];
+	l = (*this)[2][3];
+	m = (*this)[3][0];
+	n = (*this)[3][1];
+	o = (*this)[3][2];
+	p = (*this)[3][3];
+	
+	d0 = a * (f*k*p + g*l*n + h*j*o - h*k*n - g*j*p - f*l*o);
+	
+	d1 = b * (e*k*p + g*l*n + h*i*o - h*k*n - g*i*p - e*l*o);
+	
+	d2 = c * (e*j*p + f*l*n + h*i*n - h*i*n - f*i*p - e*l*n);
+	
+	d3 = d * (e*j*o + f*k*m + g*i*n - g*j*m - f*i*o - e*k*n);
+	
+	returnValue = d0 - d1 + d2 - d3;
 	
 	return returnValue;
 }

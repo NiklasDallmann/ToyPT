@@ -22,6 +22,7 @@ public:
 	Matrix3D &invert(bool *invertible = nullptr);
 	Matrix3D inverted(bool *invertible = nullptr) const;
 	
+	double determinant3x3() const;
 	double determinant() const;
 	
 	static Matrix3D identityMatrix();
