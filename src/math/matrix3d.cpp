@@ -52,16 +52,7 @@ Matrix3D Matrix3D::inverted(bool *invertible) const
 		goto exit;
 	}
 	
-	returnValue = *this;
-	returnValue.transpose();
-	
-	temporary = {
-		returnValue[1].crossProduct(returnValue[2]),
-		returnValue[2].crossProduct(returnValue[0]),
-		returnValue[0].crossProduct(returnValue[1])
-	};
-	
-	returnValue = (1 / determinant) * temporary;
+	// FIXME finish
 	
 exit:
 	if (invertible != nullptr)
@@ -98,9 +89,10 @@ double Matrix3D::determinant() const
 Matrix3D Matrix3D::identityMatrix()
 {
 	return Matrix3D{
-		{1, 0, 0},
-		{0, 1, 0},
-		{0, 0, 1}
+		{1, 0, 0, 0},
+		{0, 1, 0, 0},
+		{0, 0, 1, 0},
+		{0, 0, 0, 1}
 	};
 }
 
@@ -150,7 +142,7 @@ Matrix3D Matrix3D::transposedAdd(const Matrix3D &left, const Matrix3D &right)
 {
 	Matrix3D returnValue;
 	
-	for (size_t i = 0; i < 3; i++)
+	for (size_t i = 0; i < _dimension; i++)
 	{
 		returnValue[i] = left[i] + right[i];
 	}

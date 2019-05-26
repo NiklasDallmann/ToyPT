@@ -43,7 +43,7 @@ void Vector3D::setZ(const double z)
 
 double Vector3D::magnitude() const
 {
-	return std::pow((std::pow(this->_coordinates[0], 2) + std::pow(this->_coordinates[1], 2) + std::pow(this->_coordinates[2], 2)), 1/2);
+	return std::pow((std::pow(this->_coordinates[0], 2) + std::pow(this->_coordinates[1], 2) + std::pow(this->_coordinates[2], 2)), 0.5);
 }
 
 Vector3D &Vector3D::normalize()
