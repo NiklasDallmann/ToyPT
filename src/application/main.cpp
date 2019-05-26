@@ -3,42 +3,25 @@
 #include <framebuffer.h>
 #include <matrix3d.h>
 #include <renderer.h>
+#include <triangle.h>
+#include <vector>
 #include <vector3d.h>
 
 int main()
 {
 	std::cout << "Path Tracer" << std::endl;
 	
-	Rendering::Renderer::Triangle triangle{Math::Vector3D{0, 0.5, 1}, Math::Vector3D{-0.5, -0.5, 1}, Math::Vector3D{0.5, -0.5, 1}};
-	Math::Vector3D normalVector = (triangle[1] - triangle[0]).crossProduct(triangle[2] - triangle[1]);
+	Rendering::Material blue{{0, 0, 1}};
+	Rendering::Material red{{1, 0, 0}};
 	
-	std::cout << (triangle[1] - triangle[0]) << std::endl;
-	std::cout << normalVector << std::endl;
-	std::cout << triangle[0].magnitude() << std::endl;
+	std::vector<Rendering::Triangle> triangles;
+	triangles.push_back({{Math::Vector3D{-0.5, 0, 2}, Math::Vector3D{0.5, -0.5, 1}, Math::Vector3D{0.5, 0.5, 1}}, red});
+	triangles.push_back({{Math::Vector3D{-0.5, 0.5, 1}, Math::Vector3D{-0.5, -0.5, 1}, Math::Vector3D{0.5, 0, 2}}, blue});
+//	triangles.push_back({{Math::Vector3D{0, 0.5, 1}, Math::Vector3D{-0.5, -0.5, 1}, Math::Vector3D{0.5, -0.5, 1.5}}, blue});
 	
-	Rendering::FrameBuffer frameBuffer(100, 100);
-	
-//	for (size_t x = 0; x < 100; x++)
-//	{
-//		for (size_t y = 0; y < 100; y++)
-//		{
-//			double value = double(x + y) / 2.0 / 100.0;
-//			Math::Vector3D vector{value, value, value};
-//			frameBuffer.pixel(x, y) = vector;
-//		}
-//	}
-	
-//	std::cout << "Saving file..." << std::endl;
-//	if (frameBuffer.save("img.ppm"))
-//	{
-//		std::cout << "Image saved." << std::endl;
-//	}
-//	else
-//	{
-//		std::cout << "Could not save image." << std::endl;
-//	}
-	
+	Rendering::FrameBuffer frameBuffer(1000, 1000);
 	Rendering::Renderer renderer;
+	renderer.setTriangles(triangles);
 	renderer.render(frameBuffer, 70);
 	
 	std::cout << "Saving file..." << std::endl;
@@ -50,6 +33,7 @@ int main()
 	{
 		std::cout << "Could not save image." << std::endl;
 	}
+	std::cout << "Finished." << std::endl;
 	
 	return 0;
 }

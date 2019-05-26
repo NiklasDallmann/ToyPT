@@ -268,9 +268,9 @@ Vector3D &Matrix3D::operator[](const size_t index)
 	return this->_vectors[index];
 }
 
-Vector3D &Matrix3D::operator[](const size_t index) const
+const Vector3D &Matrix3D::operator[](const size_t index) const
 {
-	return const_cast<Vector3D &>(this->_vectors[index]);
+	return this->_vectors[index];
 }
 
 std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix)

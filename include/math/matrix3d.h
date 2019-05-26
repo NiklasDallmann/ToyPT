@@ -41,7 +41,7 @@ public:
 	Vector3D operator*(const Vector3D &vector);
 	
 	Vector3D &operator[](const size_t index);
-	Vector3D &operator[](const size_t index) const;
+	const Vector3D &operator[](const size_t index) const;
 	
 private:
 	static constexpr size_t _dimension = 4;
