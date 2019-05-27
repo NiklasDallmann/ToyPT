@@ -115,7 +115,9 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D crossProduct(const Vector3D &other);
+	Vector3D crossProduct(const Vector3D &other) const;
+	
+	Vector3D coordinateProduct(const Vector3D &other) const;
 	
 	///
 	/// Calculates and returns the cosinus between \a left and \a right.

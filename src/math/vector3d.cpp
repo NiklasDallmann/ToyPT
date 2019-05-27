@@ -66,13 +66,24 @@ Vector3D Vector3D::normalized() const
 	return returnValue;
 }
 
-Vector3D Vector3D::crossProduct(const Vector3D &other)
+Vector3D Vector3D::crossProduct(const Vector3D &other) const
 {
 	Vector3D returnValue;
 	
 	returnValue[0] = (*this)[1] * other[2] - (*this)[2] * other[1];
 	returnValue[1] = (*this)[2] * other[0] - (*this)[0] * other[2];
 	returnValue[2] = (*this)[0] * other[1] - (*this)[1] * other[0];
+	
+	return returnValue;
+}
+
+Vector3D Vector3D::coordinateProduct(const Vector3D &other) const
+{
+	Vector3D returnValue;
+	
+	returnValue[0] = (*this)[0] * other[0];
+	returnValue[1] = (*this)[1] * other[1];
+	returnValue[2] = (*this)[2] * other[2];
 	
 	return returnValue;
 }

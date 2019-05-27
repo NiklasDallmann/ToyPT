@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(pathtracer)
 
+find_package(OpenMP)
+
 add_library(math STATIC "src/math/vector3d.cpp" "src/math/matrix3d.cpp")
 target_include_directories(math
 	PUBLIC
@@ -15,7 +17,7 @@ target_include_directories(math
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
 )
-target_link_libraries(rendering math)
+target_link_libraries(rendering math OpenMP::OpenMP_CXX)
 target_compile_options(rendering PUBLIC "-o3 -flto")
 
 add_executable(${PROJECT_NAME} "src/application/main.cpp")
