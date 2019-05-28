@@ -32,7 +32,7 @@ int main()
 //	triangles.push_back({{Math::Vector3D{-1, 0.2, 6}, Math::Vector3D{0.5, -0.5, 5.5}, Math::Vector3D{-0.5, -0.5, 4}}, blue});
 	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 7}, Math::Vector3D{0, 3, 7}}, blue});
 	
-	Rendering::FrameBuffer frameBuffer(1000, 1000);
+	Rendering::FrameBuffer frameBuffer(500, 500);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.render(frameBuffer, 70);

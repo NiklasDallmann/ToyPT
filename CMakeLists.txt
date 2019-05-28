@@ -11,7 +11,15 @@ target_include_directories(math
 )
 target_compile_options(math PUBLIC "-o3 -flto")
 
-add_library(rendering STATIC "src/rendering/framebuffer.cpp" "src/rendering/color.cpp" "src/rendering/renderer.cpp" "src/rendering/triangle.cpp" "src/rendering/material.cpp")
+add_library(rendering STATIC
+	"src/rendering/framebuffer.cpp"
+	"src/rendering/color.cpp"
+	"src/rendering/renderer.cpp"
+	"src/rendering/triangle.cpp"
+	"src/rendering/material.cpp"
+	"src/rendering/abstractmesh.cpp"
+	"src/rendering/mesh.cpp"
+	"src/rendering/cube.cpp")
 target_include_directories(math
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
