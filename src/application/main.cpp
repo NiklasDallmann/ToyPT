@@ -11,11 +11,6 @@ int main()
 {
 	std::cout << "Path Tracer" << std::endl;
 	
-	Math::Vector3D normal = {0, 1, 0};
-	Math::Vector3D newDirection = (2.0 * (normal * ((-1.0) * Math::Vector3D{1, -1, 0})) * normal + Math::Vector3D{1, -1, 0}).normalized();
-	
-	std::cout << newDirection << std::endl;
-	
 	Rendering::Material red{{1, 0, 0}};
 	Rendering::Material green{{0, 1, 0}};
 	Rendering::Material blue{{0, 0, 1}};
@@ -29,12 +24,15 @@ int main()
 	std::vector<Rendering::Triangle> triangles;
 	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{-2, -1, 3}, Math::Vector3D{2, -1, 3}}, grey});
 	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 3}, Math::Vector3D{2, -1, 7}}, grey});
-//	triangles.push_back({{Math::Vector3D{-1, 0.2, 6}, Math::Vector3D{0.5, -0.5, 5.5}, Math::Vector3D{-0.5, -0.5, 4}}, blue});
 	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 7}, Math::Vector3D{0, 3, 7}}, blue});
+	
+	std::vector<Rendering::PointLight> pointLights;
+	pointLights.push_back({Math::Vector3D{0, 6, 10}, Math::Vector3D{1, 1, 1}});
 	
 	Rendering::FrameBuffer frameBuffer(500, 500);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
+	renderer.setPointLights(pointLights);
 	renderer.render(frameBuffer, 70);
 	
 	std::cout << "Saving file..." << std::endl;

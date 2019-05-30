@@ -9,21 +9,21 @@ namespace Rendering
 class Material
 {
 public:
-	Material(const Math::Vector3D &color = {}, const Math::Vector3D &reflection = {}, const Math::Vector3D &refraction = {});
+	Material(const Math::Vector3D &color = {}, const double reflection = 0, const double refraction = 0);
 	
 	void setColor(const Math::Vector3D &color);
 	const Math::Vector3D &color() const;
 	
-	void setRefraction(const Math::Vector3D &refraction);
-	const Math::Vector3D &reflection() const;
+	void setReflection(const double reflection);
+	double reflection() const;
 	
-	void setReflection(const Math::Vector3D &reflection);
-	const Math::Vector3D &refraction() const;
+	void setRefraction(const double refraction);
+	double refraction() const;
 	
 private:
 	Math::Vector3D _color;
-	Math::Vector3D _reflection;
-	Math::Vector3D _refraction;
+	double _reflection;
+	double _refraction;
 };
 
 } // namespace Rendering

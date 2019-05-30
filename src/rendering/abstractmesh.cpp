@@ -5,12 +5,10 @@ namespace Rendering
 
 AbstractMesh::AbstractMesh()
 {
-	
 }
 
 AbstractMesh::~AbstractMesh()
 {
-	
 }
 
 }

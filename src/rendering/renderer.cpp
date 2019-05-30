@@ -14,7 +14,6 @@ namespace Rendering
 
 Renderer::Renderer()
 {
-	
 }
 
 void Renderer::setTriangles(const std::vector<Triangle> &triangles)
@@ -22,9 +21,9 @@ void Renderer::setTriangles(const std::vector<Triangle> &triangles)
 	this->_triangles = triangles;
 }
 
-void Renderer::setSun(const Math::Vector3D &sun)
+void Renderer::setPointLights(const std::vector<PointLight> &pointLights)
 {
-	this->_sun = sun;
+	this->_pointLights = pointLights;
 }
 
 void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
@@ -34,7 +33,7 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 	double fovRadians = fieldOfView / 180.0 * M_PI;
 	double zCoordinate = width/(2.0 * std::tan(fovRadians / 2.0));
 	
-#pragma omp parallel for
+//#pragma omp parallel for
 	for (size_t j = 0; j < height; j++)
 	{
 		for (size_t i = 0; i < width; i++)
@@ -45,7 +44,9 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 			Math::Vector3D direction{x, y, zCoordinate};
 			direction.normalize();
 			
-			frameBuffer.pixel(i, j) = this->_castRay(direction, {});
+//			std::cout << "x=" << i << " y=" << j << std::endl;
+			
+			frameBuffer.pixel(i, j) = this->_castRay(direction, {0, 0, 0});
 		}
 	}
 }
@@ -84,8 +85,7 @@ double Renderer::_intersectPlane(const Math::Vector3D &direction, const Math::Ve
 	double returnValue = 0;
 	
 	Math::Vector3D n = triangle.normal();
-	double d = (-n[0] * triangle[0][0]) + (-n[1] * triangle[0][1]) + (-n[2] * triangle[0][2]);
-	double t0 = -d + n * origin;
+	double t0 = (triangle[0] - origin) * n;
 	double t1 = n * direction;
 	
 	if (t1 <= _epsilon & t1 >= -_epsilon)
@@ -100,11 +100,12 @@ exit:
 	return returnValue;
 }
 
-Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t bounce)
+double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, Triangle **triangle)
 {
-	Math::Vector3D returnValue;
+	double returnValue = 0;
 	double planeDistance = 0;
-	std::vector<std::pair<Triangle, double>> planeDistances;
+	std::vector<std::pair<Triangle *, double>> planeDistances;
+	*triangle = nullptr;
 	
 	// Intersect planes
 	for (Triangle &triangle : this->_triangles)
@@ -113,40 +114,89 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		
 		if (planeDistance > 0)
 		{
-			planeDistances.push_back({triangle, planeDistance});
+			planeDistances.push_back({&triangle, planeDistance});
 		}
 	}
 	
-	std::sort(planeDistances.begin(), planeDistances.end(), [](const std::pair<Triangle, double> &left, const std::pair<Triangle, double> &right){
+	// Sort plane-distance pairs to create correct z-buffer
+	std::sort(planeDistances.begin(), planeDistances.end(), [](const std::pair<Triangle *, double> &left, const std::pair<Triangle *, double> &right){
 		return left.second < right.second;
 	});
 	
 	// Intersect triangles
 	for (decltype (planeDistances)::value_type element : planeDistances)
 	{
-		Triangle &triangle = element.first;
+		Triangle &currentTriangle = *element.first;
 		double distance = element.second;
 		
-		if (this->_intersectTriangle(distance, direction, {}, triangle))
+		if (this->_intersectTriangle(distance, direction, origin, currentTriangle))
 		{
-			Math::Vector3D normal = triangle.normal();
-			Math::Vector3D newOrigin = origin + direction * distance;
-			Math::Vector3D newDirection = (2.0 * (normal * ((-1.0) * direction)) * normal + direction).normalized();
-			
-//			if (bounce > 0)
-//			{
-//				std::cout << "bounced" << std::endl;
-//			}
-			
-			returnValue = triangle.material().color().coordinateProduct(this->_castRay(newDirection, newOrigin, bounce + 1));
-			goto exit;
+//			std::cout << currentTriangle.material().color() << std::endl;
+			returnValue = distance;
+			*triangle = &currentTriangle;
+			break;
 		}
 	}
 	
-	returnValue = {1, 1, 1};
+	return returnValue;
+}
+
+Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t samples, const size_t bounce, const size_t maxBounces)
+{
+	Math::Vector3D returnValue = {0, 0, 0};
+	Math::Vector3D directLight = {0, 0, 0};
+	Math::Vector3D indirectLight = {0, 0, 0};
+	double distance = 0;
+	Triangle *triangle = nullptr;
+	
+	if (bounce == maxBounces)
+	{
+		goto exit;
+	}
+	
+	// Direct Light
+	distance = this->_traceRay(direction, origin, &triangle);
+	
+	if (triangle != nullptr)
+	{
+		// Intersection found
+		Math::Vector3D intersectionPoint = origin + distance * direction;
+//		std::cout << "direct light" << std::endl;
+		
+		for (const PointLight &pointLight : this->_pointLights)
+		{
+			Triangle *occludingTriangle = nullptr;
+			Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
+			double newDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, &occludingTriangle);
+			
+//			std::cout << lightDirection << " " << lightDirection.magnitude() << " " << newDistance << std::endl;
+			
+			if (occludingTriangle == nullptr | newDistance > lightDirection.magnitude())
+			{
+				// Point light visible
+				directLight += pointLight.color();
+//				std::cout << "visible" << std::endl;
+			}
+			else
+			{
+//				std::cout << "invisible" << std::endl;
+			}
+		}
+		
+		returnValue = (directLight.coordinateProduct(triangle->material().color()) + triangle->material().color()) * 0.5;
+	}
+	else
+	{
+		// No intersection found
+	}
 	
 exit:
 	return returnValue;
+}
+
+Math::Vector3D Renderer::_randomDirectionInHemisphere(const Math::Vector3D &normal)
+{
+	
 }
 
 }

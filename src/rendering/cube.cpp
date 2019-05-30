@@ -3,7 +3,7 @@
 namespace Rendering
 {
 
-Cube::Cube(const double sideLength)
+Cube::Cube(const double sideLength) : AbstractMesh()
 {
 	// FIXME generate triangles
 }

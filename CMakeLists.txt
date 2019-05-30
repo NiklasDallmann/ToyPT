@@ -18,8 +18,8 @@ add_library(rendering STATIC
 	"src/rendering/triangle.cpp"
 	"src/rendering/material.cpp"
 	"src/rendering/abstractmesh.cpp"
-	"src/rendering/mesh.cpp"
-	"src/rendering/cube.cpp")
+	"src/rendering/cube.cpp"
+	"src/rendering/pointlight.cpp")
 target_include_directories(math
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>

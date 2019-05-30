@@ -3,13 +3,13 @@
 
 #include <stddef.h>
 
-#include "mesh.h"
+#include "abstractmesh.h"
 #include "triangle.h"
 
 namespace Rendering
 {
 
-class Cube : Mesh
+class Cube : AbstractMesh
 {
 public:
 	Cube(const double sideLength = 1);
