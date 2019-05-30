@@ -22,14 +22,15 @@ int main()
 	Rendering::Material grey{{0.5, 0.5, 0.5}};
 	
 	std::vector<Rendering::Triangle> triangles;
-	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{-2, -1, 3}, Math::Vector3D{2, -1, 3}}, grey});
-	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 3}, Math::Vector3D{2, -1, 7}}, grey});
+	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{-2, -1, 3}, Math::Vector3D{2, -1, 3}}, white});
+	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 3}, Math::Vector3D{2, -1, 7}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, 7}, Math::Vector3D{2, -1, 7}, Math::Vector3D{0, 3, 7}}, blue});
 	
 	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector3D{0, 6, 10}, Math::Vector3D{1, 1, 1}});
+	pointLights.push_back({Math::Vector3D{1, 6, 10}, Math::Vector3D{1, 0, 0}});
+	pointLights.push_back({Math::Vector3D{-1, 6, 10}, Math::Vector3D{0, 0, 1}});
 	
-	Rendering::FrameBuffer frameBuffer(500, 500);
+	Rendering::FrameBuffer frameBuffer(1000, 1000);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);

@@ -33,7 +33,7 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 	double fovRadians = fieldOfView / 180.0 * M_PI;
 	double zCoordinate = width/(2.0 * std::tan(fovRadians / 2.0));
 	
-//#pragma omp parallel for
+#pragma omp parallel for
 	for (size_t j = 0; j < height; j++)
 	{
 		for (size_t i = 0; i < width; i++)
@@ -43,8 +43,6 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 			
 			Math::Vector3D direction{x, y, zCoordinate};
 			direction.normalize();
-			
-//			std::cout << "x=" << i << " y=" << j << std::endl;
 			
 			frameBuffer.pixel(i, j) = this->_castRay(direction, {0, 0, 0});
 		}
@@ -112,7 +110,7 @@ double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D
 	{
 		planeDistance = this->_intersectPlane(direction, origin, triangle);
 		
-		if (planeDistance > 0)
+		if (planeDistance > _epsilon)
 		{
 			planeDistances.push_back({&triangle, planeDistance});
 		}
@@ -131,7 +129,6 @@ double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D
 		
 		if (this->_intersectTriangle(distance, direction, origin, currentTriangle))
 		{
-//			std::cout << currentTriangle.material().color() << std::endl;
 			returnValue = distance;
 			*triangle = &currentTriangle;
 			break;
@@ -161,7 +158,6 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	{
 		// Intersection found
 		Math::Vector3D intersectionPoint = origin + distance * direction;
-//		std::cout << "direct light" << std::endl;
 		
 		for (const PointLight &pointLight : this->_pointLights)
 		{
@@ -169,21 +165,17 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
 			double newDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, &occludingTriangle);
 			
-//			std::cout << lightDirection << " " << lightDirection.magnitude() << " " << newDistance << std::endl;
-			
 			if (occludingTriangle == nullptr | newDistance > lightDirection.magnitude())
 			{
-				// Point light visible
-				directLight += pointLight.color();
-//				std::cout << "visible" << std::endl;
-			}
-			else
-			{
-//				std::cout << "invisible" << std::endl;
+				if ((triangle->normal() * lightDirection) < 0)
+				{
+					// Point light visible
+					directLight += pointLight.color() * (1.0 / std::pow(lightDirection.magnitude() / 8, 2.0));
+				}
 			}
 		}
 		
-		returnValue = (directLight.coordinateProduct(triangle->material().color()) + triangle->material().color()) * 0.5;
+		returnValue = directLight.coordinateProduct(triangle->material().color());// + triangle->material().color()) * 0.5;
 	}
 	else
 	{
