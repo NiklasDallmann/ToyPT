@@ -38,7 +38,6 @@ public:
 	Matrix3D &operator-=(const Matrix3D &other);
 	Matrix3D &operator*=(const Matrix3D &other);
 	Matrix3D &operator*=(const double scalar);
-	Vector3D operator*(const Vector3D &vector);
 	
 	Vector3D &operator[](const size_t index);
 	const Vector3D &operator[](const size_t index) const;
@@ -53,6 +52,7 @@ Matrix3D operator-(const Matrix3D &left, const Matrix3D &right);
 Matrix3D operator*(const Matrix3D &left, const Matrix3D &right);
 Matrix3D operator*(const Matrix3D &left, const double right);
 Matrix3D operator*(const double left, const Matrix3D &right);
+Vector3D operator*(const Matrix3D &left, const Vector3D &right);
 
 std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix);
 

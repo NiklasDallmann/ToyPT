@@ -154,6 +154,8 @@ public:
 	///
 	Vector3D &operator/=(const double scalar);
 	
+	Vector3D operator-() const;
+	
 	///
 	/// Returns a reference to the coordinate at \a index.
 	/// 
@@ -206,6 +208,20 @@ Vector3D operator*(const Vector3D &left, const double right);
 /// \since	1.0
 ///
 Vector3D operator*(const double left, const Vector3D right);
+
+///
+/// Divides \a left by \a right and returns the result.
+/// 
+/// \since	1.0
+///
+Vector3D operator/(const Vector3D &left, const double right);
+
+///
+/// Divides \a right by \a left and returns the result.
+/// 
+/// \since	1.0
+///
+Vector3D operator/(const double left, const Vector3D right);
 
 ///
 /// Writes a JSON representation of \a vector to \a stream.

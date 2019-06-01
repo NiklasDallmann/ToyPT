@@ -251,18 +251,6 @@ Matrix3D &Matrix3D::operator*=(const double scalar)
 	return *this;
 }
 
-Vector3D Matrix3D::operator*(const Vector3D &vector)
-{
-	Vector3D returnValue;
-	
-	for (size_t i = 0; i < 3; i++)
-	{
-		returnValue[i] = (*this)[i] * vector;
-	}
-	
-	return returnValue;
-}
-
 Vector3D &Matrix3D::operator[](const size_t index)
 {
 	return this->_vectors[index];
@@ -322,6 +310,18 @@ Matrix3D operator*(const Matrix3D &left, const double right)
 Matrix3D operator*(const double left, const Matrix3D &right)
 {
 	return right * left;
+}
+
+Vector3D operator*(const Matrix3D &left, const Vector3D &right)
+{
+	Vector3D returnValue;
+	
+	for (size_t i = 0; i < 3; i++)
+	{
+		returnValue[i] = left[i] * right;
+	}
+	
+	return returnValue;
 }
 
 }

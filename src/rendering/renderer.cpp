@@ -1,6 +1,8 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <matrix3d.h>
+#include <random>
 #include <utility>
 #include <vector>
 
@@ -31,6 +33,7 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 	const size_t width = frameBuffer.width();
 	const size_t height = frameBuffer.height();
 	double fovRadians = fieldOfView / 180.0 * M_PI;
+	// FIXME negate when changing z-direction
 	double zCoordinate = width/(2.0 * std::tan(fovRadians / 2.0));
 	
 #pragma omp parallel for
@@ -44,7 +47,7 @@ void Renderer::render(FrameBuffer &frameBuffer, double fieldOfView)
 			Math::Vector3D direction{x, y, zCoordinate};
 			direction.normalize();
 			
-			frameBuffer.pixel(i, j) = this->_castRay(direction, {0, 0, 0});
+			frameBuffer.pixel(i, j) = this->_castRay(direction, {0, 0, 0}, 10);
 		}
 	}
 }
@@ -88,6 +91,7 @@ double Renderer::_intersectPlane(const Math::Vector3D &direction, const Math::Ve
 	
 	if (t1 <= _epsilon & t1 >= -_epsilon)
 	{
+		// FIXME negate when changing z-direction
 		returnValue = -1.0;
 		goto exit;
 	}
@@ -98,18 +102,18 @@ exit:
 	return returnValue;
 }
 
-double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, Triangle **triangle)
+double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, IntersectionInfo &intersection)
 {
 	double returnValue = 0;
 	double planeDistance = 0;
 	std::vector<std::pair<Triangle *, double>> planeDistances;
-	*triangle = nullptr;
 	
 	// Intersect planes
 	for (Triangle &triangle : this->_triangles)
 	{
 		planeDistance = this->_intersectPlane(direction, origin, triangle);
 		
+		// FIXME negate when changing z-direction
 		if (planeDistance > _epsilon)
 		{
 			planeDistances.push_back({&triangle, planeDistance});
@@ -130,7 +134,7 @@ double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D
 		if (this->_intersectTriangle(distance, direction, origin, currentTriangle))
 		{
 			returnValue = distance;
-			*triangle = &currentTriangle;
+			intersection.triangle = &currentTriangle;
 			break;
 		}
 	}
@@ -141,33 +145,34 @@ double Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D
 Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t samples, const size_t bounce, const size_t maxBounces)
 {
 	Math::Vector3D returnValue = {0, 0, 0};
+	Math::Vector3D intersectionPoint;
 	Math::Vector3D directLight = {0, 0, 0};
 	Math::Vector3D indirectLight = {0, 0, 0};
 	double distance = 0;
-	Triangle *triangle = nullptr;
+	IntersectionInfo intersection;
 	
 	if (bounce == maxBounces)
 	{
 		goto exit;
 	}
 	
-	// Direct Light
-	distance = this->_traceRay(direction, origin, &triangle);
+	// Direct lighting
+	distance = this->_traceRay(direction, origin, intersection);
+	intersectionPoint = origin + distance * direction;
 	
-	if (triangle != nullptr)
+	if (intersection.triangle != nullptr)
 	{
 		// Intersection found
-		Math::Vector3D intersectionPoint = origin + distance * direction;
-		
 		for (const PointLight &pointLight : this->_pointLights)
 		{
-			Triangle *occludingTriangle = nullptr;
+			IntersectionInfo occlusionIntersection;
 			Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
-			double newDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, &occludingTriangle);
+			double newDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
 			
-			if (occludingTriangle == nullptr | newDistance > lightDirection.magnitude())
+			if (occlusionIntersection.triangle == nullptr | newDistance > lightDirection.magnitude())
 			{
-				if ((triangle->normal() * lightDirection) < 0)
+				// FIXME invert comparison when changing z-direction
+				if ((intersection.triangle->normal() * lightDirection) < 0)
 				{
 					// Point light visible
 					directLight += pointLight.color() * (1.0 / std::pow(lightDirection.magnitude() / 8, 2.0));
@@ -175,20 +180,50 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			}
 		}
 		
-		returnValue = directLight.coordinateProduct(triangle->material().color());// + triangle->material().color()) * 0.5;
+		returnValue = directLight.coordinateProduct(intersection.triangle->material().color());
 	}
-	else
-	{
-		// No intersection found
-	}
+	
+	// Indirect lighting
+//	for (size_t sample = 0; sample < samples; sample++)
+//	{
+//		if (triangle)
+//		{
+//			Math::Vector3D sampleRay = this->_randomDirectionInHemisphere(triangle->normal());
+//			indirectLight += this->_castRay(sampleRay, intersectionPoint, samples, bounce, maxBounces);
+//		}
+//	}
+	
+//	indirectLight /= samples;
+	
+//	returnValue = (directLight * (1 / M_PI) + 2.0 * indirectLight);
 	
 exit:
 	return returnValue;
 }
 
+void Renderer::_createCoordinateSystem(const Math::Vector3D &N, Math::Vector3D &Nt, Math::Vector3D &Nb)
+{
+	if (std::abs(N.x()) > std::fabs(N.y()))
+	{
+		Nt = Math::Vector3D{N.z(), 0, -N.x()} / std::pow((N.x() * N.x() + N.z() * N.z()), 2.0);
+	}
+	else
+	{
+		Nt = Math::Vector3D{0, -N.z(), N.y()} / std::pow((N.y() * N.y() + N.z() * N.z()), 2.0);
+	}
+	
+	Nb = N.crossProduct(Nt);
+}
+
 Math::Vector3D Renderer::_randomDirectionInHemisphere(const Math::Vector3D &normal)
 {
+	Math::Vector3D returnValue;
+	std::default_random_engine generator;
+	std::uniform_real_distribution<double> distribution(0, 1);
 	
+	// FIXME finish
+	
+	return returnValue;
 }
 
 }

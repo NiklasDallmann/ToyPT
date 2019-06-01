@@ -30,7 +30,7 @@ int main()
 	pointLights.push_back({Math::Vector3D{1, 6, 10}, Math::Vector3D{1, 0, 0}});
 	pointLights.push_back({Math::Vector3D{-1, 6, 10}, Math::Vector3D{0, 0, 1}});
 	
-	Rendering::FrameBuffer frameBuffer(1000, 1000);
+	Rendering::FrameBuffer frameBuffer(100, 100);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);

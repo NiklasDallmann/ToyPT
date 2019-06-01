@@ -133,6 +133,11 @@ Vector3D &Vector3D::operator/=(const double scalar)
 	return *this;
 }
 
+Vector3D Vector3D::operator-() const
+{
+	return *this * (-1.0);
+}
+
 double &Vector3D::operator[](const size_t index)
 {
 	return this->_coordinates[index];
@@ -184,6 +189,20 @@ Vector3D operator*(const Vector3D &left, const double right)
 Vector3D operator*(const double left, const Vector3D right)
 {
 	return right * left;
+}
+
+Vector3D operator/(const Vector3D &left, const double right)
+{
+	Vector3D returnValue = left;
+	
+	returnValue /= right;
+	
+	return returnValue;
+}
+
+Vector3D operator/(const double left, const Vector3D right)
+{
+	return right / left;
 }
 
 std::ostream &operator<<(std::ostream &stream, const Vector3D &vector)
