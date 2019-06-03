@@ -148,6 +148,16 @@ double Vector3D::operator[](const size_t index) const
 	return this->_coordinates[index];
 }
 
+bool Vector3D::operator==(const Vector3D &other)
+{
+	return (this->_coordinates == other._coordinates);
+}
+
+bool Vector3D::operator!=(const Vector3D &other)
+{
+	return !(*this == other);
+}
+
 Vector3D operator+(const Vector3D &left, const Vector3D &right)
 {
 	Vector3D returnValue = left;

@@ -170,6 +170,9 @@ public:
 	///
 	double operator[](const size_t index) const;
 	
+	bool operator==(const Vector3D &other);
+	bool operator!=(const Vector3D &other);
+	
 private:
 	std::array<double, 4> _coordinates;
 };
