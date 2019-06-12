@@ -20,7 +20,7 @@ public:
 	
 	void setTriangles(const std::vector<Triangle> &triangles);
 	void setPointLights(const std::vector<PointLight> &pointLights);
-	void render(FrameBuffer &frameBuffer, double fieldOfView = 75);
+	void render(FrameBuffer &frameBuffer, const double fieldOfView = 75, const size_t samples = 10, const size_t bounces = 2);
 	
 private:
 	struct IntersectionInfo
@@ -32,11 +32,11 @@ private:
 	std::vector<Triangle> _triangles;
 	std::vector<PointLight> _pointLights;
 	
-	bool _intersectTriangle(const double distance, const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle);
-	double _intersectPlane(const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle);
+	bool _intersectTriangle(const double distance, const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle, const Math::Vector3D &normal);
+	double _intersectPlane(const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle, const Math::Vector3D &normal);
 	double _traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, IntersectionInfo &intersection);
-	Math::Vector3D _castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t samples = 1000, const size_t bounce = 0,
-							const size_t maxBounces = 10);
+	Math::Vector3D _castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t samples = 10, const size_t bounce = 0,
+							const size_t maxBounces = 4);
 	void _createCoordinateSystem(const Math::Vector3D &N, Math::Vector3D &Nt, Math::Vector3D &Nb);
 };
 

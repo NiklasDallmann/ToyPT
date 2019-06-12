@@ -1,8 +1,9 @@
-#include "matrix3d.h"
-
 #include <cmath>
 #include <sstream>
 #include <utility>
+
+#include "algorithms.h"
+#include "matrix3d.h"
 
 namespace Math
 {
@@ -36,15 +37,8 @@ Matrix3D Matrix3D::transposed() const
 
 Matrix3D &Matrix3D::invert(bool *invertible)
 {
-	(*this) = this->inverted(invertible);
-	
-	return *this;
-}
-
-Matrix3D Matrix3D::inverted(bool *invertible) const
-{
-	Matrix3D returnValue;
-	Matrix3D temporary;
+	bool isInvertible = true;
+	Matrix3D temporary = Matrix3D::identityMatrix();
 	double determinant = this->determinant3x3();
 	
 	if (determinant == 0.0)
@@ -52,22 +46,32 @@ Matrix3D Matrix3D::inverted(bool *invertible) const
 		goto exit;
 	}
 	
-	// FIXME finish
+	// Select pivot elements being not zero
+	for (size_t row = 0; row < _dimension; row++)
+	{
+		if (Math::fuzzyCompareEqual((*this)[row][row], 0.0))
+		{
+			// Look for another row
+		}
+	}
+	
+	// Subtract multiples of rows
+	
+	
+	isInvertible = true;
 	
 exit:
 	if (invertible != nullptr)
 	{
-		if (determinant == 0.0)
-		{
-			*invertible = false;
-		}
-		else
-		{
-			*invertible = true;
-		}
+		*invertible = isInvertible;
 	}
 	
-	return returnValue;
+	return *this;
+}
+
+Matrix3D Matrix3D::inverted(bool *invertible) const
+{
+	return {};
 }
 
 double Matrix3D::determinant3x3() const
