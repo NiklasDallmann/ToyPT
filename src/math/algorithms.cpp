@@ -6,7 +6,7 @@ namespace Math
 {
 
 template<>
-bool fuzzyCompareEqual<double>(const double left, const double right)
+bool fuzzyCompareEqual<float>(const float left, const float right)
 {
 	bool returnValue = false;
 	

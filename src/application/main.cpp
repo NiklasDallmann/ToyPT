@@ -25,18 +25,18 @@ int main()
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{-2, -1, -3}, Math::Vector3D{2, -1, -3}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, -1, -7}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -7}, Math::Vector3D{0, 3, -7}}, blue});
-//	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, red});
+	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, red});
 	
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector3D{1, 6, -10}, Math::Vector3D{1, 0, 0}});
 	pointLights.push_back({Math::Vector3D{-1, 6, -10}, Math::Vector3D{0, 0, 1}});
-//	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{1, 1, 1}});
+	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{0.5, 0.5, 0.5}});
 	
-	Rendering::FrameBuffer frameBuffer(200, 200);
+	Rendering::FrameBuffer frameBuffer(1000, 1000);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 256, 2);
+	renderer.render(frameBuffer, 70, 32, 3);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

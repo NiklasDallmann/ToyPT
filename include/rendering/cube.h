@@ -12,7 +12,7 @@ namespace Rendering
 class Cube : AbstractMesh
 {
 public:
-	Cube(const double sideLength = 1);
+	Cube(const float sideLength = 1);
 	virtual ~Cube();
 };
 

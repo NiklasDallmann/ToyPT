@@ -3,7 +3,7 @@
 namespace Rendering
 {
 
-Material::Material(const Math::Vector3D &color, const double reflection, const double refraction) :
+Material::Material(const Math::Vector3D &color, const float reflection, const float refraction) :
 	_color(color),
 	_reflection(reflection),
 	_refraction(refraction)
@@ -20,22 +20,22 @@ const Math::Vector3D &Material::color() const
 	return this->_color;
 }
 
-void Material::setReflection(const double reflection)
+void Material::setReflection(const float reflection)
 {
 	this->_reflection = reflection;
 }
 
-double Material::reflection() const
+float Material::reflection() const
 {
 	return this->_reflection;
 }
 
-void Material::setRefraction(const double refraction)
+void Material::setRefraction(const float refraction)
 {
 	this->_refraction = refraction;
 }
 
-double Material::refraction() const
+float Material::refraction() const
 {
 	return this->_refraction;
 }

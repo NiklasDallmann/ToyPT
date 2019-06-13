@@ -48,9 +48,9 @@ Color Color::fromVector3D(const Math::Vector3D &vector)
 	Color returnValue;
 	uint8_t red, green, blue;
 	
-	red = uint8_t(255 * std::max(0.0, std::min(1.0, vector.x())));
-	green = uint8_t(255 * std::max(0.0, std::min(1.0, vector.y())));
-	blue = uint8_t(255 * std::max(0.0, std::min(1.0, vector.z())));
+	red = uint8_t(255 * std::max(0.0f, std::min(1.0f, vector.x())));
+	green = uint8_t(255 * std::max(0.0f, std::min(1.0f, vector.y())));
+	blue = uint8_t(255 * std::max(0.0f, std::min(1.0f, vector.z())));
 	
 	returnValue = {red, green, blue};
 	

@@ -4,13 +4,13 @@
 namespace Math
 {
 
-constexpr double epsilon = 1e-6;
+constexpr float epsilon = 1e-6;
 
 template <typename T>
 bool fuzzyCompareEqual(const T left, const T right);
 
 template <>
-bool fuzzyCompareEqual<double>(const double, const double);
+bool fuzzyCompareEqual<float>(const float, const float);
 
 } // namespace Math
 

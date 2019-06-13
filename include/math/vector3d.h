@@ -21,7 +21,7 @@ namespace Math
 class Vector3D
 {
 public:
-	friend double operator*(const Vector3D &left, const Vector3D &right);
+	friend float operator*(const Vector3D &left, const Vector3D &right);
 	friend std::ostream &operator<<(std::ostream &stream, const Vector3D &vector);
 	
 	///
@@ -29,7 +29,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D(const double x = 0, const double y = 0, const double z = 0, const double w = 1);
+	Vector3D(const float x = 0, const float y = 0, const float z = 0, const float w = 1);
 	
 	///
 	/// Returns the x coordinate.
@@ -38,7 +38,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	double x() const;
+	float x() const;
 	
 	///
 	/// Sets the x coordinate to \a x.
@@ -47,7 +47,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setX(const double x);
+	void setX(const float x);
 	
 	///
 	/// Returns the y coordinate.
@@ -56,7 +56,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	double y() const;
+	float y() const;
 	
 	///
 	/// Sets the y coordinate to \a y.
@@ -65,7 +65,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setY(const double y);
+	void setY(const float y);
 	
 	///
 	/// Returns the z coordinate.
@@ -74,7 +74,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	double z() const;
+	float z() const;
 	
 	///
 	/// Sets the z coordinate to \a z.
@@ -83,14 +83,14 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setZ(const double z);
+	void setZ(const float z);
 	
 	///
 	/// Returns the magnitude of the vector.
 	/// 
 	/// \since	1.0
 	///
-	double magnitude() const;
+	float magnitude() const;
 	
 	///
 	/// Normalizes the vector so that it has a magnitude of one and returns a reference to the vector.
@@ -124,7 +124,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	double cos(const Vector3D &left, const Vector3D &right);
+	float cos(const Vector3D &left, const Vector3D &right);
 	
 	///
 	/// Adds \a other to the vector and returns a reference to it.
@@ -145,14 +145,14 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator*=(const double scalar);
+	Vector3D &operator*=(const float scalar);
 	
 	///
 	/// Divides the vector by \a scalar and returns a reference to it.
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator/=(const double scalar);
+	Vector3D &operator/=(const float scalar);
 	
 	Vector3D operator-() const;
 	
@@ -161,20 +161,21 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	double &operator[](const size_t index);
+	float &operator[](const size_t index);
 	
 	///
 	/// Returns the coordinate at \a index.
 	/// 
 	/// \since	1.0
 	///
-	double operator[](const size_t index) const;
+	float operator[](const size_t index) const;
 	
 	bool operator==(const Vector3D &other);
 	bool operator!=(const Vector3D &other);
 	
 private:
-	std::array<double, 4> _coordinates;
+	static constexpr size_t _dimension = 4;
+	alignas (sizeof (float) * _dimension) std::array<float, _dimension> _coordinates;
 };
 
 ///
@@ -196,35 +197,35 @@ Vector3D operator-(const Vector3D &left, const Vector3D &right);
 /// 
 /// \since	1.0
 ///
-double operator*(const Vector3D &left, const Vector3D &right);
+float operator*(const Vector3D &left, const Vector3D &right);
 
 ///
 /// Multiplies \a left by \a right and returns the result.
 /// 
 /// \since	1.0
 ///
-Vector3D operator*(const Vector3D &left, const double right);
+Vector3D operator*(const Vector3D &left, const float right);
 
 ///
 /// Multiplies \a right by \a left and returns the result.
 /// 
 /// \since	1.0
 ///
-Vector3D operator*(const double left, const Vector3D right);
+Vector3D operator*(const float left, const Vector3D right);
 
 ///
 /// Divides \a left by \a right and returns the result.
 /// 
 /// \since	1.0
 ///
-Vector3D operator/(const Vector3D &left, const double right);
+Vector3D operator/(const Vector3D &left, const float right);
 
 ///
 /// Divides \a right by \a left and returns the result.
 /// 
 /// \since	1.0
 ///
-Vector3D operator/(const double left, const Vector3D right);
+Vector3D operator/(const float left, const Vector3D right);
 
 ///
 /// Writes a JSON representation of \a vector to \a stream.

@@ -39,9 +39,9 @@ Matrix3D &Matrix3D::invert(bool *invertible)
 {
 	bool isInvertible = true;
 	Matrix3D temporary = Matrix3D::identityMatrix();
-	double determinant = this->determinant3x3();
+	float determinant = this->determinant3x3();
 	
-	if (determinant == 0.0)
+	if (determinant == 0.0f)
 	{
 		goto exit;
 	}
@@ -49,7 +49,7 @@ Matrix3D &Matrix3D::invert(bool *invertible)
 	// Select pivot elements being not zero
 	for (size_t row = 0; row < _dimension; row++)
 	{
-		if (Math::fuzzyCompareEqual((*this)[row][row], 0.0))
+		if (Math::fuzzyCompareEqual((*this)[row][row], 0.0f))
 		{
 			// Look for another row
 		}
@@ -74,9 +74,9 @@ Matrix3D Matrix3D::inverted(bool *invertible) const
 	return {};
 }
 
-double Matrix3D::determinant3x3() const
+float Matrix3D::determinant3x3() const
 {
-	double returnValue = 0;
+	float returnValue = 0;
 	
 	returnValue = (
 		(*this)[0][0] * (*this)[1][1] * (*this)[2][2] + 
@@ -90,12 +90,12 @@ double Matrix3D::determinant3x3() const
 	return returnValue;
 }
 
-double Matrix3D::determinant() const
+float Matrix3D::determinant() const
 {
-	double returnValue = 0;
-	double d0, d1, d2, d3;
+	float returnValue = 0;
+	float d0, d1, d2, d3;
 	
-	double a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p;
+	float a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p;
 	
 	a = (*this)[0][0];
 	b = (*this)[0][1];
@@ -137,10 +137,10 @@ Matrix3D Matrix3D::identityMatrix()
 	};
 }
 
-Matrix3D Matrix3D::rotationMatrixX(const double angle)
+Matrix3D Matrix3D::rotationMatrixX(const float angle)
 {
-	double cos = std::cos(angle);
-	double sin = std::sin(angle);
+	float cos = std::cos(angle);
+	float sin = std::sin(angle);
 	
 	Matrix3D returnValue{
 		{1,		0,		0},
@@ -151,10 +151,10 @@ Matrix3D Matrix3D::rotationMatrixX(const double angle)
 	return returnValue;
 }
 
-Matrix3D Matrix3D::rotationMatrixY(const double angle)
+Matrix3D Matrix3D::rotationMatrixY(const float angle)
 {
-	double cos = std::cos(angle);
-	double sin = std::sin(angle);
+	float cos = std::cos(angle);
+	float sin = std::sin(angle);
 	
 	Matrix3D returnValue{
 		{cos,		0,		sin},
@@ -165,10 +165,10 @@ Matrix3D Matrix3D::rotationMatrixY(const double angle)
 	return returnValue;
 }
 
-Matrix3D Matrix3D::rotationMatrixZ(const double angle)
+Matrix3D Matrix3D::rotationMatrixZ(const float angle)
 {
-	double cos = std::cos(angle);
-	double sin = std::sin(angle);
+	float cos = std::cos(angle);
+	float sin = std::sin(angle);
 	
 	Matrix3D returnValue{
 		{cos,		-sin,		0},
@@ -245,7 +245,7 @@ Matrix3D &Matrix3D::operator*=(const Matrix3D &other)
 	return *this;
 }
 
-Matrix3D &Matrix3D::operator*=(const double scalar)
+Matrix3D &Matrix3D::operator*=(const float scalar)
 {
 	for (Vector3D &vector : this->_vectors)
 	{
@@ -303,7 +303,7 @@ Matrix3D operator*(const Matrix3D &left, const Matrix3D &right)
 	return returnValue;
 }
 
-Matrix3D operator*(const Matrix3D &left, const double right)
+Matrix3D operator*(const Matrix3D &left, const float right)
 {
 	Matrix3D returnValue = left;
 	returnValue *= right;
@@ -311,7 +311,7 @@ Matrix3D operator*(const Matrix3D &left, const double right)
 	return returnValue;
 }
 
-Matrix3D operator*(const double left, const Matrix3D &right)
+Matrix3D operator*(const float left, const Matrix3D &right)
 {
 	return right * left;
 }
