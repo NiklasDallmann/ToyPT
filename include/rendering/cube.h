@@ -4,15 +4,16 @@
 #include <stddef.h>
 
 #include "abstractmesh.h"
+#include "material.h"
 #include "triangle.h"
 
 namespace Rendering
 {
 
-class Cube : AbstractMesh
+class Cube : public AbstractMesh
 {
 public:
-	Cube(const float sideLength = 1);
+	Cube(const float sideLength = 1, const Material &material = {});
 	virtual ~Cube();
 };
 

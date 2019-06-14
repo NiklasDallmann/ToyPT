@@ -20,6 +20,9 @@ public:
 	
 	Math::Vector3D normal() const;
 	
+	std::array<Math::Vector3D, 3> &vertices();
+	const std::array<Math::Vector3D, 3> &vertices() const;
+	
 	Math::Vector3D &operator[](const size_t index);
 	const Math::Vector3D &operator[](const size_t index) const;
 	

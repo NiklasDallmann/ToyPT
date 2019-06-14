@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <cube.h>
 #include <framebuffer.h>
 #include <matrix3d.h>
 #include <renderer.h>
@@ -21,11 +22,19 @@ int main()
 	Rendering::Material white{{1, 1, 1}};
 	Rendering::Material grey{{0.5, 0.5, 0.5}};
 	
+	Rendering::Cube cube(1, grey);
+	cube.translate({0.0f, 0.2f, -5.0f});
+	
 	std::vector<Rendering::Triangle> triangles;
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{-2, -1, -3}, Math::Vector3D{2, -1, -3}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, -1, -7}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -7}, Math::Vector3D{0, 3, -7}}, blue});
 	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, red});
+	
+	for (auto triangle : cube.triangles())
+	{
+		triangles.push_back(triangle);
+	}
 	
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector3D{1, 6, -10}, Math::Vector3D{1, 0, 0}});
@@ -36,7 +45,7 @@ int main()
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 16, 3);
+	renderer.render(frameBuffer, 70, 64, 2);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
