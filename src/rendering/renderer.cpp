@@ -80,7 +80,7 @@ bool Renderer::_intersectTriangle(const float distance, const Math::Vector3D &di
 	float conditionInsideE12 = e12.crossProduct(e1p) * normal;
 	float conditionInsideE20 = e20.crossProduct(e2p) * normal;
 	
-	if (conditionInsideE01 >= 0 & conditionInsideE12 >= 0 & conditionInsideE20 >= 0)
+	if (conditionInsideE01 >= 0.0f & conditionInsideE12 >= 0.0f & conditionInsideE20 >= 0.0f)
 	{
 		// Intersection found
 		returnValue = true;
@@ -103,7 +103,7 @@ float Renderer::_intersectPlane(const Math::Vector3D &direction, const Math::Vec
 	
 	if (t1 <= _epsilon & t1 >= -_epsilon)
 	{
-		returnValue = -1.0;
+		returnValue = -1.0f;
 		goto exit;
 	}
 	
@@ -115,8 +115,8 @@ exit:
 
 float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, IntersectionInfo &intersection)
 {
-	float returnValue = 0;
-	float planeDistance = 0;
+	float returnValue = 0.0f;
+	float planeDistance = 0.0f;
 	// FIXME Handle this in a better way
 	std::vector<std::tuple<Triangle *, float, Math::Vector3D>> planeDistances;
 	
@@ -160,7 +160,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	Math::Vector3D intersectionPoint;
 	Math::Vector3D directLight = {0, 0, 0};
 	Math::Vector3D indirectLight = {0, 0, 0};
-	float distance = 0;
+	float distance = 0.0f;
 	IntersectionInfo intersection;
 	Math::Vector3D normal;
 	
@@ -192,8 +192,6 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			}
 		}
 		
-//		returnValue = directLight.coordinateProduct(intersection.triangle->material().color()) / 2.0 + intersection.triangle->material().color() / 2.0;
-//		returnValue = directLight.coordinateProduct(intersection.triangle->material().color());
 		directLight = directLight.coordinateProduct(intersection.triangle->material().color());
 		
 		// Indirect lighting
@@ -206,7 +204,6 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		
 		this->_createCoordinateSystem(normal, Nt, Nb);
 		
-//#pragma omp parallel for
 		for (size_t sample = 0; sample < samples; sample++)
 		{
 			// Generate hemisphere
@@ -226,29 +223,12 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			
 			Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, samples, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
 			
-//#pragma omp critical
-			{
-				indirectLight += r1 * indirectColor / pdf / (bounce + 1);
-			}
-			
-//			std::stringstream stream;
-//			stream << (intersectionPoint + sampleWorld) << "\n";
-//			stream << "r1=" << r1 << " r2=" << r2 << "\n";
-//			std::cout << stream.str();
-			
-//			if (indirectLight != Math::Vector3D{0, 0, 0})
-//			{
-//				stream.clear();
-//				stream << "indirect light " << indirectLight << "\n";
-//				std::cout << stream.str();
-//			}
+			indirectLight += r1 * indirectColor / pdf / (bounce + 1);
 		}
 		
 		indirectLight /= float(samples);
 		
 		returnValue = (directLight / float(M_PI) + 2.0f * indirectLight);
-//		returnValue = directLight + indirectLight;
-//		returnValue = directLight;
 	}
 	
 exit:
