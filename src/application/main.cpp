@@ -45,7 +45,7 @@ int main()
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 64, 2);
+	renderer.render(frameBuffer, 70, 256, 2);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

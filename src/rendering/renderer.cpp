@@ -49,7 +49,14 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			Math::Vector3D direction{x, y, zCoordinate};
 			direction.normalize();
 			
-			frameBuffer.pixel(i, j) = this->_castRay(direction, {0, 0, 0}, samples, 0, bounces);
+			Math::Vector3D color;
+			
+			for (size_t sample = 0; sample < samples; sample++)
+			{
+				color += this->_castRay(direction, {0, 0, 0}, samples, 0, bounces);
+			}
+			
+			frameBuffer.pixel(i, j) = (color / float(samples));
 		}
 		
 #pragma omp critical
@@ -204,29 +211,26 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		
 		this->_createCoordinateSystem(normal, Nt, Nb);
 		
-		for (size_t sample = 0; sample < samples; sample++)
-		{
-			// Generate hemisphere
-			float r1 = distribution(generator);
-			float r2 = distribution(generator);
-			float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
-			float phi = 2.0f * float(M_PI) * r2;
-			float x = sinTheta * std::cos(phi);
-			float z = sinTheta * std::sin(phi);
-			Math::Vector3D sampleHemisphere{x, r1, z};
-			
-			Math::Vector3D sampleWorld{
-				sampleHemisphere.x() * Nb.x() + sampleHemisphere.y() * normal.x() + sampleHemisphere.z() * Nt.x(),
-				sampleHemisphere.x() * Nb.y() + sampleHemisphere.y() * normal.y() + sampleHemisphere.z() * Nt.y(),
-				sampleHemisphere.x() * Nb.z() + sampleHemisphere.y() * normal.z() + sampleHemisphere.z() * Nt.z()
-			};
-			
-			Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, samples, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
-			
-			indirectLight += r1 * indirectColor / pdf / (bounce + 1);
-		}
+		// Generate hemisphere
+		float r1 = distribution(generator);
+		float r2 = distribution(generator);
+		float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
+		float phi = 2.0f * float(M_PI) * r2;
+		float x = sinTheta * std::cos(phi);
+		float z = sinTheta * std::sin(phi);
+		Math::Vector3D sampleHemisphere{x, r1, z};
 		
-		indirectLight /= float(samples);
+		Math::Vector3D sampleWorld{
+			sampleHemisphere.x() * Nb.x() + sampleHemisphere.y() * normal.x() + sampleHemisphere.z() * Nt.x(),
+			sampleHemisphere.x() * Nb.y() + sampleHemisphere.y() * normal.y() + sampleHemisphere.z() * Nt.y(),
+			sampleHemisphere.x() * Nb.z() + sampleHemisphere.y() * normal.z() + sampleHemisphere.z() * Nt.z()
+		};
+		
+		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, samples, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
+		
+		indirectLight += r1 * indirectColor / pdf / (bounce + 1);
+		
+//		indirectLight /= float(samples);
 		
 		returnValue = (directLight / float(M_PI) + 2.0f * indirectLight);
 	}
