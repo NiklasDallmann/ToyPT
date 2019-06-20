@@ -37,6 +37,12 @@ Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(mate
 		// Back face
 		{{v7, v6, v2}, this->_material},
 		{{v7, v2, v3}, this->_material},
+		// Left face
+		{{v4, v0, v3}, this->_material},
+		{{v4, v3, v7}, this->_material},
+		// Right face
+		{{v5, v6, v2}, this->_material},
+		{{v5, v2, v1}, this->_material},
 	};
 }
 
