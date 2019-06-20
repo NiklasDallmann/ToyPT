@@ -53,7 +53,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			for (size_t sample = 0; sample < samples; sample++)
 			{
-				color += this->_castRay(direction, {0, 0, 0}, samples, 0, bounces);
+				color += this->_castRay(direction, {0, 0, 0}, 0, bounces);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -161,7 +161,7 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 	return returnValue;
 }
 
-Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t samples, const size_t bounce, const size_t maxBounces)
+Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t bounce, const size_t maxBounces)
 {
 	Math::Vector3D returnValue = {0, 0, 0};
 	Math::Vector3D intersectionPoint;
@@ -228,7 +228,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		
 		Math::Vector3D sampleWorld = matrix * sampleHemisphere;
 		
-		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, samples, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
+		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
 		
 		indirectLight += r1 * indirectColor / pdf / (bounce + 1);
 		

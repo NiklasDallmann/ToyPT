@@ -5,6 +5,7 @@
 #include <framebuffer.h>
 #include <matrix3d.h>
 #include <renderer.h>
+#include <square.h>
 #include <triangle.h>
 #include <vector>
 #include <vector3d.h>
@@ -24,24 +25,29 @@ int main()
 	Rendering::Material grey{{0.5, 0.5, 0.5}};
 	
 	Rendering::Cube cube(1, cyan);
-	cube.transform(Math::Matrix3D::rotationMatrixX(0.25f));
+	cube.transform(Math::Matrix3D::rotationMatrixX(0.3f));
 	cube.transform(Math::Matrix3D::rotationMatrixY(0.5f));
-	cube.translate({0.0f, 0.0f, -4.5f});
+	cube.translate({0.0f, -0.5f, -4.5f});
+	
+	Rendering::Square square(4, grey);
+	square.transform(Math::Matrix3D::rotationMatrixX(1.0f));
+	square.translate({0.0f, 0.0f, -7.0});
 	
 	std::vector<Rendering::Triangle> triangles;
-	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{-2, -1, -3}, Math::Vector3D{2, -1, -3}}, white});
-	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, -1, -7}}, white});
+	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{-2, -1, -3}, Math::Vector3D{2, -1, -3}}, grey});
+	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, -1, -7}}, grey});
 //	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -7}, Math::Vector3D{0, 3, -7}}, grey});
 //	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, grey});
 	
 	triangles.insert(triangles.end(), cube.triangles().cbegin(), cube.triangles().cend());
+	triangles.insert(triangles.end(), square.triangles().cbegin(), square.triangles().cend());
 	
 	std::vector<Rendering::PointLight> pointLights;
 //	pointLights.push_back({Math::Vector3D{1, 6, -10}, Math::Vector3D{1, 0, 0}});
 //	pointLights.push_back({Math::Vector3D{-1, 6, -10}, Math::Vector3D{0, 0, 1}});
-	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{2.0f, 2.0f, 2.0f}});
+	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(100, 100);
+	Rendering::FrameBuffer frameBuffer(200, 200);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
