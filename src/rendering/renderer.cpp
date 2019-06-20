@@ -220,17 +220,17 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		float z = sinTheta * std::sin(phi);
 		Math::Vector3D sampleHemisphere{x, r1, z};
 		
-		Math::Vector3D sampleWorld{
-			sampleHemisphere.x() * Nb.x() + sampleHemisphere.y() * normal.x() + sampleHemisphere.z() * Nt.x(),
-			sampleHemisphere.x() * Nb.y() + sampleHemisphere.y() * normal.y() + sampleHemisphere.z() * Nt.y(),
-			sampleHemisphere.x() * Nb.z() + sampleHemisphere.y() * normal.z() + sampleHemisphere.z() * Nt.z()
+		Math::Matrix3D matrix{
+			{Nb.x(), normal.x(), Nt.x()},
+			{Nb.y(), normal.y(), Nt.y()},
+			{Nb.z(), normal.z(), Nt.z()}
 		};
+		
+		Math::Vector3D sampleWorld = matrix * sampleHemisphere;
 		
 		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, samples, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
 		
 		indirectLight += r1 * indirectColor / pdf / (bounce + 1);
-		
-//		indirectLight /= float(samples);
 		
 		returnValue = (directLight / float(M_PI) + 2.0f * indirectLight);
 	}
