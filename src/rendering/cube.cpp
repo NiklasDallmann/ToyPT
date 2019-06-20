@@ -44,6 +44,8 @@ Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(mate
 		{{v5, v6, v2}, this->_material},
 		{{v5, v2, v1}, this->_material},
 	};
+	
+	this->translate({0.0f, -halfSideLength, 0.0f});
 }
 
 Cube::~Cube()

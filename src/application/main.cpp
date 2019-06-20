@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include <algorithm>
 #include <cube.h>
 #include <framebuffer.h>
 #include <matrix3d.h>
@@ -22,30 +23,29 @@ int main()
 	Rendering::Material white{{1, 1, 1}};
 	Rendering::Material grey{{0.5, 0.5, 0.5}};
 	
-	Rendering::Cube cube(1, grey);
-	cube.translate({0.0f, 0.2f, -5.0f});
+	Rendering::Cube cube(1, cyan);
+	cube.transform(Math::Matrix3D::rotationMatrixX(0.25f));
+	cube.transform(Math::Matrix3D::rotationMatrixY(0.5f));
+	cube.translate({0.0f, 0.0f, -4.5f});
 	
 	std::vector<Rendering::Triangle> triangles;
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{-2, -1, -3}, Math::Vector3D{2, -1, -3}}, white});
 	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, -1, -7}}, white});
-	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -7}, Math::Vector3D{0, 3, -7}}, blue});
-	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, red});
+//	triangles.push_back({{Math::Vector3D{-2, -1, -7}, Math::Vector3D{2, -1, -7}, Math::Vector3D{0, 3, -7}}, grey});
+//	triangles.push_back({{Math::Vector3D{2, -1, -5}, Math::Vector3D{2, -1, -3}, Math::Vector3D{2, 3, -4}}, grey});
 	
-	for (auto triangle : cube.triangles())
-	{
-		triangles.push_back(triangle);
-	}
+	triangles.insert(triangles.end(), cube.triangles().cbegin(), cube.triangles().cend());
 	
 	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector3D{1, 6, -10}, Math::Vector3D{1, 0, 0}});
-	pointLights.push_back({Math::Vector3D{-1, 6, -10}, Math::Vector3D{0, 0, 1}});
-	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{0.5, 0.5, 0.5}});
+//	pointLights.push_back({Math::Vector3D{1, 6, -10}, Math::Vector3D{1, 0, 0}});
+//	pointLights.push_back({Math::Vector3D{-1, 6, -10}, Math::Vector3D{0, 0, 1}});
+	pointLights.push_back({Math::Vector3D{-2, 6, -10}, Math::Vector3D{2.0f, 2.0f, 2.0f}});
 	
 	Rendering::FrameBuffer frameBuffer(100, 100);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 16, 8);
+	renderer.render(frameBuffer, 70, 32, 3);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
