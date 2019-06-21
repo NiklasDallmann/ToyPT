@@ -45,11 +45,11 @@ int main()
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector3D{-2.0f, 4.0f, -10.0f}, Math::Vector3D{0.5f, 0.5f, 0.5f}});
 	
-	Rendering::FrameBuffer frameBuffer(200, 200);
+	Rendering::FrameBuffer frameBuffer(100, 100);
 	Rendering::Renderer renderer;
 	renderer.setTriangles(triangles);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 64, 3);
+	renderer.render(frameBuffer, 70, 16, 3);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
