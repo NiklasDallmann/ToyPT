@@ -200,13 +200,10 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		{
 			IntersectionInfo occlusionIntersection;
 			Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
-			float newDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
+			float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
 			
-			if ((occlusionIntersection.triangle == nullptr | newDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0))
-			{
-				// Point light visible
-				directLight += pointLight.color() * (1.0f / std::pow(lightDirection.magnitude() / 8.0f, 2.0f));
-			}
+			directLight += ((intersection.triangle->normal() * lightDirection.normalized()) * pointLight.color()) * 
+					((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0));
 		}
 		
 		directLight = directLight.coordinateProduct(intersection.mesh->material().color());
@@ -217,6 +214,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		std::uniform_real_distribution<float> distribution(0, 1);
 		Math::Vector3D Nt;
 		Math::Vector3D Nb;
+		// FIXME This won't stay constant
 		float pdf = 1.0f / (2.0f * float(M_PI));
 		
 		this->_createCoordinateSystem(normal, Nt, Nb);

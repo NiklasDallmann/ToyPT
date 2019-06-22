@@ -23,25 +23,31 @@ int main()
 	Rendering::Material yellow{{1, 1, 0}};
 	Rendering::Material black{{0, 0, 0}};
 	Rendering::Material white{{1, 1, 1}};
-	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
+	Rendering::Material grey{{0.2f, 0.2f, 0.2f}, 1.0f, 0.0f, 0.5f};
 	
-	Rendering::Cube cube(1, cyan);
-	cube.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 4.0f));
-	cube.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / 4.0f));
-	cube.translate({0.0f, -0.2f, -4.5f});
+	Rendering::Cube cube0(1, cyan);
+	cube0.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 4.0f));
+	cube0.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / 4.0f));
+	cube0.translate({-1.1f, -0.2f, -4.5f});
+	
+	Rendering::Cube cube1(1, magenta);
+	cube1.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / -4.0f));
+	cube1.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / -4.0f));
+	cube1.translate({0.7f, 0.2f, -4.8f});
 	
 	Rendering::Cube worldCube(32, grey);
 	worldCube.invert();
 	worldCube.translate({-12.0f, 15.0f, 5.0f});
 	
 	std::vector<Rendering::AbstractMesh *> meshes;
-	meshes.push_back(&cube);
+	meshes.push_back(&cube0);
+	meshes.push_back(&cube1);
 	meshes.push_back(&worldCube);
 	
 	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector3D{-3.0f, 4.0f, -8.0f}, Math::Vector3D{1.0f, 1.0f, 1.0f}});
+	pointLights.push_back({Math::Vector3D{-3.0f, 4.0f, -8.0f}, Math::Vector3D{1.5f, 1.5f, 1.5f}});
 	
-	Rendering::FrameBuffer frameBuffer(200, 200);
+	Rendering::FrameBuffer frameBuffer(200, 100);
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
