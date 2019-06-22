@@ -22,6 +22,16 @@ const std::vector<Triangle> &AbstractMesh::triangles() const
 	return this->_triangles;
 }
 
+void AbstractMesh::setMaterial(const Material &material)
+{
+	this->_material = material;
+}
+
+const Material &AbstractMesh::material() const
+{
+	return this->_material;
+}
+
 void AbstractMesh::transform(const Math::Matrix3D &matrix)
 {
 	for (Triangle &triangle : this->_triangles)
@@ -41,6 +51,22 @@ void AbstractMesh::translate(const Math::Vector3D &vector)
 		{
 			vertex += vector;
 		}
+	}
+}
+
+void AbstractMesh::invert()
+{
+	for (Triangle &triangle : this->_triangles)
+	{
+		Triangle inverse{
+			{
+				triangle[2],
+				triangle[1],
+				triangle[0]
+			}
+		};
+		
+		triangle = inverse;
 	}
 }
 

@@ -1,22 +1,13 @@
 #include "triangle.h"
 
+#include <assert.h>
+
 namespace Rendering
 {
 
-Triangle::Triangle(const std::array<Math::Vector3D, 3> &vertices, const Material &material) :
-	_vertices(vertices),
-	_material(material)
+Triangle::Triangle(const std::array<Math::Vector3D, 3> &vertices) :
+	_vertices(vertices)
 {
-}
-
-void Triangle::setMaterial(const Material &material)
-{
-	this->_material = material;
-}
-
-const Material &Triangle::material() const
-{
-	return this->_material;
 }
 
 Math::Vector3D Triangle::normal() const

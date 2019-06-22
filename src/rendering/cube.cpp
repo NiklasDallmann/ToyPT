@@ -26,23 +26,23 @@ Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(mate
 	// Create Triangles
 	this->_triangles = {
 		// Upper face
-		{{v0, v1, v2}, this->_material},
-		{{v0, v2, v3}, this->_material},
+		{{v0, v1, v2}},
+		{{v0, v2, v3}},
 		// Lower face
-		{{v4, v5, v6}, this->_material},
-		{{v4, v6, v7}, this->_material},
+		{{v6, v5, v4}},
+		{{v7, v6, v4}},
 		// Front face
-		{{v4, v5, v1}, this->_material},
-		{{v4, v1, v0}, this->_material},
+		{{v4, v5, v1}},
+		{{v4, v1, v0}},
 		// Back face
-		{{v7, v6, v2}, this->_material},
-		{{v7, v2, v3}, this->_material},
+		{{v6, v7, v3}},
+		{{v6, v3, v2}},
 		// Left face
-		{{v4, v0, v3}, this->_material},
-		{{v4, v3, v7}, this->_material},
+		{{v4, v0, v3}},
+		{{v4, v3, v7}},
 		// Right face
-		{{v5, v6, v2}, this->_material},
-		{{v5, v2, v1}, this->_material},
+		{{v5, v6, v2}},
+		{{v5, v2, v1}},
 	};
 }
 

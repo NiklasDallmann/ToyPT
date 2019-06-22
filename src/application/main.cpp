@@ -26,30 +26,26 @@ int main()
 	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
 	
 	Rendering::Cube cube(1, cyan);
-	cube.transform(Math::Matrix3D::rotationMatrixX(0.7f));
-	cube.transform(Math::Matrix3D::rotationMatrixY(0.7f));
+	cube.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 4.0f));
+	cube.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / 4.0f));
 	cube.translate({0.0f, -0.2f, -4.5f});
 	
-	Rendering::Square square0(32, grey);
-	square0.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 2.0f));
-	square0.translate({0.0f, 10.0f, -10.0f});
+	Rendering::Cube worldCube(32, grey);
+	worldCube.invert();
+	worldCube.translate({-12.0f, 15.0f, 5.0f});
 	
-	Rendering::Square square1(32, grey);
-	square1.translate({0.0f, -1.0f, -2.0f});
-	
-	std::vector<Rendering::Triangle> triangles;
-	triangles.insert(triangles.end(), cube.triangles().cbegin(), cube.triangles().cend());
-	triangles.insert(triangles.end(), square0.triangles().cbegin(), square0.triangles().cend());
-	triangles.insert(triangles.end(), square1.triangles().cbegin(), square1.triangles().cend());
+	std::vector<Rendering::AbstractMesh *> meshes;
+	meshes.push_back(&cube);
+	meshes.push_back(&worldCube);
 	
 	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector3D{-2.0f, 4.0f, -10.0f}, Math::Vector3D{0.5f, 0.5f, 0.5f}});
+	pointLights.push_back({Math::Vector3D{-3.0f, 4.0f, -8.0f}, Math::Vector3D{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(100, 100);
+	Rendering::FrameBuffer frameBuffer(200, 200);
 	Rendering::Renderer renderer;
-	renderer.setTriangles(triangles);
+	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 16, 3);
+	renderer.render(frameBuffer, 70, 8, 3);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

@@ -5,18 +5,13 @@
 #include <stddef.h>
 #include <vector3d.h>
 
-#include "material.h"
-
 namespace Rendering
 {
 
 class Triangle
 {
 public:
-	Triangle(const std::array<Math::Vector3D, 3> &vertices = {}, const Material &material = {});
-	
-	void setMaterial(const Material &material);
-	const Material &material() const;
+	Triangle(const std::array<Math::Vector3D, 3> &vertices);
 	
 	Math::Vector3D normal() const;
 	
@@ -28,7 +23,6 @@ public:
 	
 private:
 	std::array<Math::Vector3D, 3> _vertices;
-	Material _material;
 };
 
 } // namespace Rendering

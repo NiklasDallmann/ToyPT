@@ -7,6 +7,7 @@
 #include <vector>
 #include <vector3d.h>
 
+#include "abstractmesh.h"
 #include "pointlight.h"
 #include "triangle.h"
 
@@ -18,18 +19,19 @@ class Renderer
 public:
 	Renderer();
 	
-	void setTriangles(const std::vector<Triangle> &triangles);
+	void setMeshes(const std::vector<AbstractMesh *> &meshes);
 	void setPointLights(const std::vector<PointLight> &pointLights);
 	void render(FrameBuffer &frameBuffer, const float fieldOfView = 75, const size_t samples = 10, const size_t bounces = 2);
 	
 private:
 	struct IntersectionInfo
 	{
+		AbstractMesh *mesh = nullptr;
 		Triangle *triangle = nullptr;
 	};
 	
 	static constexpr float _epsilon = 0.000001;
-	std::vector<Triangle> _triangles;
+	std::vector<AbstractMesh *> _meshes;
 	std::vector<PointLight> _pointLights;
 	
 	bool _intersectTriangle(const float distance, const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle, const Math::Vector3D &normal);

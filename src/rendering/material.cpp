@@ -11,4 +11,9 @@ Material::Material(const Math::Vector3D &color, const float roughness, const flo
 {
 }
 
+const Math::Vector3D &Material::color() const
+{
+	return this->_color;
+}
+
 }

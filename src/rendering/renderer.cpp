@@ -19,9 +19,9 @@ Renderer::Renderer()
 {
 }
 
-void Renderer::setTriangles(const std::vector<Triangle> &triangles)
+void Renderer::setMeshes(const std::vector<AbstractMesh *> &meshes)
 {
-	this->_triangles = triangles;
+	this->_meshes = meshes;
 }
 
 void Renderer::setPointLights(const std::vector<PointLight> &pointLights)
@@ -126,23 +126,30 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 	float returnValue = 0.0f;
 	float planeDistance = 0.0f;
 	// FIXME Handle this in a better way
-	std::vector<std::tuple<Triangle *, float, Math::Vector3D>> planeDistances;
+	std::vector<std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *>> planeDistances;
 	
 	// Intersect planes
-	for (Triangle &triangle : this->_triangles)
+	for (AbstractMesh *mesh : this->_meshes)
 	{
-		Math::Vector3D normal = triangle.normal();
-		planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
-		
-		if (planeDistance > _epsilon)
+		for (Triangle &triangle : mesh->triangles())
 		{
-			planeDistances.push_back({&triangle, planeDistance, normal});
+			Math::Vector3D normal = triangle.normal();
+			planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
+			
+			if (planeDistance > _epsilon)
+			{
+				planeDistances.push_back({&triangle, planeDistance, normal, mesh});
+			}
 		}
 	}
 	
-	std::sort(planeDistances.begin(), planeDistances.end(), [](const std::tuple<Triangle *, float, Math::Vector3D> &left, const std::tuple<Triangle *, float, Math::Vector3D> &right){
-		return std::get<1>(left) < std::get<1>(right);
-	});
+	std::sort(planeDistances.begin(), planeDistances.end(),
+		[](const std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *> &left,
+		   const std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *> &right)
+		{
+			return std::get<1>(left) < std::get<1>(right);
+		}
+	);
 	
 	// Intersect triangles
 	for (decltype (planeDistances)::value_type element : planeDistances)
@@ -150,10 +157,12 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 		Triangle &currentTriangle = *std::get<0>(element);
 		float distance = std::get<1>(element);
 		Math::Vector3D &normal = std::get<2>(element);
+		AbstractMesh *mesh = std::get<3>(element);
 		
 		if (this->_intersectTriangle(distance, direction, origin, currentTriangle, normal))
 		{
 			returnValue = distance;
+			intersection.mesh = mesh;
 			intersection.triangle = &currentTriangle;
 			break;
 		}
@@ -183,7 +192,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	
 	if (intersection.triangle != nullptr)
 	{
-		returnValue = intersection.triangle->material().color();
+		returnValue = intersection.mesh->material().color();
 		normal = intersection.triangle->normal();
 		
 		// Intersection found
@@ -200,7 +209,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			}
 		}
 		
-		directLight = directLight.coordinateProduct(intersection.triangle->material().color());
+		directLight = directLight.coordinateProduct(intersection.mesh->material().color());
 		
 		// Indirect lighting
 		std::random_device device;
@@ -229,7 +238,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		
 		Math::Vector3D sampleWorld = matrix * sampleHemisphere;
 		
-		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, bounce + 1, maxBounces).coordinateProduct(intersection.triangle->material().color());
+		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, bounce + 1, maxBounces).coordinateProduct(intersection.mesh->material().color());
 		
 		indirectLight += r1 * indirectColor / pdf / (bounce + 1);
 		

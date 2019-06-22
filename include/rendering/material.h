@@ -11,6 +11,8 @@ class Material
 public:
 	Material(const Math::Vector3D &color = {}, const float roughness = 1.0f, const float metallic = 0.0f, const float specular = 0.0f);
 	
+	const Math::Vector3D &color() const;
+	
 private:
 	Math::Vector3D _color;
 	float _roughness;
