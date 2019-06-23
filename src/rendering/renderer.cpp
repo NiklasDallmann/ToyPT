@@ -205,7 +205,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
 		distance = this->_traceRay(currentDirection, currentOrigin, intersection);
-		intersectionPoint = origin + distance * direction;
+		intersectionPoint = currentOrigin + distance * currentDirection;
 		
 		if (intersection.triangle != nullptr)
 		{
@@ -262,7 +262,8 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 		{
 			float r1 = r1s[currentBounce - 1];
 			Math::Vector3D directLight = directLights[currentBounce - 1];
-			Math::Vector3D indirectLight = r1 * returnValue.coordinateProduct(colors[currentBounce - 1]) / pdf;
+			Math::Vector3D indirectColor = returnValue.coordinateProduct(colors[currentBounce - 1]);
+			Math::Vector3D indirectLight = r1 * indirectColor / pdf;
 			returnValue = directLight / float(M_PI) + 2.0f * indirectLight;
 		}
 	}
