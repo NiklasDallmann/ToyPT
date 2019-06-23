@@ -173,77 +173,100 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 
 Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t bounce, const size_t maxBounces)
 {
-	Math::Vector3D returnValue = {0, 0, 0};
+	Math::Vector3D returnValue = {0.0f, 0.0f, 0.0f};
+	
+	Math::Vector3D currentDirection = direction;
+	Math::Vector3D currentOrigin = origin;
+	
+	// Stack
+	std::vector<Math::Vector3D> directLights;
+	std::vector<Math::Vector3D> colors;
+	std::vector<float> r1s;
+	directLights.reserve(maxBounces);
+	colors.reserve(maxBounces);
+	r1s.reserve(maxBounces);
+	
+	float r1 = 1.0f;
+	float r2 = 0.0f;
+	// FIXME This won't stay constant
+	float pdf = 1.0f / (2.0f * float(M_PI));
+	
+	std::random_device device;
+	std::default_random_engine generator(device());
+	std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+	Math::Vector3D Nt;
+	Math::Vector3D Nb;
+	
 	Math::Vector3D intersectionPoint;
-	Math::Vector3D directLight = {0, 0, 0};
-	Math::Vector3D indirectLight = {0, 0, 0};
-	float distance = 0.0f;
 	IntersectionInfo intersection;
 	Math::Vector3D normal;
+	float distance = 0.0f;
 	
-	if (bounce == maxBounces)
+	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
-		goto exit;
-	}
-	
-	// Direct lighting
-	distance = this->_traceRay(direction, origin, intersection);
-	intersectionPoint = origin + distance * direction;
-	
-	if (intersection.triangle != nullptr)
-	{
-		returnValue = intersection.mesh->material().color();
-		normal = intersection.triangle->normal();
+		distance = this->_traceRay(currentDirection, currentOrigin, intersection);
+		intersectionPoint = origin + distance * direction;
 		
-		// Intersection found
-		for (const PointLight &pointLight : this->_pointLights)
+		if (intersection.triangle != nullptr)
 		{
-			IntersectionInfo occlusionIntersection;
-			Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
-			float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
+			Math::Vector3D color = intersection.mesh->material().color();
+			Math::Vector3D directLight = {0.0f, 0.0f, 0.0f};
+			normal = intersection.triangle->normal();
 			
-			directLight += ((intersection.triangle->normal() * lightDirection.normalized()) * pointLight.color()) * 
-					((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0));
+			// Intersection found
+			for (const PointLight &pointLight : this->_pointLights)
+			{
+				IntersectionInfo occlusionIntersection;
+				Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
+				float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
+				
+				directLight += ((intersection.triangle->normal() * lightDirection.normalized()) * pointLight.color()) * 
+						((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0.0f));
+			}
+			
+			directLight = directLight.coordinateProduct(color);
+			
+			// Indirect lighting
+			this->_createCoordinateSystem(normal, Nt, Nb);
+			
+			// Generate hemisphere
+			r1 = distribution(generator);
+			r2 = distribution(generator);
+			float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
+			float phi = 2.0f * float(M_PI) * r2;
+			float x = sinTheta * std::cos(phi);
+			float z = sinTheta * std::sin(phi);
+			Math::Vector3D sampleHemisphere{x, r1, z};
+			
+			Math::Matrix3D matrix{
+				{Nb.x(), normal.x(), Nt.x()},
+				{Nb.y(), normal.y(), Nt.y()},
+				{Nb.z(), normal.z(), Nt.z()}
+			};
+			
+			Math::Vector3D sampleWorld = matrix * sampleHemisphere;
+			
+			currentDirection = (intersectionPoint + sampleWorld).normalized();
+			currentOrigin = sampleWorld;
+			
+			directLights.push_back(directLight);
+			colors.push_back(color);
+			r1s.push_back(r1);
+		}
+		else
+		{
+			break;
 		}
 		
-		directLight = directLight.coordinateProduct(intersection.mesh->material().color());
-		
-		// Indirect lighting
-		std::random_device device;
-		std::default_random_engine generator(device());
-		std::uniform_real_distribution<float> distribution(0, 1);
-		Math::Vector3D Nt;
-		Math::Vector3D Nb;
-		// FIXME This won't stay constant
-		float pdf = 1.0f / (2.0f * float(M_PI));
-		
-		this->_createCoordinateSystem(normal, Nt, Nb);
-		
-		// Generate hemisphere
-		float r1 = distribution(generator);
-		float r2 = distribution(generator);
-		float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
-		float phi = 2.0f * float(M_PI) * r2;
-		float x = sinTheta * std::cos(phi);
-		float z = sinTheta * std::sin(phi);
-		Math::Vector3D sampleHemisphere{x, r1, z};
-		
-		Math::Matrix3D matrix{
-			{Nb.x(), normal.x(), Nt.x()},
-			{Nb.y(), normal.y(), Nt.y()},
-			{Nb.z(), normal.z(), Nt.z()}
-		};
-		
-		Math::Vector3D sampleWorld = matrix * sampleHemisphere;
-		
-		Math::Vector3D indirectColor = this->_castRay((intersectionPoint + sampleWorld).normalized(), sampleWorld, bounce + 1, maxBounces).coordinateProduct(intersection.mesh->material().color());
-		
-		indirectLight += r1 * indirectColor / pdf / (bounce + 1);
-		
-		returnValue = (directLight / float(M_PI) + 2.0f * indirectLight);
+		for (size_t currentBounce = directLights.size(); currentBounce > 0; currentBounce--)
+		{
+			float r1 = r1s[currentBounce - 1];
+			Math::Vector3D directLight = directLights[currentBounce - 1];
+			Math::Vector3D indirectLight = r1 * returnValue.coordinateProduct(colors[currentBounce - 1]) / pdf;
+			returnValue = directLight / float(M_PI) + 2.0f * indirectLight;
+		}
 	}
 	
-exit:
 	return returnValue;
 }
 
