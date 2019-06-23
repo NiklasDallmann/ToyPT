@@ -197,14 +197,12 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	Math::Vector3D Nt;
 	Math::Vector3D Nb;
 	
-	Math::Vector3D intersectionPoint;
-	IntersectionInfo intersection;
-	Math::Vector3D normal;
-	float distance = 0.0f;
-	
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
-		distance = this->_traceRay(currentDirection, currentOrigin, intersection);
+		Math::Vector3D intersectionPoint;
+		IntersectionInfo intersection;
+		Math::Vector3D normal;
+		float distance = this->_traceRay(currentDirection, currentOrigin, intersection);
 		intersectionPoint = currentOrigin + distance * currentDirection;
 		
 		if (intersection.triangle != nullptr)
@@ -220,7 +218,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 				Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
 				float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
 				
-				directLight += ((intersection.triangle->normal() * lightDirection.normalized()) * pointLight.color()) * 
+				directLight += ((normal * lightDirection.normalized()) * pointLight.color()) * 
 						((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0.0f));
 			}
 			
@@ -263,7 +261,7 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			float r1 = r1s[currentBounce - 1];
 			Math::Vector3D directLight = directLights[currentBounce - 1];
 			Math::Vector3D indirectColor = returnValue.coordinateProduct(colors[currentBounce - 1]);
-			Math::Vector3D indirectLight = r1 * indirectColor / pdf;
+			Math::Vector3D indirectLight = r1 * indirectColor / pdf / (currentBounce + 1);
 			returnValue = directLight / float(M_PI) + 2.0f * indirectLight;
 		}
 	}
