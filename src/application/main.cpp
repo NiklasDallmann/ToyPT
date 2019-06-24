@@ -23,7 +23,7 @@ int main()
 	Rendering::Material yellow{{1, 1, 0}};
 	Rendering::Material black{{0, 0, 0}};
 	Rendering::Material white{{1, 1, 1}};
-	Rendering::Material grey{{0.2f, 0.2f, 0.2f}, 1.0f, 0.0f, 0.5f};
+	Rendering::Material grey{{0.4f, 0.4f, 0.4f}, 1.0f, 0.0f, 0.5f};
 	
 	Rendering::Cube cube0(1, cyan);
 	cube0.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 4.0f));
@@ -51,7 +51,7 @@ int main()
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 32, 3);
+	renderer.render(frameBuffer, 70, 128, 10);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

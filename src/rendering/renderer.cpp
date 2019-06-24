@@ -38,7 +38,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	size_t linesFinished = 0;
 	std::stringstream stream;
 
-//#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic)
 	for (size_t j = 0; j < height; j++)
 	{
 		for (size_t i = 0; i < width; i++)
@@ -51,7 +51,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			Math::Vector3D color;
 			
-#pragma omp parallel for
+//#pragma omp parallel for
 			for (size_t sample = 0; sample < samples; sample++)
 			{
 				color += this->_castRay(direction, {0, 0, 0}, 0, bounces);
@@ -60,7 +60,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			frameBuffer.pixel(i, j) = (color / float(samples));
 		}
 		
-//#pragma omp critical
+#pragma omp critical
 		{
 			linesFinished++;
 			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "%\r";
@@ -174,20 +174,11 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t bounce, const size_t maxBounces)
 {
 	Math::Vector3D returnValue = {0.0f, 0.0f, 0.0f};
+	Math::Vector3D mask = {1.0f, 1.0f, 1.0f};
 	
 	Math::Vector3D currentDirection = direction;
 	Math::Vector3D currentOrigin = origin;
 	
-	// Stack
-	std::vector<Math::Vector3D> directLights;
-	std::vector<Math::Vector3D> colors;
-	std::vector<float> r1s;
-	directLights.reserve(maxBounces);
-	colors.reserve(maxBounces);
-	r1s.reserve(maxBounces);
-	
-	float r1 = 1.0f;
-	float r2 = 0.0f;
 	// FIXME This won't stay constant
 	float pdf = 1.0f / (2.0f * float(M_PI));
 	
@@ -228,8 +219,8 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			this->_createCoordinateSystem(normal, Nt, Nb);
 			
 			// Generate hemisphere
-			r1 = distribution(generator);
-			r2 = distribution(generator);
+			float r1 = distribution(generator);
+			float r2 = distribution(generator);
 			float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
 			float phi = 2.0f * float(M_PI) * r2;
 			float x = sinTheta * std::cos(phi);
@@ -247,22 +238,12 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			currentDirection = (intersectionPoint + sampleWorld).normalized();
 			currentOrigin = sampleWorld;
 			
-			directLights.push_back(directLight);
-			colors.push_back(color);
-			r1s.push_back(r1);
+			returnValue += mask.coordinateProduct(directLight);
+			mask = mask.coordinateProduct(color);
 		}
 		else
 		{
 			break;
-		}
-		
-		for (size_t currentBounce = directLights.size(); currentBounce > 0; currentBounce--)
-		{
-			float r1 = r1s[currentBounce - 1];
-			Math::Vector3D directLight = directLights[currentBounce - 1];
-			Math::Vector3D indirectColor = returnValue.coordinateProduct(colors[currentBounce - 1]);
-			Math::Vector3D indirectLight = r1 * indirectColor / pdf / (currentBounce + 1);
-			returnValue = directLight / float(M_PI) + 2.0f * indirectLight;
 		}
 	}
 	
