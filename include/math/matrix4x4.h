@@ -1,5 +1,5 @@
-#ifndef MATRIX3D_H
-#define MATRIX3D_H
+#ifndef MATRIX4X4_H
+#define MATRIX4X4_H
 
 #include <array>
 #include <cmath>
@@ -8,22 +8,22 @@
 #include <utility>
 
 #include "algorithms.h"
-#include "vector3d.h"
+#include "vector4.h"
 
 namespace Math
 {
 
-class Matrix3D
+class Matrix4x4
 {
 public:
-	friend std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix);
+	friend std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix);
 	
-	Matrix3D(const Vector3D &a = {}, const Vector3D &b = {}, const Vector3D &c = {}, const Vector3D &d = {}) :
+	Matrix4x4(const Vector4 &a = {}, const Vector4 &b = {}, const Vector4 &c = {}, const Vector4 &d = {}) :
 		_vectors({a, b, c, d})
 	{
 	}
 	
-	Matrix3D &transpose()
+	Matrix4x4 &transpose()
 	{
 		for (size_t i = 0; i < (_dimension - 1); i++)
 		{
@@ -35,19 +35,19 @@ public:
 		
 		return *this;
 	}
-	Matrix3D transposed() const
+	Matrix4x4 transposed() const
 	{
-		Matrix3D returnValue = *this;
+		Matrix4x4 returnValue = *this;
 		
 		returnValue.transpose();
 		
 		return returnValue;
 	}
 	
-	Matrix3D &invert(bool *invertible = nullptr)
+	Matrix4x4 &invert(bool *invertible = nullptr)
 	{
 		bool isInvertible = true;
-		Matrix3D temporary = Matrix3D::identityMatrix();
+		Matrix4x4 temporary = Matrix4x4::identityMatrix();
 		float determinant = this->determinant3x3();
 		
 		if (determinant == 0.0f)
@@ -77,7 +77,7 @@ exit:
 		
 		return *this;
 	}
-	Matrix3D inverted(bool *invertible = nullptr) const
+	Matrix4x4 inverted(bool *invertible = nullptr) const
 	{
 		return {};
 	}
@@ -134,21 +134,21 @@ exit:
 		return returnValue;
 	}
 	
-	static Matrix3D identityMatrix()
+	static Matrix4x4 identityMatrix()
 	{
-		return Matrix3D{
+		return Matrix4x4{
 			{1, 0, 0, 0},
 			{0, 1, 0, 0},
 			{0, 0, 1, 0},
 			{0, 0, 0, 1}
 		};
 	}
-	static Matrix3D rotationMatrixX(const float angle)
+	static Matrix4x4 rotationMatrixX(const float angle)
 	{
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 		
-		Matrix3D returnValue{
+		Matrix4x4 returnValue{
 			{1,		0,		0},
 			{0,		cos,	-sin},
 			{0,		sin,	cos}
@@ -156,12 +156,12 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix3D rotationMatrixY(const float angle)
+	static Matrix4x4 rotationMatrixY(const float angle)
 	{
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 		
-		Matrix3D returnValue{
+		Matrix4x4 returnValue{
 			{cos,		0,		sin},
 			{0,			1,		0},
 			{-sin,		0,		cos}
@@ -169,12 +169,12 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix3D rotationMatrixZ(const float angle)
+	static Matrix4x4 rotationMatrixZ(const float angle)
 	{
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 		
-		Matrix3D returnValue{
+		Matrix4x4 returnValue{
 			{cos,		-sin,		0},
 			{sin,		cos,		0},
 			{0,			0,			1}
@@ -183,9 +183,9 @@ exit:
 		return returnValue;
 	}
 	
-	static Matrix3D transposedAdd(const Matrix3D &left, const Matrix3D &right)
+	static Matrix4x4 transposedAdd(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
-		Matrix3D returnValue;
+		Matrix4x4 returnValue;
 		
 		for (size_t i = 0; i < _dimension; i++)
 		{
@@ -194,9 +194,9 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix3D transposedSubtract(const Matrix3D &left, const Matrix3D &right)
+	static Matrix4x4 transposedSubtract(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
-		Matrix3D returnValue;
+		Matrix4x4 returnValue;
 		
 		for (size_t i = 0; i < _dimension; i++)
 		{
@@ -205,9 +205,9 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix3D transposedMultiply(const Matrix3D &left, const Matrix3D &right)
+	static Matrix4x4 transposedMultiply(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
-		Matrix3D returnValue;
+		Matrix4x4 returnValue;
 		
 		for (size_t i = 0; i < _dimension; i++)
 		{
@@ -220,36 +220,36 @@ exit:
 		return returnValue;
 	}
 	
-	Matrix3D &operator+=(const Matrix3D &other)
+	Matrix4x4 &operator+=(const Matrix4x4 &other)
 	{
-		Matrix3D transposedOther = other.transposed();
+		Matrix4x4 transposedOther = other.transposed();
 		
-		*this = Matrix3D::transposedAdd(*this, transposedOther);
+		*this = Matrix4x4::transposedAdd(*this, transposedOther);
 		
 		return *this;
 	}
 	
-	Matrix3D &operator-=(const Matrix3D &other)
+	Matrix4x4 &operator-=(const Matrix4x4 &other)
 	{
-		Matrix3D transposedOther = other.transposed();
+		Matrix4x4 transposedOther = other.transposed();
 		
-		*this = Matrix3D::transposedSubtract(*this, transposedOther);
+		*this = Matrix4x4::transposedSubtract(*this, transposedOther);
 		
 		return *this;
 	}
 	
-	Matrix3D &operator*=(const Matrix3D &other)
+	Matrix4x4 &operator*=(const Matrix4x4 &other)
 	{
-		Matrix3D transposedOther = other.transposed();
+		Matrix4x4 transposedOther = other.transposed();
 		
-		*this = Matrix3D::transposedMultiply(*this, transposedOther);
+		*this = Matrix4x4::transposedMultiply(*this, transposedOther);
 		
 		return *this;
 	}
 	
-	Matrix3D &operator*=(const float scalar)
+	Matrix4x4 &operator*=(const float scalar)
 	{
-		for (Vector3D &vector : this->_vectors)
+		for (Vector4 &vector : this->_vectors)
 		{
 			vector *= scalar;
 		}
@@ -257,64 +257,64 @@ exit:
 		return *this;
 	}
 	
-	Vector3D &operator[](const size_t index)
+	Vector4 &operator[](const size_t index)
 	{
 		return this->_vectors[index];
 	}
 	
-	const Vector3D &operator[](const size_t index) const
+	const Vector4 &operator[](const size_t index) const
 	{
 		return this->_vectors[index];
 	}
 	
 private:
 	static constexpr size_t _dimension = 4;
-	alignas (Vector3D) std::array<Vector3D, _dimension> _vectors;
+	alignas (Vector4) std::array<Vector4, _dimension> _vectors;
 };
 
-inline Matrix3D operator+(const Matrix3D &left, const Matrix3D &right)
+inline Matrix4x4 operator+(const Matrix4x4 &left, const Matrix4x4 &right)
 {
-	Matrix3D returnValue = left;
+	Matrix4x4 returnValue = left;
 	
 	returnValue += right;
 	
 	return returnValue;
 }
 
-inline Matrix3D operator-(const Matrix3D &left, const Matrix3D &right)
+inline Matrix4x4 operator-(const Matrix4x4 &left, const Matrix4x4 &right)
 {
-	Matrix3D returnValue = left;
+	Matrix4x4 returnValue = left;
 	
 	returnValue -= right;
 	
 	return returnValue;
 }
 
-inline Matrix3D operator*(const Matrix3D &left, const Matrix3D &right)
+inline Matrix4x4 operator*(const Matrix4x4 &left, const Matrix4x4 &right)
 {
-	Matrix3D returnValue = left;
+	Matrix4x4 returnValue = left;
 	
 	returnValue *= right;
 	
 	return returnValue;
 }
 
-inline Matrix3D operator*(const Matrix3D &left, const float right)
+inline Matrix4x4 operator*(const Matrix4x4 &left, const float right)
 {
-	Matrix3D returnValue = left;
+	Matrix4x4 returnValue = left;
 	returnValue *= right;
 	
 	return returnValue;
 }
 
-inline Matrix3D operator*(const float left, const Matrix3D &right)
+inline Matrix4x4 operator*(const float left, const Matrix4x4 &right)
 {
 	return right * left;
 }
 
-inline Vector3D operator*(const Matrix3D &left, const Vector3D &right)
+inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right)
 {
-	Vector3D returnValue;
+	Vector4 returnValue;
 	
 	for (size_t i = 0; i < 3; i++)
 	{
@@ -324,7 +324,7 @@ inline Vector3D operator*(const Matrix3D &left, const Vector3D &right)
 	return returnValue;
 }
 
-inline std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix)
+inline std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix)
 {
 	std::stringstream stringStream;
 	
@@ -337,4 +337,4 @@ inline std::ostream &operator<<(std::ostream &stream, const Matrix3D &matrix)
 
 } // namespace Math
 
-#endif // MATRIX3D_H
+#endif // MATRIX4X4_H

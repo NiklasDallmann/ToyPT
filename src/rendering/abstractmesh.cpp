@@ -32,22 +32,22 @@ const Material &AbstractMesh::material() const
 	return this->_material;
 }
 
-void AbstractMesh::transform(const Math::Matrix3D &matrix)
+void AbstractMesh::transform(const Math::Matrix4x4 &matrix)
 {
 	for (Triangle &triangle : this->_triangles)
 	{
-		for (Math::Vector3D &vertex : triangle.vertices())
+		for (Math::Vector4 &vertex : triangle.vertices())
 		{
 			vertex = matrix * vertex;
 		}
 	}
 }
 
-void AbstractMesh::translate(const Math::Vector3D &vector)
+void AbstractMesh::translate(const Math::Vector4 &vector)
 {
 	for (Triangle &triangle : this->_triangles)
 	{
-		for (Math::Vector3D &vertex : triangle.vertices())
+		for (Math::Vector4 &vertex : triangle.vertices())
 		{
 			vertex += vector;
 		}

@@ -43,7 +43,7 @@ uint8_t Color::blue() const
 	return uint8_t(this->_data >> 8);
 }
 
-Color Color::fromVector3D(const Math::Vector3D &vector)
+Color Color::fromVector3D(const Math::Vector4 &vector)
 {
 	Color returnValue;
 	uint8_t red, green, blue;

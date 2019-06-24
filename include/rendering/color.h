@@ -4,7 +4,7 @@
 #include <array>
 #include <stddef.h>
 
-#include <vector3d.h>
+#include <vector4.h>
 
 namespace Rendering
 {
@@ -24,7 +24,7 @@ public:
 	void setBlue(const uint8_t blue);
 	uint8_t blue() const;
 	
-	static Color fromVector3D(const Math::Vector3D &vector);
+	static Color fromVector3D(const Math::Vector4 &vector);
 	
 private:
 	uint32_t _data;

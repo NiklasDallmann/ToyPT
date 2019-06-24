@@ -9,7 +9,7 @@ Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(mate
 	float halfSideLength = sideLength / 2.0f;
 	
 	// Create vertices, a cube has four of them
-	Math::Vector3D v0, v1, v2, v3, v4, v5, v6, v7;
+	Math::Vector4 v0, v1, v2, v3, v4, v5, v6, v7;
 	
 	// Upper four
 	v0 = {-halfSideLength, halfSideLength, halfSideLength};

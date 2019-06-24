@@ -1,7 +1,7 @@
 #ifndef ABSTRACTMESH_H
 #define ABSTRACTMESH_H
 
-#include <matrix3d.h>
+#include <matrix4x4.h>
 #include <vector>
 
 #include "material.h"
@@ -22,9 +22,9 @@ public:
 	void setMaterial(const Material &material);
 	const Material &material() const;
 	
-	void transform(const Math::Matrix3D &matrix);
+	void transform(const Math::Matrix4x4 &matrix);
 	
-	void translate(const Math::Vector3D &vector);
+	void translate(const Math::Vector4 &vector);
 	
 	void invert();
 	

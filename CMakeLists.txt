@@ -6,7 +6,7 @@ find_package(OpenMP)
 
 set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -s")
 
-add_library(math STATIC "src/math/vector3d.cpp" "src/math/matrix3d.cpp" "src/math/algorithms.cpp")
+add_library(math STATIC "src/math/vector4.cpp" "src/math/matrix4x4.cpp" "src/math/algorithms.cpp")
 target_include_directories(math
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>

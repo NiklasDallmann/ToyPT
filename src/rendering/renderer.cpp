@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
-#include <matrix3d.h>
+#include <matrix4x4.h>
 #include <random>
 #include <utility>
 #include <vector>
@@ -46,10 +46,10 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			float x = (i + 0.5f) - (width / 2.0f);
 			float y = -(j + 0.5f) + (height / 2.0f);
 			
-			Math::Vector3D direction{x, y, zCoordinate};
+			Math::Vector4 direction{x, y, zCoordinate};
 			direction.normalize();
 			
-			Math::Vector3D color;
+			Math::Vector4 color;
 			
 //#pragma omp parallel for
 			for (size_t sample = 0; sample < samples; sample++)
@@ -72,17 +72,17 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-bool Renderer::_intersectTriangle(const float distance, const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle, const Math::Vector3D &normal)
+bool Renderer::_intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal)
 {
 	bool returnValue = false;
 //	Math::Vector3D n = triangle.normal();
-	Math::Vector3D p = origin + distance * direction;
-	Math::Vector3D e01 = triangle[1] - triangle[0];
-	Math::Vector3D e12 = triangle[2] - triangle[1];
-	Math::Vector3D e20 = triangle[0] - triangle[2];
-	Math::Vector3D e0p = p - triangle[0];
-	Math::Vector3D e1p = p - triangle[1];
-	Math::Vector3D e2p = p - triangle[2];
+	Math::Vector4 p = origin + distance * direction;
+	Math::Vector4 e01 = triangle[1] - triangle[0];
+	Math::Vector4 e12 = triangle[2] - triangle[1];
+	Math::Vector4 e20 = triangle[0] - triangle[2];
+	Math::Vector4 e0p = p - triangle[0];
+	Math::Vector4 e1p = p - triangle[1];
+	Math::Vector4 e2p = p - triangle[2];
 	
 	float conditionInsideE01 = e01.crossProduct(e0p) * normal;
 	float conditionInsideE12 = e12.crossProduct(e1p) * normal;
@@ -101,7 +101,7 @@ bool Renderer::_intersectTriangle(const float distance, const Math::Vector3D &di
 	return returnValue;
 }
 
-float Renderer::_intersectPlane(const Math::Vector3D &direction, const Math::Vector3D &origin, const Triangle &triangle, const Math::Vector3D &normal)
+float Renderer::_intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal)
 {
 	float returnValue = 0;
 	
@@ -121,19 +121,19 @@ exit:
 	return returnValue;
 }
 
-float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D &origin, IntersectionInfo &intersection)
+float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	float planeDistance = 0.0f;
 	// FIXME Handle this in a better way
-	std::vector<std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *>> planeDistances;
+	std::vector<std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *>> planeDistances;
 	
 	// Intersect planes
 	for (AbstractMesh *mesh : this->_meshes)
 	{
 		for (Triangle &triangle : mesh->triangles())
 		{
-			Math::Vector3D normal = triangle.normal();
+			Math::Vector4 normal = triangle.normal();
 			planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
 			
 			if (planeDistance > _epsilon)
@@ -144,8 +144,8 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 	}
 	
 	std::sort(planeDistances.begin(), planeDistances.end(),
-		[](const std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *> &left,
-		   const std::tuple<Triangle *, float, Math::Vector3D, AbstractMesh *> &right)
+		[](const std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *> &left,
+		   const std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *> &right)
 		{
 			return std::get<1>(left) < std::get<1>(right);
 		}
@@ -156,7 +156,7 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 	{
 		Triangle &currentTriangle = *std::get<0>(element);
 		float distance = std::get<1>(element);
-		Math::Vector3D &normal = std::get<2>(element);
+		Math::Vector4 &normal = std::get<2>(element);
 		AbstractMesh *mesh = std::get<3>(element);
 		
 		if (this->_intersectTriangle(distance, direction, origin, currentTriangle, normal))
@@ -171,13 +171,13 @@ float Renderer::_traceRay(const Math::Vector3D &direction, const Math::Vector3D 
 	return returnValue;
 }
 
-Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::Vector3D &origin, const size_t bounce, const size_t maxBounces)
+Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t bounce, const size_t maxBounces)
 {
-	Math::Vector3D returnValue = {0.0f, 0.0f, 0.0f};
-	Math::Vector3D mask = {1.0f, 1.0f, 1.0f};
+	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
+	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
 	
-	Math::Vector3D currentDirection = direction;
-	Math::Vector3D currentOrigin = origin;
+	Math::Vector4 currentDirection = direction;
+	Math::Vector4 currentOrigin = origin;
 	
 	// FIXME This won't stay constant
 	float pdf = 1.0f / (2.0f * float(M_PI));
@@ -185,28 +185,28 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	std::random_device device;
 	std::default_random_engine generator(device());
 	std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
-	Math::Vector3D Nt;
-	Math::Vector3D Nb;
+	Math::Vector4 Nt;
+	Math::Vector4 Nb;
 	
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
-		Math::Vector3D intersectionPoint;
+		Math::Vector4 intersectionPoint;
 		IntersectionInfo intersection;
-		Math::Vector3D normal;
+		Math::Vector4 normal;
 		float distance = this->_traceRay(currentDirection, currentOrigin, intersection);
 		intersectionPoint = currentOrigin + distance * currentDirection;
 		
 		if (intersection.triangle != nullptr)
 		{
-			Math::Vector3D color = intersection.mesh->material().color();
-			Math::Vector3D directLight = {0.0f, 0.0f, 0.0f};
+			Math::Vector4 color = intersection.mesh->material().color();
+			Math::Vector4 directLight = {0.0f, 0.0f, 0.0f};
 			normal = intersection.triangle->normal();
 			
 			// Intersection found
 			for (const PointLight &pointLight : this->_pointLights)
 			{
 				IntersectionInfo occlusionIntersection;
-				Math::Vector3D lightDirection = pointLight.position() - intersectionPoint;
+				Math::Vector4 lightDirection = pointLight.position() - intersectionPoint;
 				float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
 				
 				directLight += ((normal * lightDirection.normalized()) * pointLight.color()) * 
@@ -225,15 +225,15 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 			float phi = 2.0f * float(M_PI) * r2;
 			float x = sinTheta * std::cos(phi);
 			float z = sinTheta * std::sin(phi);
-			Math::Vector3D sampleHemisphere{x, r1, z};
+			Math::Vector4 sampleHemisphere{x, r1, z};
 			
-			Math::Matrix3D matrix{
+			Math::Matrix4x4 matrix{
 				{Nb.x(), normal.x(), Nt.x()},
 				{Nb.y(), normal.y(), Nt.y()},
 				{Nb.z(), normal.z(), Nt.z()}
 			};
 			
-			Math::Vector3D sampleWorld = matrix * sampleHemisphere;
+			Math::Vector4 sampleWorld = matrix * sampleHemisphere;
 			
 			currentDirection = (intersectionPoint + sampleWorld).normalized();
 			currentOrigin = sampleWorld;
@@ -250,15 +250,15 @@ Math::Vector3D Renderer::_castRay(const Math::Vector3D &direction, const Math::V
 	return returnValue;
 }
 
-void Renderer::_createCoordinateSystem(const Math::Vector3D &N, Math::Vector3D &Nt, Math::Vector3D &Nb)
+void Renderer::_createCoordinateSystem(const Math::Vector4 &N, Math::Vector4 &Nt, Math::Vector4 &Nb)
 {
 	if (std::abs(N.x()) > std::fabs(N.y()))
 	{
-		Nt = Math::Vector3D{N.z(), 0.0f, -N.x()}.normalized();
+		Nt = Math::Vector4{N.z(), 0.0f, -N.x()}.normalized();
 	}
 	else
 	{
-		Nt = Math::Vector3D{0.0f, -N.z(), N.y()}.normalized();
+		Nt = Math::Vector4{0.0f, -N.z(), N.y()}.normalized();
 	}
 	
 	Nb = N.crossProduct(Nt);

@@ -3,7 +3,7 @@
 namespace Rendering
 {
 
-Material::Material(const Math::Vector3D &color, const float roughness, const float metallic, const float specular) :
+Material::Material(const Math::Vector4 &color, const float roughness, const float metallic, const float specular) :
 	_color(color),
 	_roughness(roughness),
 	_metallic(metallic),
@@ -11,7 +11,7 @@ Material::Material(const Math::Vector3D &color, const float roughness, const flo
 {
 }
 
-const Math::Vector3D &Material::color() const
+const Math::Vector4 &Material::color() const
 {
 	return this->_color;
 }

@@ -24,7 +24,7 @@ size_t FrameBuffer::height() const
 	return this->_height;
 }
 
-Math::Vector3D &FrameBuffer::pixel(const size_t x, const size_t y)
+Math::Vector4 &FrameBuffer::pixel(const size_t x, const size_t y)
 {
 	return this->_buffer[x + this->_width * y];
 }
@@ -38,7 +38,7 @@ bool FrameBuffer::save(const std::string &fileName)
 	{
 		stream << "P6\n" << this->_width << " " << this->_height << "\n255\n";
 		
-		for (const Math::Vector3D &vector : this->_buffer)
+		for (const Math::Vector4 &vector : this->_buffer)
 		{
 			Color color = Color::fromVector3D(vector);
 			

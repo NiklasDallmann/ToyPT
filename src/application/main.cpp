@@ -4,12 +4,12 @@
 #include <cube.h>
 #include <framebuffer.h>
 #include <math.h>
-#include <matrix3d.h>
+#include <matrix4x4.h>
 #include <renderer.h>
 #include <square.h>
 #include <triangle.h>
 #include <vector>
-#include <vector3d.h>
+#include <vector4.h>
 
 int main()
 {
@@ -26,13 +26,13 @@ int main()
 	Rendering::Material grey{{0.4f, 0.4f, 0.4f}, 1.0f, 0.0f, 0.5f};
 	
 	Rendering::Cube cube0(1, cyan);
-	cube0.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / 4.0f));
-	cube0.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / 4.0f));
+	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f));
+	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f));
 	cube0.translate({-1.1f, -0.2f, -4.5f});
 	
 	Rendering::Cube cube1(1, magenta);
-	cube1.transform(Math::Matrix3D::rotationMatrixX(float(M_PI) / -4.0f));
-	cube1.transform(Math::Matrix3D::rotationMatrixY(float(M_PI) / -4.0f));
+	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f));
+	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f));
 	cube1.translate({0.7f, 0.2f, -4.8f});
 	
 	Rendering::Cube worldCube(32, grey);
@@ -45,7 +45,7 @@ int main()
 	meshes.push_back(&worldCube);
 	
 	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector3D{-3.0f, 4.0f, -8.0f}, Math::Vector3D{1.5f, 1.5f, 1.5f}});
+	pointLights.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.5f, 1.5f, 1.5f}});
 	
 	Rendering::FrameBuffer frameBuffer(200, 100);
 	Rendering::Renderer renderer;

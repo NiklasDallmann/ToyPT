@@ -1,5 +1,5 @@
-#ifndef VECTOR3D_H
-#define VECTOR3D_H
+#ifndef VECTOR4_H
+#define VECTOR4_H
 
 #include <array>
 #include <cmath>
@@ -20,18 +20,18 @@ namespace Math
 /// 
 /// \since	1.0
 ///
-class Vector3D
+class Vector4
 {
 public:
-	friend float operator*(const Vector3D &left, const Vector3D &right);
-	friend std::ostream &operator<<(std::ostream &stream, const Vector3D &vector);
+	friend float operator*(const Vector4 &left, const Vector4 &right);
+	friend std::ostream &operator<<(std::ostream &stream, const Vector4 &vector);
 	
 	///
 	/// Constructs a vector with its coordinates \a x, \a y and \a z.
 	/// 
 	/// \since	1.0
 	///
-	Vector3D(const float x = 0, const float y = 0, const float z = 0, const float w = 1) :
+	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 1) :
 		_coordinates({x, y, z, w})
 	{
 	}
@@ -109,6 +109,30 @@ public:
 	}
 	
 	///
+	/// Returns the w coordinate.
+	/// 
+	/// \sa		setW()
+	/// 
+	/// \since	1.0
+	///
+	float w() const
+	{
+		return this->_coordinates[3];
+	}
+	
+	///
+	/// Sets the w coordinate to \a w.
+	/// 
+	/// \sa		w()
+	/// 
+	/// \since	1.0
+	///
+	void setW(const float w)
+	{
+		this->_coordinates[3] = w;
+	}
+	
+	///
 	/// Returns the magnitude of the vector.
 	/// 
 	/// \since	1.0
@@ -125,7 +149,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &normalize()
+	Vector4 &normalize()
 	{
 		float magnitude = this->magnitude();
 		
@@ -143,9 +167,9 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D normalized() const
+	Vector4 normalized() const
 	{
-		Vector3D returnValue = *this;
+		Vector4 returnValue = *this;
 		
 		returnValue.normalize();
 		
@@ -157,9 +181,9 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D crossProduct(const Vector3D &other) const
+	Vector4 crossProduct(const Vector4 &other) const
 	{
-		Vector3D returnValue;
+		Vector4 returnValue;
 		
 		returnValue[0] = (*this)[1] * other[2] - (*this)[2] * other[1];
 		returnValue[1] = (*this)[2] * other[0] - (*this)[0] * other[2];
@@ -168,9 +192,9 @@ public:
 		return returnValue;
 	}
 	
-	Vector3D coordinateProduct(const Vector3D &other) const
+	Vector4 coordinateProduct(const Vector4 &other) const
 	{
-		Vector3D returnValue;
+		Vector4 returnValue;
 		
 		returnValue[0] = (*this)[0] * other[0];
 		returnValue[1] = (*this)[1] * other[1];
@@ -184,7 +208,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float cos(const Vector3D &left, const Vector3D &right)
+	float cos(const Vector4 &left, const Vector4 &right)
 	{
 		float returnValue = 0;
 		
@@ -198,7 +222,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator+=(const Vector3D &other)
+	Vector4 &operator+=(const Vector4 &other)
 	{
 		this->_coordinates[0] += other._coordinates[0];
 		this->_coordinates[1] += other._coordinates[1];
@@ -212,7 +236,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator-=(const Vector3D &other)
+	Vector4 &operator-=(const Vector4 &other)
 	{
 		this->_coordinates[0] -= other._coordinates[0];
 		this->_coordinates[1] -= other._coordinates[1];
@@ -226,7 +250,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator*=(const float scalar)
+	Vector4 &operator*=(const float scalar)
 	{
 		this->_coordinates[0] *= scalar;
 		this->_coordinates[1] *= scalar;
@@ -240,7 +264,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector3D &operator/=(const float scalar)
+	Vector4 &operator/=(const float scalar)
 	{
 		this->_coordinates[0] /= scalar;
 		this->_coordinates[1] /= scalar;
@@ -249,7 +273,7 @@ public:
 		return *this;
 	}
 	
-	Vector3D operator-() const
+	Vector4 operator-() const
 	{
 		return *this * (-1.0);
 	}
@@ -274,12 +298,12 @@ public:
 		return this->_coordinates[index];
 	}
 	
-	bool operator==(const Vector3D &other)
+	bool operator==(const Vector4 &other)
 	{
 		return (this->_coordinates == other._coordinates);
 	}
 	
-	bool operator!=(const Vector3D &other)
+	bool operator!=(const Vector4 &other)
 	{
 		return !(*this == other);
 	}
@@ -294,9 +318,9 @@ private:
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator+(const Vector3D &left, const Vector3D &right)
+inline Vector4 operator+(const Vector4 &left, const Vector4 &right)
 {
-	Vector3D returnValue = left;
+	Vector4 returnValue = left;
 	
 	returnValue += right;
 	
@@ -308,9 +332,9 @@ inline Vector3D operator+(const Vector3D &left, const Vector3D &right)
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator-(const Vector3D &left, const Vector3D &right)
+inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
 {
-	Vector3D returnValue = left;
+	Vector4 returnValue = left;
 	
 	returnValue -= right;
 	
@@ -322,7 +346,7 @@ inline Vector3D operator-(const Vector3D &left, const Vector3D &right)
 /// 
 /// \since	1.0
 ///
-inline float operator*(const Vector3D &left, const Vector3D &right)
+inline float operator*(const Vector4 &left, const Vector4 &right)
 {
 	float returnValue = 0;
 	
@@ -338,9 +362,9 @@ inline float operator*(const Vector3D &left, const Vector3D &right)
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator*(const Vector3D &left, const float right)
+inline Vector4 operator*(const Vector4 &left, const float right)
 {
-	Vector3D returnValue = left;
+	Vector4 returnValue = left;
 	
 	returnValue *= right;
 	
@@ -352,7 +376,7 @@ inline Vector3D operator*(const Vector3D &left, const float right)
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator*(const float left, const Vector3D right)
+inline Vector4 operator*(const float left, const Vector4 right)
 {
 	return right * left;
 }
@@ -362,9 +386,9 @@ inline Vector3D operator*(const float left, const Vector3D right)
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator/(const Vector3D &left, const float right)
+inline Vector4 operator/(const Vector4 &left, const float right)
 {
-	Vector3D returnValue = left;
+	Vector4 returnValue = left;
 	
 	returnValue /= right;
 	
@@ -376,7 +400,7 @@ inline Vector3D operator/(const Vector3D &left, const float right)
 /// 
 /// \since	1.0
 ///
-inline Vector3D operator/(const float left, const Vector3D right)
+inline Vector4 operator/(const float left, const Vector4 right)
 {
 	return right / left;
 }
@@ -386,7 +410,7 @@ inline Vector3D operator/(const float left, const Vector3D right)
 /// 
 /// \since	1.0
 ///
-inline std::ostream &operator<<(std::ostream &stream, const Vector3D &vector)
+inline std::ostream &operator<<(std::ostream &stream, const Vector4 &vector)
 {
 	std::stringstream stringStream;
 	
@@ -399,4 +423,4 @@ inline std::ostream &operator<<(std::ostream &stream, const Vector3D &vector)
 
 } // namespace Math
 
-#endif // VECTOR3D_H
+#endif // VECTOR4_H
