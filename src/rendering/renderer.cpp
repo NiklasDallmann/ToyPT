@@ -180,7 +180,9 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 	Math::Vector4 currentOrigin = origin;
 	
 	// FIXME This won't stay constant
-	float pdf = 1.0f / (2.0f * float(M_PI));
+	float pdf = (2.0f * float(M_PI));
+	float r1 = 1.0f;
+	float r2 = 1.0f;
 	
 	std::random_device device;
 	std::default_random_engine generator(device());
@@ -219,8 +221,8 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			this->_createCoordinateSystem(normal, Nt, Nb);
 			
 			// Generate hemisphere
-			float r1 = distribution(generator);
-			float r2 = distribution(generator);
+			r1 = distribution(generator);
+			r2 = distribution(generator);
 			float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
 			float phi = 2.0f * float(M_PI) * r2;
 			float x = sinTheta * std::cos(phi);
@@ -240,6 +242,7 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			
 			returnValue += mask.coordinateProduct(directLight);
 			mask = mask.coordinateProduct(color);
+			mask = mask * r1 * pdf;
 		}
 		else
 		{
