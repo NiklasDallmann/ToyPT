@@ -2,6 +2,7 @@
 #include <cmath>
 #include <map>
 #include <matrix4x4.h>
+#include <limits>
 #include <random>
 #include <utility>
 #include <vector>
@@ -54,7 +55,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 //#pragma omp parallel for
 			for (size_t sample = 0; sample < samples; sample++)
 			{
-				color += this->_castRay(direction, {0, 0, 0}, 0, bounces);
+				color += this->_castRay(direction, {0, 0, 0}, bounces);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -124,54 +125,38 @@ exit:
 float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
-	float planeDistance = 0.0f;
-	// FIXME Handle this in a better way
-	std::vector<std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *>> planeDistances;
 	
-	// Intersect planes
+	AbstractMesh *nearestMesh = nullptr;
+	Triangle *nearestTriangle = nullptr;
+	Math::Vector4 normal = 0.0f;
+	float planeDistance = 0.0f;
+	float distance = std::numeric_limits<float>::max();
+	planeDistance = distance;
+	
 	for (AbstractMesh *mesh : this->_meshes)
 	{
 		for (Triangle &triangle : mesh->triangles())
 		{
-			Math::Vector4 normal = triangle.normal();
+			normal = triangle.normal();
 			planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
 			
-			if (planeDistance > _epsilon)
+			if ((planeDistance > _epsilon) & (planeDistance < distance) & this->_intersectTriangle(planeDistance, direction, origin, triangle, normal))
 			{
-				planeDistances.push_back({&triangle, planeDistance, normal, mesh});
+				distance = planeDistance;
+				nearestMesh = mesh;
+				nearestTriangle = &triangle;
 			}
 		}
 	}
 	
-	std::sort(planeDistances.begin(), planeDistances.end(),
-		[](const std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *> &left,
-		   const std::tuple<Triangle *, float, Math::Vector4, AbstractMesh *> &right)
-		{
-			return std::get<1>(left) < std::get<1>(right);
-		}
-	);
-	
-	// Intersect triangles
-	for (decltype (planeDistances)::value_type element : planeDistances)
-	{
-		Triangle &currentTriangle = *std::get<0>(element);
-		float distance = std::get<1>(element);
-		Math::Vector4 &normal = std::get<2>(element);
-		AbstractMesh *mesh = std::get<3>(element);
-		
-		if (this->_intersectTriangle(distance, direction, origin, currentTriangle, normal))
-		{
-			returnValue = distance;
-			intersection.mesh = mesh;
-			intersection.triangle = &currentTriangle;
-			break;
-		}
-	}
+	returnValue = distance;
+	intersection.mesh = nearestMesh;
+	intersection.triangle = nearestTriangle;
 	
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t bounce, const size_t maxBounces)
+Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t maxBounces)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};

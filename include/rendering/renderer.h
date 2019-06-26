@@ -37,7 +37,7 @@ private:
 	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
 	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
 	float _traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t bounce = 0,
+	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
 							const size_t maxBounces = 4);
 	void _createCoordinateSystem(const Math::Vector4 &N, Math::Vector4 &Nt, Math::Vector4 &Nb);
 };

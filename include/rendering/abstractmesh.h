@@ -14,10 +14,10 @@ class AbstractMesh
 {
 public:
 	AbstractMesh(const Material &material = {});
-	virtual ~AbstractMesh();
+	~AbstractMesh();
 	
-	virtual std::vector<Triangle> &triangles();
-	virtual const std::vector<Triangle> &triangles() const;
+	std::vector<Triangle> &triangles();
+	const std::vector<Triangle> &triangles() const;
 	
 	void setMaterial(const Material &material);
 	const Material &material() const;

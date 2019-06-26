@@ -47,11 +47,11 @@ int main()
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(100, 100);
+	Rendering::FrameBuffer frameBuffer(400, 200);
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 32, 4);
+	renderer.render(frameBuffer, 70, 256, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
