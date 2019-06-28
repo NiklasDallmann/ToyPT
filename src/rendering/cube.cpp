@@ -46,8 +46,4 @@ Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(mate
 	};
 }
 
-Cube::~Cube()
-{
-}
-
 }

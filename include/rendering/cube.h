@@ -14,7 +14,6 @@ class Cube : public AbstractMesh
 {
 public:
 	Cube(const float sideLength = 1, const Material &material = {});
-	virtual ~Cube();
 };
 
 } // namespace Rendering

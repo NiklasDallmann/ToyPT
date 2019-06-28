@@ -8,10 +8,6 @@ AbstractMesh::AbstractMesh(const Material &material) :
 {
 }
 
-AbstractMesh::~AbstractMesh()
-{
-}
-
 std::vector<Triangle> &AbstractMesh::triangles()
 {
 	return this->_triangles;

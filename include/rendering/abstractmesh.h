@@ -14,7 +14,6 @@ class AbstractMesh
 {
 public:
 	AbstractMesh(const Material &material = {});
-	~AbstractMesh();
 	
 	std::vector<Triangle> &triangles();
 	const std::vector<Triangle> &triangles() const;

@@ -20,7 +20,7 @@ Renderer::Renderer()
 {
 }
 
-void Renderer::setMeshes(const std::vector<AbstractMesh *> &meshes)
+void Renderer::setMeshes(const std::vector<AbstractMesh> &meshes)
 {
 	this->_meshes = meshes;
 }
@@ -52,7 +52,6 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			Math::Vector4 color;
 			
-//#pragma omp parallel for
 			for (size_t sample = 0; sample < samples; sample++)
 			{
 				color += this->_castRay(direction, {0, 0, 0}, bounces);
@@ -133,9 +132,9 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	float distance = std::numeric_limits<float>::max();
 	planeDistance = distance;
 	
-	for (AbstractMesh *mesh : this->_meshes)
+	for (AbstractMesh &mesh : this->_meshes)
 	{
-		for (Triangle &triangle : mesh->triangles())
+		for (Triangle &triangle : mesh.triangles())
 		{
 			normal = triangle.normal();
 			planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
@@ -143,7 +142,7 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 			if ((planeDistance > _epsilon) & (planeDistance < distance) & this->_intersectTriangle(planeDistance, direction, origin, triangle, normal))
 			{
 				distance = planeDistance;
-				nearestMesh = mesh;
+				nearestMesh = &mesh;
 				nearestTriangle = &triangle;
 			}
 		}
@@ -238,18 +237,18 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 	return returnValue;
 }
 
-void Renderer::_createCoordinateSystem(const Math::Vector4 &N, Math::Vector4 &Nt, Math::Vector4 &Nb)
+void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal)
 {
-	if (std::abs(N.x()) > std::fabs(N.y()))
+	if (std::abs(normal.x()) > std::fabs(normal.y()))
 	{
-		Nt = Math::Vector4{N.z(), 0.0f, -N.x()}.normalized();
+		tangentNormal = Math::Vector4{normal.z(), 0.0f, -normal.x()}.normalized();
 	}
 	else
 	{
-		Nt = Math::Vector4{0.0f, -N.z(), N.y()}.normalized();
+		tangentNormal = Math::Vector4{0.0f, -normal.z(), normal.y()}.normalized();
 	}
 	
-	Nb = N.crossProduct(Nt);
+	binormal = normal.crossProduct(tangentNormal);
 }
 
 }
