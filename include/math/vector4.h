@@ -183,9 +183,9 @@ public:
 	{
 		Vector4 returnValue;
 		
-		returnValue.setX((*this)[1] * other[2] - (*this)[2] * other[1]);
-		returnValue.setY((*this)[2] * other[0] - (*this)[0] * other[2]);
-		returnValue.setZ((*this)[0] * other[1] - (*this)[1] * other[0]);
+		returnValue[0] = (*this)[1] * other[2] - (*this)[2] * other[1];
+		returnValue[1] = (*this)[2] * other[0] - (*this)[0] * other[2];
+		returnValue[2] = (*this)[0] * other[1] - (*this)[1] * other[0];
 		
 		return returnValue;
 	}
@@ -194,7 +194,9 @@ public:
 	{
 		Vector4 returnValue;
 		
-		returnValue._coordinates = _mm_mul_ps(returnValue._coordinates, other._coordinates);
+		returnValue[0] = (*this)[0] * other[0];
+		returnValue[1] = (*this)[1] * other[1];
+		returnValue[2] = (*this)[2] * other[2];
 		
 		return returnValue;
 	}
@@ -271,7 +273,7 @@ public:
 	}
 	
 	///
-	/// Returns the coordinate at \a index.
+	/// Returns a reference to the coordinate at \a index.
 	/// 
 	/// \since	1.0
 	///
@@ -347,9 +349,8 @@ inline float operator*(const Vector4 &left, const Vector4 &right)
 {
 	float returnValue = 0;
 	
-	returnValue += (left._coordinates[0] * right._coordinates[0]);
-	returnValue += (left._coordinates[1] * right._coordinates[1]);
-	returnValue += (left._coordinates[2] * right._coordinates[2]);
+	__m128 temporary = _mm_mul_ps(left._coordinates, right._coordinates);
+	returnValue = temporary[0] + temporary[1] + temporary[2];
 	
 	return returnValue;
 }
