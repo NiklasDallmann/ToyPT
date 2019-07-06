@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cmath>
+#include <emmintrin.h>
 #include <ostream>
 #include <sstream>
 #include <stddef.h>
@@ -31,9 +32,9 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 1) :
-		_coordinates({x, y, z, w})
+	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 1)
 	{
+		this->_coordinates = __m128{x, y, z, w};
 	}
 	
 	///
@@ -151,11 +152,8 @@ public:
 	///
 	Vector4 &normalize()
 	{
-		float magnitude = this->magnitude();
-		
-		this->_coordinates[0] /= magnitude;
-		this->_coordinates[1] /= magnitude;
-		this->_coordinates[2] /= magnitude;
+		__m128 magnitude = _mm_set1_ps(this->magnitude());
+		this->_coordinates = _mm_div_ps(this->_coordinates, magnitude);
 		
 		return *this;
 	}
@@ -185,9 +183,9 @@ public:
 	{
 		Vector4 returnValue;
 		
-		returnValue[0] = (*this)[1] * other[2] - (*this)[2] * other[1];
-		returnValue[1] = (*this)[2] * other[0] - (*this)[0] * other[2];
-		returnValue[2] = (*this)[0] * other[1] - (*this)[1] * other[0];
+		returnValue.setX((*this)[1] * other[2] - (*this)[2] * other[1]);
+		returnValue.setY((*this)[2] * other[0] - (*this)[0] * other[2]);
+		returnValue.setZ((*this)[0] * other[1] - (*this)[1] * other[0]);
 		
 		return returnValue;
 	}
@@ -196,9 +194,7 @@ public:
 	{
 		Vector4 returnValue;
 		
-		returnValue[0] = (*this)[0] * other[0];
-		returnValue[1] = (*this)[1] * other[1];
-		returnValue[2] = (*this)[2] * other[2];
+		returnValue._coordinates = _mm_mul_ps(returnValue._coordinates, other._coordinates);
 		
 		return returnValue;
 	}
@@ -224,9 +220,7 @@ public:
 	///
 	Vector4 &operator+=(const Vector4 &other)
 	{
-		this->_coordinates[0] += other._coordinates[0];
-		this->_coordinates[1] += other._coordinates[1];
-		this->_coordinates[2] += other._coordinates[2];
+		this->_coordinates = _mm_add_ps(this->_coordinates, other._coordinates);
 		
 		return *this;
 	}
@@ -238,9 +232,7 @@ public:
 	///
 	Vector4 &operator-=(const Vector4 &other)
 	{
-		this->_coordinates[0] -= other._coordinates[0];
-		this->_coordinates[1] -= other._coordinates[1];
-		this->_coordinates[2] -= other._coordinates[2];
+		this->_coordinates = _mm_sub_ps(this->_coordinates, other._coordinates);
 		
 		return *this;
 	}
@@ -252,9 +244,9 @@ public:
 	///
 	Vector4 &operator*=(const float scalar)
 	{
-		this->_coordinates[0] *= scalar;
-		this->_coordinates[1] *= scalar;
-		this->_coordinates[2] *= scalar;
+		__m128 scalarVector = _mm_set1_ps(scalar);
+		
+		this->_coordinates = _mm_mul_ps(this->_coordinates, scalarVector);
 		
 		return *this;
 	}
@@ -266,9 +258,9 @@ public:
 	///
 	Vector4 &operator/=(const float scalar)
 	{
-		this->_coordinates[0] /= scalar;
-		this->_coordinates[1] /= scalar;
-		this->_coordinates[2] /= scalar;
+		__m128 scalarVector = _mm_set1_ps(scalar);
+		
+		this->_coordinates = _mm_div_ps(this->_coordinates, scalarVector);
 		
 		return *this;
 	}
@@ -279,7 +271,7 @@ public:
 	}
 	
 	///
-	/// Returns a reference to the coordinate at \a index.
+	/// Returns the coordinate at \a index.
 	/// 
 	/// \since	1.0
 	///
@@ -300,7 +292,12 @@ public:
 	
 	bool operator==(const Vector4 &other)
 	{
-		return (this->_coordinates == other._coordinates);
+		bool returnValue = true;
+		
+		__m128 resultVector = _mm_cmpeq_ps(this->_coordinates, other._coordinates);
+		returnValue = bool(resultVector[0]);
+		
+		return returnValue;
 	}
 	
 	bool operator!=(const Vector4 &other)
@@ -310,7 +307,7 @@ public:
 	
 private:
 	static constexpr size_t _dimension = 4;
-	alignas (sizeof (float) * _dimension) std::array<float, _dimension> _coordinates;
+	__m128 _coordinates;
 };
 
 ///
@@ -414,7 +411,7 @@ inline std::ostream &operator<<(std::ostream &stream, const Vector4 &vector)
 {
 	std::stringstream stringStream;
 	
-	stringStream << "{\"x\": " << vector._coordinates[0] << ", \"y\": " << vector._coordinates[1] << ", \"z\": " << vector._coordinates[2] << "}";
+	stringStream << "{\"x\": " << vector[0] << ", \"y\": " << vector[1] << ", \"z\": " << vector[2] << "}";
 	
 	stream << stringStream.str();
 	

@@ -39,10 +39,10 @@ int main()
 	worldCube.invert();
 	worldCube.translate({-12.0f, 15.0f, 5.0f});
 	
-	std::vector<Rendering::AbstractMesh *> meshes;
-	meshes.push_back(&cube0);
-	meshes.push_back(&cube1);
-	meshes.push_back(&worldCube);
+	std::vector<Rendering::AbstractMesh> meshes;
+	meshes.push_back(cube0);
+	meshes.push_back(cube1);
+	meshes.push_back(worldCube);
 	
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
@@ -51,7 +51,7 @@ int main()
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 256, 4);
+	renderer.render(frameBuffer, 70, 8, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
