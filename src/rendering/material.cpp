@@ -3,11 +3,11 @@
 namespace Rendering
 {
 
-Material::Material(const Math::Vector4 &color, const float roughness, const float metallic, const float specular) :
+Material::Material(const Math::Vector4 &color, const float roughness, const float metallic, const float cavity) :
 	_color(color),
 	_roughness(roughness),
 	_metallic(metallic),
-	_specular(specular)
+	_cavity(cavity)
 {
 }
 
@@ -26,9 +26,9 @@ float Material::metallic() const
 	return this->_metallic;
 }
 
-float Material::specular() const
+float Material::cavity() const
 {
-	return this->_specular;
+	return this->_cavity;
 }
 
 }

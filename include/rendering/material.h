@@ -9,18 +9,18 @@ namespace Rendering
 class Material
 {
 public:
-	Material(const Math::Vector4 &color = {}, const float roughness = 1.0f, const float metallic = 0.0f, const float specular = 0.0f);
+	Material(const Math::Vector4 &color = {}, const float roughness = 1.0f, const float metallic = 0.0f, const float cavity = 0.04f);
 	
 	const Math::Vector4 &color() const;
 	float roughness() const;
 	float metallic() const;
-	float specular() const;
+	float cavity() const;
 	
 private:
 	Math::Vector4 _color;
 	float _roughness;
 	float _metallic;
-	float _specular;
+	float _cavity;
 };
 
 } // namespace Rendering
