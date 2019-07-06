@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <map>
 #include <matrix4x4.h>
@@ -38,6 +39,8 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	size_t linesFinished = 0;
 	std::stringstream stream;
+	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
+	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
 
 #pragma omp parallel for schedule(dynamic)
 	for (size_t j = 0; j < height; j++)
@@ -62,13 +65,17 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 		
 #pragma omp critical
 		{
+			std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
+			std::chrono::duration<float> elapsed = current - begin;
 			linesFinished++;
-			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "%\r";
+			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\r";
 			std::cout << stream.str() << std::flush;
 		}
 	}
 	
-	stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "%\n";
+	end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<float> elapsed = end - begin;
+	stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\n";
 	std::cout << stream.str();
 }
 

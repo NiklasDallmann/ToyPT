@@ -51,7 +51,7 @@ int main()
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 8, 4);
+	renderer.render(frameBuffer, 70, 32, 5);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

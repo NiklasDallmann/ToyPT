@@ -24,7 +24,7 @@ public:
 	void setBlue(const uint8_t blue);
 	uint8_t blue() const;
 	
-	static Color fromVector3D(const Math::Vector4 &vector);
+	static Color fromVector3D(Math::Vector4 vector);
 	
 private:
 	uint32_t _data;

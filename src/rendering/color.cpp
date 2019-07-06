@@ -43,10 +43,36 @@ uint8_t Color::blue() const
 	return uint8_t(this->_data >> 8);
 }
 
-Color Color::fromVector3D(const Math::Vector4 &vector)
+Color Color::fromVector3D(Math::Vector4 vector)
 {
 	Color returnValue;
+	Math::Vector4 excessLight;
+	size_t notExcessChannels = 0;
 	uint8_t red, green, blue;
+	
+	// Normalize color channels
+	for (size_t channel = 0; channel < 3; channel++)
+	{
+		const bool excess = (vector[channel] > 1.0f);
+		const bool notExcess = (vector[channel] <= 1.0f);
+		excessLight[channel] = excess * (vector[channel] - 1.0f);
+		notExcessChannels += notExcess;
+	}
+	
+	for (size_t channel = 0; channel < 3; channel++)
+	{
+		vector[(channel + 1) % 3] += excessLight[channel] / 2;
+		vector[(channel + 2) % 3] += excessLight[channel] / 2;
+	}
+	
+//	if (notExcessChannels > 0)
+//	{
+//		for (size_t channel = 0; channel < 3; channel++)
+//		{
+//			const bool notExcess = (vector[channel] <= 1.0f);
+//			vector[channel] += notExcess * (excessLight / notExcessChannels);
+//		}
+//	}
 	
 	red = uint8_t(255 * std::max(0.0f, std::min(1.0f, vector.x())));
 	green = uint8_t(255 * std::max(0.0f, std::min(1.0f, vector.y())));
