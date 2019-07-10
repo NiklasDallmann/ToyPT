@@ -21,7 +21,7 @@ Renderer::Renderer()
 {
 }
 
-void Renderer::setMeshes(const std::vector<AbstractMesh> &meshes)
+void Renderer::setMeshes(const std::vector<Mesh> &meshes)
 {
 	this->_meshes = meshes;
 }
@@ -128,18 +128,27 @@ exit:
 	return returnValue;
 }
 
+__m256 Renderer::_intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const Math::Vector4 &normal)
+{
+	__m256 returnValue = {0.0f, 0.0f, 0.0f, 0.0f};
+	
+	
+	
+	return returnValue;
+}
+
 float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
-	AbstractMesh *nearestMesh = nullptr;
+	Mesh *nearestMesh = nullptr;
 	Triangle *nearestTriangle = nullptr;
 	Math::Vector4 normal = 0.0f;
 	float planeDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
 	planeDistance = distance;
 	
-	for (AbstractMesh &mesh : this->_meshes)
+	for (Mesh &mesh : this->_meshes)
 	{
 		for (Triangle &triangle : mesh.triangles())
 		{
@@ -199,11 +208,12 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			for (const PointLight &pointLight : this->_pointLights)
 			{
 				IntersectionInfo occlusionIntersection;
-				Math::Vector4 lightDirection = pointLight.position() - intersectionPoint;
-				float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
+				const Math::Vector4 lightDirection = pointLight.position() - intersectionPoint;
+				const float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
+				const bool visible = ((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) &
+									  ((normal * lightDirection) > 0.0f));
 				
-				directLight += ((normal * lightDirection.normalized()) * pointLight.color()) * 
-						((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) & ((normal * lightDirection) > 0.0f));
+				directLight += ((normal * lightDirection.normalized()) * pointLight.color()) * visible;
 			}
 			
 			directLight = directLight.coordinateProduct(color);
@@ -256,6 +266,21 @@ void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 	}
 	
 	binormal = normal.crossProduct(tangentNormal);
+}
+
+float Renderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)
+{
+	float returnValue = 1.0f;
+	
+	const Math::Vector4 h = (l + v).normalized();
+	const float a_2 = std::pow(material.roughness(), 4.0f);
+	const float d = a_2 / (float(M_PI) * std::pow((std::pow(n * h, 2.0f) * (a_2 - 1) + 1), 2.0f));
+	const float f = 1.0f;
+	const float g = 1.0f;
+	
+	returnValue = (d * f * g) / (4.0f * (n * l) * (n * v));
+	
+	return returnValue;
 }
 
 }

@@ -20,7 +20,7 @@ add_library(rendering STATIC
 	"src/rendering/renderer.cpp"
 	"src/rendering/triangle.cpp"
 	"src/rendering/material.cpp"
-	"src/rendering/abstractmesh.cpp"
+	"src/rendering/mesh.cpp"
 	"src/rendering/cube.cpp"
 	"src/rendering/pointlight.cpp"
 	"src/rendering/square")

@@ -1,12 +1,12 @@
 #ifndef SQUARE_H
 #define SQUARE_H
 
-#include "abstractmesh.h"
+#include "mesh.h"
 
 namespace Rendering
 {
 
-class Square : public AbstractMesh
+class Square : public Mesh
 {
 public:
 	Square(const size_t sideLength, const Material &material);

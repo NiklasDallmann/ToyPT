@@ -10,10 +10,10 @@
 namespace Rendering
 {
 
-class AbstractMesh
+class Mesh
 {
 public:
-	AbstractMesh(const Material &material = {});
+	Mesh(const Material &material = {});
 	
 	std::vector<Triangle> &triangles();
 	const std::vector<Triangle> &triangles() const;
@@ -26,6 +26,9 @@ public:
 	void translate(const Math::Vector4 &vector);
 	
 	void invert();
+	
+	static Mesh cube(const float sideLength, const Material &material);
+	static Mesh plane(const float sideLength, const Material &material);
 	
 protected:
 	std::vector<Triangle> _triangles;

@@ -3,7 +3,7 @@
 namespace Rendering
 {
 
-Cube::Cube(const float sideLength, const Material &material) : AbstractMesh(material)
+Cube::Cube(const float sideLength, const Material &material) : Mesh(material)
 {
 	// Each vertex is offset by half the side length on two axes
 	float halfSideLength = sideLength / 2.0f;
