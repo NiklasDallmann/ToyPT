@@ -1,3 +1,6 @@
+#include <cmath>
+#include <math.h>
+
 #include "mesh.h"
 
 namespace Rendering
@@ -129,6 +132,25 @@ Mesh Mesh::plane(const float sideLength, const Material &material)
 		{{v0, v1, v2}},
 		{{v0, v2, v3}}
 	};
+	
+	return returnValue;
+}
+
+Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material)
+{
+	Mesh returnValue(material);
+	const float verticalOffset = float(M_PI) / verticalSubDivisions;
+	const float horizontalOffset = 2.0f * float(M_PI) / horizontalSubDivisions;
+	
+	for (size_t h = 0; h < horizontalSubDivisions; h++)
+	{
+		for (size_t v = 0; v < verticalSubDivisions; v++)
+		{
+			const float x = radius * std::sin(verticalOffset * v) * std::cos(horizontalOffset * h);
+			const float y = radius * std::sin(verticalOffset * v) * std::sin(horizontalOffset * h);
+			const float z = radius * std::sin(horizontalOffset * h);
+		}
+	}
 	
 	return returnValue;
 }

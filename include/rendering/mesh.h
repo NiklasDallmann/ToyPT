@@ -29,6 +29,7 @@ public:
 	
 	static Mesh cube(const float sideLength, const Material &material);
 	static Mesh plane(const float sideLength, const Material &material);
+	static Mesh sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material);
 	
 protected:
 	std::vector<Triangle> _triangles;
