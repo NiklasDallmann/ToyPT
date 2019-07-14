@@ -182,8 +182,8 @@ Math::Vector4 Mesh::_sphericalToCartesian(const float horizontal, const float ve
 	Math::Vector4 returnValue;
 	
 	const float x = radius * std::sin(vertical) * std::cos(horizontal);
-	const float y = radius * std::sin(vertical) * std::sin(horizontal);
-	const float z = radius * std::cos(vertical);
+	const float y = radius * std::cos(vertical);
+	const float z = radius * std::sin(vertical) * std::sin(horizontal);
 	
 	returnValue = {x, y, z};
 	
