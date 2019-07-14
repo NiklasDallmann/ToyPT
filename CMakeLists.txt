@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 2.8)
 project(pathtracer)
 
 find_package(OpenMP)
-find_package(OpenCL)
 
 set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2")
 
@@ -12,7 +11,7 @@ target_include_directories(math
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 )
-target_link_libraries(math OpenMP::OpenMP_CXX OpenCL)
+target_link_libraries(math OpenMP::OpenMP_CXX)
 
 add_library(rendering STATIC
 	"src/rendering/framebuffer.cpp"
@@ -35,4 +34,4 @@ target_include_directories(${PROJECT_NAME}
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
 )
-target_link_libraries(${PROJECT_NAME} math rendering OpenCL)
+target_link_libraries(${PROJECT_NAME} math rendering)

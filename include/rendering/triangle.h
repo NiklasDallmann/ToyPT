@@ -23,7 +23,19 @@ public:
 	
 private:
 	std::array<Math::Vector4, 3> _vertices;
+	
 };
+
+inline std::ostream &operator<<(std::ostream &stream, const Triangle &triangle)
+{
+	std::stringstream stringStream;
+	
+	stringStream << "{" << triangle[0] << ", " << triangle[1] << ", " << triangle[2] << "}";
+	
+	stream << stringStream.str();
+	
+	return stream;
+}
 
 } // namespace Rendering
 

@@ -139,18 +139,53 @@ Mesh Mesh::plane(const float sideLength, const Material &material)
 Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material)
 {
 	Mesh returnValue(material);
-	const float verticalOffset = float(M_PI) / verticalSubDivisions;
-	const float horizontalOffset = 2.0f * float(M_PI) / horizontalSubDivisions;
+//	const float verticalOffset = float(M_PI) / verticalSubDivisions;
+//	const float horizontalOffset = 2.0f * float(M_PI) / horizontalSubDivisions;
 	
-	for (size_t h = 0; h < horizontalSubDivisions; h++)
+	// Generate vertices
+	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
 	{
-		for (size_t v = 0; v < verticalSubDivisions; v++)
+		const float theta1 = float(M_PI) * (float(vertical) / float(verticalSubDivisions));
+		const float theta2 = float(M_PI) * (float(vertical + 1) / float(verticalSubDivisions));
+		
+		for (size_t horizontal = 0; horizontal < horizontalSubDivisions; horizontal++)
 		{
-			const float x = radius * std::sin(verticalOffset * v) * std::cos(horizontalOffset * h);
-			const float y = radius * std::sin(verticalOffset * v) * std::sin(horizontalOffset * h);
-			const float z = radius * std::sin(horizontalOffset * h);
+			const float phi1 = float(M_PI) * 2.0f * (float(horizontal) / float(horizontalSubDivisions));
+			const float phi2 = float(M_PI) * 2.0f * (float(horizontal + 1) / float(horizontalSubDivisions));
+			
+			const Math::Vector4 v1 = _sphericalToCartesian(phi1, theta1, radius);
+			const Math::Vector4 v2 = _sphericalToCartesian(phi2, theta1, radius);
+			const Math::Vector4 v3 = _sphericalToCartesian(phi2, theta2, radius);
+			const Math::Vector4 v4 = _sphericalToCartesian(phi1, theta2, radius);
+			
+			if (verticalSubDivisions == 0)
+			{
+				returnValue._triangles.push_back({{v1, v3, v4}});
+			}
+			else if (verticalSubDivisions == (verticalSubDivisions - 1))
+			{
+				returnValue._triangles.push_back({{v3, v1, v2}});
+			}
+			else
+			{
+				returnValue._triangles.push_back({{v1, v2, v4}});
+				returnValue._triangles.push_back({{v2, v3, v4}});
+			}
 		}
 	}
+	
+	return returnValue;
+}
+
+Math::Vector4 Mesh::_sphericalToCartesian(const float horizontal, const float vertical, const float radius)
+{
+	Math::Vector4 returnValue;
+	
+	const float x = radius * std::sin(vertical) * std::cos(horizontal);
+	const float y = radius * std::sin(vertical) * std::sin(horizontal);
+	const float z = radius * std::cos(vertical);
+	
+	returnValue = {x, y, z};
 	
 	return returnValue;
 }

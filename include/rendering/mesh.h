@@ -34,6 +34,8 @@ public:
 protected:
 	std::vector<Triangle> _triangles;
 	Material _material;
+	
+	static Math::Vector4 _sphericalToCartesian(const float horizontal, const float vertical, const float radius);
 };
 
 } // namespace Rendering
