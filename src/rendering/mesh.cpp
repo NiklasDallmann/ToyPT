@@ -79,6 +79,9 @@ Mesh Mesh::cube(const float sideLength, const Material &material)
 	// Create vertices, a cube has four of them
 	Math::Vector4 v0, v1, v2, v3, v4, v5, v6, v7;
 	
+	// Normals
+	Math::Vector4 n0, n1, n2, n3, n4, n5;
+	
 	// Upper four
 	v0 = {-halfSideLength, halfSideLength, halfSideLength};
 	v1 = {halfSideLength, halfSideLength, halfSideLength};
@@ -91,26 +94,33 @@ Mesh Mesh::cube(const float sideLength, const Material &material)
 	v6 = {halfSideLength, -halfSideLength, -halfSideLength};
 	v7 = {-halfSideLength, -halfSideLength, -halfSideLength};
 	
+	n0 = {0.0f, 1.0f, 0.0f};
+	n1 = {0.0f, -1.0f, 0.0f};
+	n2 = {0.0f, 0.0f, 1.0f};
+	n3 = {0.0f, 0.0f, -1.0f};
+	n4 = {-1.0f, 0.0f, 0.0f};
+	n5 = {1.0f, 0.0f, 0.0f};
+	
 	// Create Triangles
 	returnValue._triangles = {
 		// Upper face
-		{{v0, v1, v2}},
-		{{v0, v2, v3}},
+		{{v0, v1, v2}, {n0, n0, n0}},
+		{{v0, v2, v3}, {n0, n0, n0}},
 		// Lower face
-		{{v6, v5, v4}},
-		{{v7, v6, v4}},
+		{{v6, v5, v4}, {n1, n1, n1}},
+		{{v7, v6, v4}, {n1, n1, n1}},
 		// Front face
-		{{v4, v5, v1}},
-		{{v4, v1, v0}},
+		{{v4, v5, v1}, {n2, n2, n2}},
+		{{v4, v1, v0}, {n2, n2, n2}},
 		// Back face
-		{{v6, v7, v3}},
-		{{v6, v3, v2}},
+		{{v6, v7, v3}, {n3, n3, n3}},
+		{{v6, v3, v2}, {n3, n3, n3}},
 		// Left face
-		{{v4, v0, v3}},
-		{{v4, v3, v7}},
+		{{v4, v0, v3}, {n4, n4, n4}},
+		{{v4, v3, v7}, {n4, n4, n4}},
 		// Right face
-		{{v5, v6, v2}},
-		{{v5, v2, v1}},
+		{{v5, v6, v2}, {n5, n5, n5}},
+		{{v5, v2, v1}, {n5, n5, n5}},
 	};
 	
 	return returnValue;
@@ -122,15 +132,18 @@ Mesh Mesh::plane(const float sideLength, const Material &material)
 	
 	float halfSideLength = sideLength / 2.0f;
 	Math::Vector4 v0, v1, v2, v3;
+	Math::Vector4 n;
 	
 	v0 = {-halfSideLength, 0, halfSideLength};
 	v1 = {halfSideLength, 0, halfSideLength};
 	v2 = {halfSideLength, 0, -halfSideLength};
 	v3 = {-halfSideLength, 0, -halfSideLength};
 	
+	n = Triangle{{v0, v1, v2}}.normal();
+	
 	returnValue._triangles = {
-		{{v0, v1, v2}},
-		{{v0, v2, v3}}
+		{{v0, v1, v2}, {n, n, n}},
+		{{v0, v2, v3}, {n, n, n}}
 	};
 	
 	return returnValue;
@@ -160,16 +173,16 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 			
 			if (verticalSubDivisions == 0)
 			{
-				returnValue._triangles.push_back({{v1, v3, v4}});
+				returnValue._triangles.push_back({{v1, v3, v4}, {v1.normalized(), v3.normalized(), v4.normalized()}});
 			}
 			else if (verticalSubDivisions == (verticalSubDivisions - 1))
 			{
-				returnValue._triangles.push_back({{v3, v1, v2}});
+				returnValue._triangles.push_back({{v3, v1, v2}, {v3.normalized(), v1.normalized(), v2.normalized()}});
 			}
 			else
 			{
-				returnValue._triangles.push_back({{v1, v2, v4}});
-				returnValue._triangles.push_back({{v2, v3, v4}});
+				returnValue._triangles.push_back({{v1, v2, v4}, {v1.normalized(), v2.normalized(), v4.normalized()}});
+				returnValue._triangles.push_back({{v2, v3, v4}, {v2.normalized(), v3.normalized(), v4.normalized()}});
 			}
 		}
 	}
