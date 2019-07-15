@@ -5,8 +5,9 @@
 namespace Rendering
 {
 
-Triangle::Triangle(const std::array<Math::Vector4, 3> &vertices) :
-	_vertices(vertices)
+Triangle::Triangle(const std::array<Math::Vector4, 3> &vertices, const std::array<Math::Vector4, 3> &normals) :
+	_vertices(vertices),
+	_normals(normals)
 {
 }
 
@@ -23,6 +24,16 @@ std::array<Math::Vector4, 3> &Triangle::vertices()
 const std::array<Math::Vector4, 3> &Triangle::vertices() const
 {
 	return this->_vertices;
+}
+
+std::array<Math::Vector4, 3> &Triangle::normals()
+{
+	return this->_normals;
+}
+
+const std::array<Math::Vector4, 3> &Triangle::normals() const
+{
+	return this->_normals;
 }
 
 Math::Vector4 &Triangle::operator[](const size_t index)

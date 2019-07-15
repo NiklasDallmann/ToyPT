@@ -82,7 +82,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 bool Renderer::_intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal)
 {
 	bool returnValue = false;
-//	Math::Vector3D n = triangle.normal();
+//	Math::Vector4 n;
 	Math::Vector4 p = origin + distance * direction;
 	Math::Vector4 e01 = triangle[1] - triangle[0];
 	Math::Vector4 e12 = triangle[2] - triangle[1];
