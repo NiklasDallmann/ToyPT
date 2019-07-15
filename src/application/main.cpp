@@ -35,7 +35,7 @@ int main()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f));
 	cube1.translate({2.5f, 0.2f, -5.5f});
 	
-	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, white);
+	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, halfGrey);
 	sphere.translate({0.0f, 0.2f, -5.0f});
 	
 	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, grey);
@@ -51,11 +51,11 @@ int main()
 	std::vector<Rendering::PointLight> pointLights;
 	pointLights.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(400, 200);
+	Rendering::FrameBuffer frameBuffer(800, 400);
 	Rendering::Renderer renderer;
 	renderer.setMeshes(meshes);
 	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 16, 3);
+	renderer.render(frameBuffer, 70, 32, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

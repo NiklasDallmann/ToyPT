@@ -39,7 +39,7 @@ private:
 	
 	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
 	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
-	__m256 _intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const Math::Vector4 &normal);
+	__m256 _intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const __m256 normals);
 	float _traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection);
 	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
 							const size_t maxBounces = 4);

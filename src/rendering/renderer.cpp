@@ -128,11 +128,11 @@ exit:
 	return returnValue;
 }
 
-__m256 Renderer::_intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const Math::Vector4 &normal)
+__m256 Renderer::_intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const __m256 normals)
 {
 	__m256 returnValue = {0.0f, 0.0f, 0.0f, 0.0f};
 	
-	
+//	__m256 t0 = 
 	
 	return returnValue;
 }
@@ -161,6 +161,7 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 				nearestMesh = &mesh;
 				nearestTriangle = &triangle;
 			}
+			
 		}
 	}
 	
@@ -256,14 +257,11 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 
 void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal)
 {
-	if (std::abs(normal.x()) > std::fabs(normal.y()))
-	{
-		tangentNormal = Math::Vector4{normal.z(), 0.0f, -normal.x()}.normalized();
-	}
-	else
-	{
-		tangentNormal = Math::Vector4{0.0f, -normal.z(), normal.y()}.normalized();
-	}
+	const Math::Vector4 a = Math::Vector4{normal.z(), 0.0f, -normal.x()};
+	const Math::Vector4 b = Math::Vector4{0.0f, -normal.z(), normal.y()};
+	float t = std::abs(normal.x()) > std::fabs(normal.y());
+	
+	tangentNormal = Math::lerp(a, b, t).normalized();
 	
 	binormal = normal.crossProduct(tangentNormal);
 }

@@ -21,6 +21,12 @@ inline bool fuzzyCompareEqual<float>(const float left, const float right)
 	return returnValue;
 }
 
+template<typename T>
+inline T lerp(const T a, const T b, const float t)
+{
+	return (1.0f - t) * b + t * a;
+}
+
 
 } // namespace Math
 
