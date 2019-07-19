@@ -39,6 +39,11 @@ void Mesh::transform(const Math::Matrix4x4 &matrix)
 		{
 			vertex = matrix * vertex;
 		}
+		
+		for (Math::Vector4 &normal : triangle.normals())
+		{
+			normal = matrix * normal;
+		}
 	}
 }
 
@@ -49,6 +54,11 @@ void Mesh::translate(const Math::Vector4 &vector)
 		for (Math::Vector4 &vertex : triangle.vertices())
 		{
 			vertex += vector;
+		}
+		
+		for (Math::Vector4 &normal : triangle.normals())
+		{
+			normal += vector;
 		}
 	}
 }
@@ -65,6 +75,11 @@ void Mesh::invert()
 			}
 		};
 		
+		for (Math::Vector4 &normal : inverse.normals())
+		{
+			normal *= -1;
+		}
+		
 		triangle = inverse;
 	}
 }
@@ -79,9 +94,6 @@ Mesh Mesh::cube(const float sideLength, const Material &material)
 	// Create vertices, a cube has four of them
 	Math::Vector4 v0, v1, v2, v3, v4, v5, v6, v7;
 	
-	// Normals
-	Math::Vector4 n0, n1, n2, n3, n4, n5;
-	
 	// Upper four
 	v0 = {-halfSideLength, halfSideLength, halfSideLength};
 	v1 = {halfSideLength, halfSideLength, halfSideLength};
@@ -94,34 +106,33 @@ Mesh Mesh::cube(const float sideLength, const Material &material)
 	v6 = {halfSideLength, -halfSideLength, -halfSideLength};
 	v7 = {-halfSideLength, -halfSideLength, -halfSideLength};
 	
-	n0 = {0.0f, 1.0f, 0.0f};
-	n1 = {0.0f, -1.0f, 0.0f};
-	n2 = {0.0f, 0.0f, 1.0f};
-	n3 = {0.0f, 0.0f, -1.0f};
-	n4 = {-1.0f, 0.0f, 0.0f};
-	n5 = {1.0f, 0.0f, 0.0f};
-	
 	// Create Triangles
 	returnValue._triangles = {
 		// Upper face
-		{{v0, v1, v2}, {n0, n0, n0}},
-		{{v0, v2, v3}, {n0, n0, n0}},
+		{{v0, v1, v2}},
+		{{v0, v2, v3}},
 		// Lower face
-		{{v6, v5, v4}, {n1, n1, n1}},
-		{{v7, v6, v4}, {n1, n1, n1}},
+		{{v6, v5, v4}},
+		{{v7, v6, v4}},
 		// Front face
-		{{v4, v5, v1}, {n2, n2, n2}},
-		{{v4, v1, v0}, {n2, n2, n2}},
+		{{v4, v5, v1}},
+		{{v4, v1, v0}},
 		// Back face
-		{{v6, v7, v3}, {n3, n3, n3}},
-		{{v6, v3, v2}, {n3, n3, n3}},
+		{{v6, v7, v3}},
+		{{v6, v3, v2}},
 		// Left face
-		{{v4, v0, v3}, {n4, n4, n4}},
-		{{v4, v3, v7}, {n4, n4, n4}},
+		{{v4, v0, v3}},
+		{{v4, v3, v7}},
 		// Right face
-		{{v5, v6, v2}, {n5, n5, n5}},
-		{{v5, v2, v1}, {n5, n5, n5}},
+		{{v5, v6, v2}},
+		{{v5, v2, v1}},
 	};
+	
+	for (Triangle &triangle : returnValue._triangles)
+	{
+		const Math::Vector4 normal = triangle.normal();
+		triangle.normals() = {normal, normal, normal};
+	}
 	
 	return returnValue;
 }
@@ -152,8 +163,6 @@ Mesh Mesh::plane(const float sideLength, const Material &material)
 Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material)
 {
 	Mesh returnValue(material);
-//	const float verticalOffset = float(M_PI) / verticalSubDivisions;
-//	const float horizontalOffset = 2.0f * float(M_PI) / horizontalSubDivisions;
 	
 	// Generate vertices
 	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)

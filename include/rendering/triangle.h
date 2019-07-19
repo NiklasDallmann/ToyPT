@@ -17,8 +17,12 @@ public:
 	
 	std::array<Math::Vector4, 3> &vertices();
 	const std::array<Math::Vector4, 3> &vertices() const;
+	
 	std::array<Math::Vector4, 3> &normals();
 	const std::array<Math::Vector4, 3> &normals() const;
+	void setNormals(const std::array<Math::Vector4, 3> &normals);
+	
+	void barycentricCoordinates() const;
 	
 	Math::Vector4 &operator[](const size_t index);
 	const Math::Vector4 &operator[](const size_t index) const;

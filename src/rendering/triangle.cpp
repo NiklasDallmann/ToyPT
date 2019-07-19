@@ -36,6 +36,11 @@ const std::array<Math::Vector4, 3> &Triangle::normals() const
 	return this->_normals;
 }
 
+void Triangle::setNormals(const std::array<Math::Vector4, 3> &normals)
+{
+	this->_normals = normals;
+}
+
 Math::Vector4 &Triangle::operator[](const size_t index)
 {
 	return this->_vertices[index];
