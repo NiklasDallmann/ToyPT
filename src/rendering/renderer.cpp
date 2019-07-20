@@ -21,16 +21,6 @@ Renderer::Renderer()
 {
 }
 
-void Renderer::setMeshes(const std::vector<Mesh> &meshes)
-{
-	this->_meshes = meshes;
-}
-
-void Renderer::setPointLights(const std::vector<PointLight> &pointLights)
-{
-	this->_pointLights = pointLights;
-}
-
 void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const size_t samples, const size_t bounces)
 {
 	const size_t width = frameBuffer.width();
@@ -79,42 +69,40 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-bool Renderer::_intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal)
+bool Renderer::_intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle)
 {
 	bool returnValue = false;
-//	Math::Vector4 n;
+	
+	Vertex v0, v1, v2;
+	v0 = this->vertexBuffer[triangle->vertices[0]];
+	v1 = this->vertexBuffer[triangle->vertices[1]];
+	v2 = this->vertexBuffer[triangle->vertices[2]];
+	
+	Math::Vector4 n = Triangle::normal(triangle, this->vertexBuffer.data());
 	Math::Vector4 p = origin + distance * direction;
-	Math::Vector4 e01 = triangle[1] - triangle[0];
-	Math::Vector4 e12 = triangle[2] - triangle[1];
-	Math::Vector4 e20 = triangle[0] - triangle[2];
-	Math::Vector4 e0p = p - triangle[0];
-	Math::Vector4 e1p = p - triangle[1];
-	Math::Vector4 e2p = p - triangle[2];
+	Math::Vector4 e01 = v1 - v0;
+	Math::Vector4 e12 = v2 - v1;
+	Math::Vector4 e20 = v0 - v2;
+	Math::Vector4 e0p = p - v0;
+	Math::Vector4 e1p = p - v1;
+	Math::Vector4 e2p = p - v2;
 	
-	float conditionInsideE01 = e01.crossProduct(e0p) * normal;
-	float conditionInsideE12 = e12.crossProduct(e1p) * normal;
-	float conditionInsideE20 = e20.crossProduct(e2p) * normal;
+	float conditionInsideE01 = e01.crossProduct(e0p).dotProduct(n);
+	float conditionInsideE12 = e12.crossProduct(e1p).dotProduct(n);
+	float conditionInsideE20 = e20.crossProduct(e2p).dotProduct(n);
 	
-	if (conditionInsideE01 >= 0.0f & conditionInsideE12 >= 0.0f & conditionInsideE20 >= 0.0f)
-	{
-		// Intersection found
-		returnValue = true;
-	}
-	else
-	{
-		returnValue = false;
-	}
+	returnValue = (conditionInsideE01 >= 0.0f & conditionInsideE12 >= 0.0f & conditionInsideE20 >= 0.0f);
 	
 	return returnValue;
 }
 
-float Renderer::_intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal)
+float Renderer::_intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle)
 {
 	float returnValue = 0;
 	
-//	Math::Vector3D n = triangle.normal();
-	float t0 = (triangle[0] - origin) * normal;
-	float t1 = normal * direction;
+	Math::Vector4 n = Triangle::normal(triangle, this->vertexBuffer.data());
+	float t0 = (this->vertexBuffer[triangle->vertices[0]] - origin).dotProduct(n);
+	float t1 = n.dotProduct(direction);
 	
 	if (t1 <= _epsilon & t1 >= -_epsilon)
 	{
@@ -143,25 +131,23 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	
 	Mesh *nearestMesh = nullptr;
 	Triangle *nearestTriangle = nullptr;
-	Math::Vector4 normal = 0.0f;
 	float planeDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
 	planeDistance = distance;
 	
-	for (Mesh &mesh : this->_meshes)
+	for (Mesh &mesh : this->meshBuffer)
 	{
-		for (Triangle &triangle : mesh.triangles())
+		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
 		{
-			normal = triangle.normal();
-			planeDistance = this->_intersectPlane(direction, origin, triangle, normal);
+			Triangle *triangle = &this->triangleBuffer[triangleIndex];
+			planeDistance = this->_intersectPlane(direction, origin, triangle);
 			
-			if ((planeDistance > _epsilon) & (planeDistance < distance) & this->_intersectTriangle(planeDistance, direction, origin, triangle, normal))
+			if ((planeDistance > _epsilon) & (planeDistance < distance) & this->_intersectTriangle(planeDistance, direction, origin, triangle))
 			{
 				distance = planeDistance;
 				nearestMesh = &mesh;
-				nearestTriangle = &triangle;
+				nearestTriangle = triangle;
 			}
-			
 		}
 	}
 	
@@ -201,23 +187,25 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		
 		if (intersection.triangle != nullptr)
 		{
-			Math::Vector4 color = intersection.mesh->material().color();
+			Math::Vector4 color = this->materialBuffer[intersection.mesh->materialOffset].color();
 			Math::Vector4 directLight = {0.0f, 0.0f, 0.0f};
-			normal = intersection.triangle->normal();
+			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
 			
 			// Intersection found
-			for (const PointLight &pointLight : this->_pointLights)
+			for (const PointLight &pointLight : this->pointLightBuffer)
 			{
 				IntersectionInfo occlusionIntersection;
 				const Math::Vector4 lightDirection = pointLight.position() - intersectionPoint;
 				const float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
 				const bool visible = ((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) &
-									  ((normal * lightDirection) > 0.0f));
+									  ((normal.dotProduct(lightDirection)) > 0.0f));
 				
-				directLight += ((normal * lightDirection.normalized()) * pointLight.color()) * visible;
+				directLight += ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
 			}
 			
-			directLight = directLight.coordinateProduct(color);
+			std::cout << directLight << "\n";
+			directLight = directLight * color;
+//			directLight = color;
 			
 			// Indirect lighting
 			this->_createCoordinateSystem(normal, Nt, Nb);
@@ -242,8 +230,8 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			currentDirection = (intersectionPoint + sampleWorld).normalized();
 			currentOrigin = sampleWorld;
 			
-			returnValue += mask.coordinateProduct(directLight);
-			mask = mask.coordinateProduct(color);
+			returnValue += mask * directLight;
+			mask = mask * color;
 			mask = mask * r1 * pdf;
 		}
 		else
@@ -270,13 +258,13 @@ float Renderer::_brdf(const Material &material, const Math::Vector4 &n, const Ma
 {
 	float returnValue = 1.0f;
 	
-	const Math::Vector4 h = (l + v).normalized();
-	const float a_2 = std::pow(material.roughness(), 4.0f);
-	const float d = a_2 / (float(M_PI) * std::pow((std::pow(n * h, 2.0f) * (a_2 - 1) + 1), 2.0f));
-	const float f = 1.0f;
-	const float g = 1.0f;
+//	const Math::Vector4 h = (l + v).normalized();
+//	const float a_2 = std::pow(material.roughness(), 4.0f);
+//	const float d = a_2 / (float(M_PI) * std::pow((std::pow(n * h, 2.0f) * (a_2 - 1) + 1), 2.0f));
+//	const float f = 1.0f;
+//	const float g = 1.0f;
 	
-	returnValue = (d * f * g) / (4.0f * (n * l) * (n * v));
+//	returnValue = (d * f * g) / (4.0f * (n * l) * (n * v));
 	
 	return returnValue;
 }

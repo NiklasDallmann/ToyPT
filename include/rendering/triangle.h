@@ -2,42 +2,45 @@
 #define TRIANGLE_H
 
 #include <array>
+#include <iostream>
 #include <stddef.h>
 #include <vector4.h>
 
 namespace Rendering
 {
 
-class Triangle
+using Vertex = Math::Vector4;
+
+struct Triangle
 {
-public:
-	Triangle(const std::array<Math::Vector4, 3> &vertices, const std::array<Math::Vector4, 3> &normals = {});
+	Triangle(const std::array<uint32_t, 3> &vertices, const std::array<uint32_t, 3> &uvCoordinates = {}, const std::array<uint32_t, 3> &normals = {}) :
+		vertices(vertices),
+		uvCoordinates(uvCoordinates),
+		normals(normals)
+	{
+	}
 	
-	Math::Vector4 normal() const;
+	static Math::Vector4 normal(const Triangle *triangle, const Vertex *vertexBuffer)
+	{
+		Math::Vector4 returnValue;
+		auto vertexIndices = triangle->vertices;
+		
+		returnValue = (vertexBuffer[vertexIndices[1]] - vertexBuffer[vertexIndices[0]]).crossProduct(
+					vertexBuffer[vertexIndices[2]] - vertexBuffer[vertexIndices[0]]).normalized();
+		
+		return returnValue;
+	}
 	
-	std::array<Math::Vector4, 3> &vertices();
-	const std::array<Math::Vector4, 3> &vertices() const;
-	
-	std::array<Math::Vector4, 3> &normals();
-	const std::array<Math::Vector4, 3> &normals() const;
-	void setNormals(const std::array<Math::Vector4, 3> &normals);
-	
-	void barycentricCoordinates() const;
-	
-	Math::Vector4 &operator[](const size_t index);
-	const Math::Vector4 &operator[](const size_t index) const;
-	
-private:
-	std::array<Math::Vector4, 3> _vertices;
-	std::array<Math::Vector4, 3> _normals;
-	
+	std::array<uint32_t, 3> vertices;
+	std::array<uint32_t, 3> uvCoordinates;
+	std::array<uint32_t, 3> normals;
 };
 
 inline std::ostream &operator<<(std::ostream &stream, const Triangle &triangle)
 {
 	std::stringstream stringStream;
 	
-	stringStream << "{" << triangle[0] << ", " << triangle[1] << ", " << triangle[2] << "}";
+	stringStream << "{" << triangle.vertices[0] << ", " << triangle.vertices[1] << ", " << triangle.vertices[2] << "}";
 	
 	stream << stringStream.str();
 	

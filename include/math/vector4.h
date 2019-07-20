@@ -24,7 +24,7 @@ namespace Math
 class Vector4
 {
 public:
-	friend float operator*(const Vector4 &left, const Vector4 &right);
+	friend Vector4 operator*(const Vector4 &left, const Vector4 &right);
 	friend std::ostream &operator<<(std::ostream &stream, const Vector4 &vector);
 	
 	///
@@ -190,13 +190,12 @@ public:
 		return returnValue;
 	}
 	
-	Vector4 coordinateProduct(const Vector4 &other) const
+	float dotProduct(const Vector4 &other) const
 	{
-		Vector4 returnValue;
+		float returnValue = 0;
 		
-		returnValue[0] = (*this)[0] * other[0];
-		returnValue[1] = (*this)[1] * other[1];
-		returnValue[2] = (*this)[2] * other[2];
+		__m128 temporary = _mm_mul_ps(this->_coordinates, other._coordinates);
+		returnValue = temporary[0] + temporary[1] + temporary[2];
 		
 		return returnValue;
 	}
@@ -210,7 +209,7 @@ public:
 	{
 		float returnValue = 0;
 		
-		returnValue = ((left * right) / (left.magnitude() * right.magnitude()));
+		returnValue = ((left.dotProduct(right)) / (left.magnitude() *right.magnitude()));
 		
 		return returnValue;
 	}
@@ -235,6 +234,13 @@ public:
 	Vector4 &operator-=(const Vector4 &other)
 	{
 		this->_coordinates = _mm_sub_ps(this->_coordinates, other._coordinates);
+		
+		return *this;
+	}
+	
+	Vector4 &operator*=(const Vector4 &other)
+	{
+		this->_coordinates = _mm_mul_ps(this->_coordinates, other._coordinates);
 		
 		return *this;
 	}
@@ -345,12 +351,11 @@ inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
 /// 
 /// \since	1.0
 ///
-inline float operator*(const Vector4 &left, const Vector4 &right)
+inline Vector4 operator*(const Vector4 &left, const Vector4 &right)
 {
-	float returnValue = 0;
+	Vector4 returnValue;
 	
-	__m128 temporary = _mm_mul_ps(left._coordinates, right._coordinates);
-	returnValue = temporary[0] + temporary[1] + temporary[2];
+	returnValue._coordinates = _mm_mul_ps(left._coordinates, right._coordinates);
 	
 	return returnValue;
 }

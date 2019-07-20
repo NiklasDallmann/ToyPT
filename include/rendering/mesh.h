@@ -13,29 +13,34 @@ namespace Rendering
 class Mesh
 {
 public:
-	Mesh(const Material &material = {});
+	Mesh(const uint32_t triangleOffset = 0, const uint32_t triangleCount = 0, const uint32_t materialOffset = 0,
+		 const uint32_t vertexOffset = 0, const uint32_t vertexCount = 0, const uint32_t normalOffset = 0, const uint32_t normalCount = 0);
 	
-	std::vector<Triangle> &triangles();
-	const std::vector<Triangle> &triangles() const;
+	void transform(const Math::Matrix4x4 &matrix, Vertex *vertexBuffer, Math::Vector4 *normalBuffer);
 	
-	void setMaterial(const Material &material);
-	const Material &material() const;
+	void translate(const Math::Vector4 &vector, Vertex *vertexBuffer);
 	
-	void transform(const Math::Matrix4x4 &matrix);
+	void invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer);
 	
-	void translate(const Math::Vector4 &vector);
+	static Mesh cube(const float sideLength, const uint32_t materialOffset,
+					 std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer,std::vector<Math::Vector4> &normalBuffer);
 	
-	void invert();
+	static Mesh plane(const float sideLength, const uint32_t materialOffset,
+					  std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer);
 	
-	static Mesh cube(const float sideLength, const Material &material);
-	static Mesh plane(const float sideLength, const Material &material);
-	static Mesh sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material);
+	static Mesh sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const uint32_t materialOffset,
+					   std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer);
 	
-protected:
-	std::vector<Triangle> _triangles;
-	Material _material;
+	static Math::Vector4 sphericalToCartesian(const float horizontal, const float vertical, const float radius);
 	
-	static Math::Vector4 _sphericalToCartesian(const float horizontal, const float vertical, const float radius);
+	uint32_t triangleOffset;
+	uint32_t triangleCount;
+	uint32_t materialOffset;
+	uint32_t vertexOffset;
+	uint32_t vertexCount;
+	uint32_t normalOffset;
+	uint32_t normalCount;
+	
 };
 
 } // namespace Rendering

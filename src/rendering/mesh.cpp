@@ -6,87 +6,68 @@
 namespace Rendering
 {
 
-Mesh::Mesh(const Material &material) :
-	_material(material)
+Mesh::Mesh(const uint32_t triangleOffset, const uint32_t triangleCount, const uint32_t materialOffset, const uint32_t vertexOffset, const uint32_t vertexCount,
+		   const uint32_t normalOffset, const uint32_t normalCount) :
+	triangleOffset(triangleOffset),
+	triangleCount(triangleCount),
+	materialOffset(materialOffset),
+	vertexOffset(vertexOffset),
+	vertexCount(vertexCount),
+	normalOffset(normalOffset),
+	normalCount(normalCount)
 {
 }
 
-std::vector<Triangle> &Mesh::triangles()
+void Mesh::transform(const Math::Matrix4x4 &matrix, Vertex *vertexBuffer, Math::Vector4 *normalBuffer)
 {
-	return this->_triangles;
-}
-
-const std::vector<Triangle> &Mesh::triangles() const
-{
-	return this->_triangles;
-}
-
-void Mesh::setMaterial(const Material &material)
-{
-	this->_material = material;
-}
-
-const Material &Mesh::material() const
-{
-	return this->_material;
-}
-
-void Mesh::transform(const Math::Matrix4x4 &matrix)
-{
-	for (Triangle &triangle : this->_triangles)
+	for (uint32_t vertexIndex = this->vertexOffset; vertexIndex < (this->vertexOffset + vertexCount); vertexIndex++)
 	{
-		for (Math::Vector4 &vertex : triangle.vertices())
-		{
-			vertex = matrix * vertex;
-		}
-		
-		for (Math::Vector4 &normal : triangle.normals())
-		{
-			normal = matrix * normal;
-		}
+		vertexBuffer[vertexIndex] = matrix * vertexBuffer[vertexIndex];
+	}
+	
+	for (uint32_t normalIndex = this->normalOffset; normalIndex < (this->normalOffset + normalCount); normalIndex++)
+	{
+		normalBuffer[normalIndex] = matrix * normalBuffer[normalIndex];
 	}
 }
 
-void Mesh::translate(const Math::Vector4 &vector)
+void Mesh::translate(const Math::Vector4 &vector, Vertex *vertexBuffer)
 {
-	for (Triangle &triangle : this->_triangles)
+	for (uint32_t vertexIndex = this->vertexOffset; vertexIndex < (this->vertexOffset + this->vertexCount); vertexIndex++)
 	{
-		for (Math::Vector4 &vertex : triangle.vertices())
-		{
-			vertex += vector;
-		}
-		
-		for (Math::Vector4 &normal : triangle.normals())
-		{
-			normal += vector;
-		}
+		vertexBuffer[vertexIndex] += vector;
 	}
 }
 
-void Mesh::invert()
+void Mesh::invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer)
 {
-	for (Triangle &triangle : this->_triangles)
+	for (uint32_t triangleIndex = this->triangleOffset; triangleIndex < this->triangleCount; triangleIndex++)
 	{
+		Triangle &triangle = triangleBuffer[triangleIndex];
 		Triangle inverse{
 			{
-				triangle[2],
-				triangle[1],
-				triangle[0]
-			}
+				triangle.vertices[2],
+				triangle.vertices[1],
+				triangle.vertices[0]
+			},
+			// FIXME UV coordinates
+			{},
+			triangle.normals
 		};
 		
-		for (Math::Vector4 &normal : inverse.normals())
+		for (uint32_t normalIndex = 0; normalIndex < triangle.normals.size(); normalIndex++)
 		{
-			normal *= -1;
+			normalBuffer[triangle.normals[normalIndex]] *= -1.0f;
 		}
 		
 		triangle = inverse;
 	}
 }
 
-Mesh Mesh::cube(const float sideLength, const Material &material)
+Mesh Mesh::cube(const float sideLength, const uint32_t materialOffset,
+				std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
 {
-	Mesh returnValue(material);
+	Mesh returnValue;
 	
 	// Each vertex is offset by half the side length on two axes
 	float halfSideLength = sideLength / 2.0f;
@@ -106,40 +87,66 @@ Mesh Mesh::cube(const float sideLength, const Material &material)
 	v6 = {halfSideLength, -halfSideLength, -halfSideLength};
 	v7 = {-halfSideLength, -halfSideLength, -halfSideLength};
 	
+	returnValue.materialOffset = materialOffset;
+	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleCount = 12;
+	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexCount = 8;
+	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalCount = 6;
+	
+	std::vector<Vertex> vertices{v0, v1, v2, v3, v4, v5, v6, v7};
+	
 	// Create Triangles
-	returnValue._triangles = {
+	std::vector<Triangle> triangles = {
 		// Upper face
-		{{v0, v1, v2}},
-		{{v0, v2, v3}},
+		{{0, 1, 2}},
+		{{0, 2, 3}},
 		// Lower face
-		{{v6, v5, v4}},
-		{{v7, v6, v4}},
+		{{6, 5, 4}},
+		{{7, 6, 4}},
 		// Front face
-		{{v4, v5, v1}},
-		{{v4, v1, v0}},
+		{{4, 5, 1}},
+		{{4, 1, 0}},
 		// Back face
-		{{v6, v7, v3}},
-		{{v6, v3, v2}},
+		{{6, 7, 3}},
+		{{6, 3, 2}},
 		// Left face
-		{{v4, v0, v3}},
-		{{v4, v3, v7}},
+		{{4, 0, 3}},
+		{{4, 3, 7}},
 		// Right face
-		{{v5, v6, v2}},
-		{{v5, v2, v1}},
+		{{5, 6, 2}},
+		{{5, 2, 1}},
 	};
 	
-	for (Triangle &triangle : returnValue._triangles)
+	for (Triangle &triangle : triangles)
+	{	
+		for (uint32_t &vertexIndex : triangle.vertices)
+		{
+			vertexIndex += vertexBuffer.size();
+		}
+	}
+	
+	vertexBuffer.insert(vertexBuffer.end(), vertices.begin(), vertices.end());
+	triangleBuffer.insert(triangleBuffer.end(), triangles.begin(), triangles.end());
+	
+	for (uint32_t triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++)
 	{
-		const Math::Vector4 normal = triangle.normal();
-		triangle.normals() = {normal, normal, normal};
+		Triangle *triangle = &triangleBuffer[returnValue.triangleOffset + triangleIndex];
+		const Math::Vector4 normal = Triangle::normal(triangle, vertexBuffer.data());
+		const uint32_t normalIndex = uint32_t(normalBuffer.size());
+		
+		triangle->normals = {normalIndex, normalIndex, normalIndex};
+		normalBuffer.push_back(normal);
 	}
 	
 	return returnValue;
 }
 
-Mesh Mesh::plane(const float sideLength, const Material &material)
+Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
+				 std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
 {
-	Mesh returnValue(material);
+	Mesh returnValue(materialOffset);
 	
 	float halfSideLength = sideLength / 2.0f;
 	Math::Vector4 v0, v1, v2, v3;
@@ -150,19 +157,22 @@ Mesh Mesh::plane(const float sideLength, const Material &material)
 	v2 = {halfSideLength, 0, -halfSideLength};
 	v3 = {-halfSideLength, 0, -halfSideLength};
 	
-	n = Triangle{{v0, v1, v2}}.normal();
+	// FIXME finish
 	
-	returnValue._triangles = {
-		{{v0, v1, v2}, {n, n, n}},
-		{{v0, v2, v3}, {n, n, n}}
-	};
+//	n = Triangle{{v0, v1, v2}}.normal();
+	
+//	returnValue._triangles = {
+//		{{v0, v1, v2}, {n, n, n}},
+//		{{v0, v2, v3}, {n, n, n}}
+//	};
 	
 	return returnValue;
 }
 
-Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const Material &material)
+Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const uint32_t materialOffset,
+				  std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
 {
-	Mesh returnValue(material);
+	Mesh returnValue(materialOffset);
 	
 	// Generate vertices
 	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
@@ -175,31 +185,35 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 			const float phi1 = float(M_PI) * 2.0f * (float(horizontal) / float(horizontalSubDivisions));
 			const float phi2 = float(M_PI) * 2.0f * (float(horizontal + 1) / float(horizontalSubDivisions));
 			
-			const Math::Vector4 v1 = _sphericalToCartesian(phi1, theta1, radius);
-			const Math::Vector4 v2 = _sphericalToCartesian(phi2, theta1, radius);
-			const Math::Vector4 v3 = _sphericalToCartesian(phi2, theta2, radius);
-			const Math::Vector4 v4 = _sphericalToCartesian(phi1, theta2, radius);
+			const Math::Vector4 v1 = sphericalToCartesian(phi1, theta1, radius);
+			const Math::Vector4 v2 = sphericalToCartesian(phi2, theta1, radius);
+			const Math::Vector4 v3 = sphericalToCartesian(phi2, theta2, radius);
+			const Math::Vector4 v4 = sphericalToCartesian(phi1, theta2, radius);
 			
-			if (verticalSubDivisions == 0)
-			{
-				returnValue._triangles.push_back({{v1, v3, v4}, {v1.normalized(), v3.normalized(), v4.normalized()}});
-			}
-			else if (verticalSubDivisions == (verticalSubDivisions - 1))
-			{
-				returnValue._triangles.push_back({{v3, v1, v2}, {v3.normalized(), v1.normalized(), v2.normalized()}});
-			}
-			else
-			{
-				returnValue._triangles.push_back({{v1, v2, v4}, {v1.normalized(), v2.normalized(), v4.normalized()}});
-				returnValue._triangles.push_back({{v2, v3, v4}, {v2.normalized(), v3.normalized(), v4.normalized()}});
-			}
+			std::vector<Vertex> vertices;
+			// FIXME finish
+//			if (verticalSubDivisions == 0)
+//			{
+				
+				
+//				returnValue._triangles.push_back({{v1, v3, v4}, {v1.normalized(), v3.normalized(), v4.normalized()}});
+//			}
+//			else if (verticalSubDivisions == (verticalSubDivisions - 1))
+//			{
+//				returnValue._triangles.push_back({{v3, v1, v2}, {v3.normalized(), v1.normalized(), v2.normalized()}});
+//			}
+//			else
+//			{
+//				returnValue._triangles.push_back({{v1, v2, v4}, {v1.normalized(), v2.normalized(), v4.normalized()}});
+//				returnValue._triangles.push_back({{v2, v3, v4}, {v2.normalized(), v3.normalized(), v4.normalized()}});
+//			}
 		}
 	}
 	
 	return returnValue;
 }
 
-Math::Vector4 Mesh::_sphericalToCartesian(const float horizontal, const float vertical, const float radius)
+Math::Vector4 Mesh::sphericalToCartesian(const float horizontal, const float vertical, const float radius)
 {
 	Math::Vector4 returnValue;
 	

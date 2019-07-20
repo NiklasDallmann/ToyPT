@@ -14,6 +14,8 @@ int main()
 {
 	std::cout << "Path Tracer" << std::endl;
 	
+	Rendering::Renderer renderer;
+	
 	Rendering::Material red{{1, 0, 0}};
 	Rendering::Material green{{0, 1, 0}};
 	Rendering::Material blue{{0, 0, 0.5}};
@@ -25,37 +27,34 @@ int main()
 	Rendering::Material halfGrey{{0.5f, 0.5f, 0.5f}};
 	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
 	
-	Rendering::Mesh cube0 = Rendering::Mesh::cube(1, cyan);
-	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f));
-	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f));
-	cube0.translate({-1.5f, -0.2f, -4.5f});
+	renderer.materialBuffer = {red, green, blue, cyan, magenta, yellow, black, white, halfGrey, grey};
 	
-	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, magenta);
-	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f));
-	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f));
-	cube1.translate({2.5f, 0.2f, -5.5f});
+	Rendering::Mesh cube0 = Rendering::Mesh::cube(1, 3, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	cube0.translate({-1.5f, -0.2f, -4.5f}, renderer.vertexBuffer.data());
 	
-	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, blue);
-	sphere.translate({0.0f, 0.2f, -5.0f});
+//	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, magenta);
+//	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f));
+//	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f));
+//	cube1.translate({2.5f, 0.2f, -5.5f});
 	
-	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, grey);
-	worldCube.invert();
-	worldCube.translate({-12.0f, 15.0f, 5.0f});
+//	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, blue);
+//	sphere.translate({0.0f, 0.2f, -5.0f});
 	
-	std::vector<Rendering::Mesh> meshes;
-	meshes.push_back(cube0);
-	meshes.push_back(cube1);
-	meshes.push_back(sphere);
-	meshes.push_back(worldCube);
+	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, 9, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	worldCube.invert(renderer.triangleBuffer.data(), renderer.normalBuffer.data());
+	worldCube.translate({-12.0f, 15.0f, 5.0f}, renderer.vertexBuffer.data());
 	
-	std::vector<Rendering::PointLight> pointLights;
-	pointLights.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
+	renderer.meshBuffer.push_back(cube0);
+//	renderer.meshBuffer.push_back(cube1);
+//	renderer.meshBuffer.push_back(sphere);
+	renderer.meshBuffer.push_back(worldCube);
+	
+	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
 	Rendering::FrameBuffer frameBuffer(200, 100);
-	Rendering::Renderer renderer;
-	renderer.setMeshes(meshes);
-	renderer.setPointLights(pointLights);
-	renderer.render(frameBuffer, 70, 128, 4);
+	renderer.render(frameBuffer, 70, 4, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

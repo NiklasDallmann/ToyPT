@@ -4,7 +4,8 @@ project(pathtracer)
 
 find_package(OpenMP)
 
-set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2")
+#set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2")
+set(CMAKE_CXX_FLAGS "-g -mavx2")
 
 add_library(math STATIC "src/math/vector4.cpp" "src/math/matrix4x4.cpp" "src/math/algorithms.cpp")
 target_include_directories(math

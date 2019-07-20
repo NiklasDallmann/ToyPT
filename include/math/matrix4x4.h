@@ -213,7 +213,7 @@ exit:
 		{
 			for (size_t j = 0; j < _dimension; j++)
 			{
-				returnValue[i][j] = left[i] * right[j];
+				returnValue[i][j] = left[i].dotProduct(right[j]);
 			}
 		}
 		
@@ -318,7 +318,7 @@ inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right)
 	
 	for (size_t i = 0; i < 3; i++)
 	{
-		returnValue[i] = left[i] * right;
+		returnValue[i] = left[i].dotProduct(right);
 	}
 	
 	return returnValue;

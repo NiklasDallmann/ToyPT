@@ -22,8 +22,14 @@ class Renderer
 public:
 	Renderer();
 	
-	void setMeshes(const std::vector<Mesh> &meshes);
-	void setPointLights(const std::vector<PointLight> &pointLights);
+	std::vector<Vertex> vertexBuffer;
+	std::vector<Math::Vector4> uvBuffer;
+	std::vector<Math::Vector4> normalBuffer;
+	std::vector<Triangle> triangleBuffer;
+	std::vector<Material> materialBuffer;
+	std::vector<Mesh> meshBuffer;
+	std::vector<PointLight> pointLightBuffer;
+	
 	void render(FrameBuffer &frameBuffer, const float fieldOfView = 75.0f, const size_t samples = 10, const size_t bounces = 2);
 	
 private:
@@ -34,11 +40,9 @@ private:
 	};
 	
 	static constexpr float _epsilon = 0.000001f;
-	std::vector<Mesh> _meshes;
-	std::vector<PointLight> _pointLights;
 	
-	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
-	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle &triangle, const Math::Vector4 &normal);
+	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
+	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
 	__m256 _intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const __m256 normals);
 	float _traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection);
 	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
