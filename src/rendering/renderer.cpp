@@ -203,7 +203,6 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 				directLight += ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
 			}
 			
-			std::cout << directLight << "\n";
 			directLight = directLight * color;
 //			directLight = color;
 			

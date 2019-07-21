@@ -41,7 +41,7 @@ void Mesh::translate(const Math::Vector4 &vector, Vertex *vertexBuffer)
 
 void Mesh::invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer)
 {
-	for (uint32_t triangleIndex = this->triangleOffset; triangleIndex < this->triangleCount; triangleIndex++)
+	for (uint32_t triangleIndex = this->triangleOffset; triangleIndex < (this->triangleOffset + this->triangleCount); triangleIndex++)
 	{
 		Triangle &triangle = triangleBuffer[triangleIndex];
 		Triangle inverse{
