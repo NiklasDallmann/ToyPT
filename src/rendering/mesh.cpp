@@ -174,6 +174,14 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 {
 	Mesh returnValue(materialOffset);
 	
+	const uint32_t vertexOffset = vertexBuffer.size();
+	const uint32_t normalOffset = normalBuffer.size();
+	const uint32_t triangleOffset = triangleBuffer.size();
+	
+	std::vector<Vertex> vertices;
+	std::vector<Math::Vector4> normals;
+	std::vector<Triangle> triangles;
+	
 	// Generate vertices
 	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
 	{
@@ -190,25 +198,65 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 			const Math::Vector4 v3 = sphericalToCartesian(phi2, theta2, radius);
 			const Math::Vector4 v4 = sphericalToCartesian(phi1, theta2, radius);
 			
-			std::vector<Vertex> vertices;
-			// FIXME finish
-//			if (verticalSubDivisions == 0)
-//			{
-				
-				
-//				returnValue._triangles.push_back({{v1, v3, v4}, {v1.normalized(), v3.normalized(), v4.normalized()}});
-//			}
-//			else if (verticalSubDivisions == (verticalSubDivisions - 1))
-//			{
-//				returnValue._triangles.push_back({{v3, v1, v2}, {v3.normalized(), v1.normalized(), v2.normalized()}});
-//			}
-//			else
-//			{
-//				returnValue._triangles.push_back({{v1, v2, v4}, {v1.normalized(), v2.normalized(), v4.normalized()}});
-//				returnValue._triangles.push_back({{v2, v3, v4}, {v2.normalized(), v3.normalized(), v4.normalized()}});
-//			}
+			vertices.push_back(v1);
+			vertices.push_back(v2);
+			vertices.push_back(v3);
+			vertices.push_back(v4);
+			
+			normals.push_back(v1.normalized());
+			normals.push_back(v2.normalized());
+			normals.push_back(v3.normalized());
+			normals.push_back(v4.normalized());
 		}
 	}
+	
+	// Generate triangles
+	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
+	{
+		for (size_t horizontal = 0; horizontal < horizontalSubDivisions; horizontal++)
+		{
+			const uint32_t offset = uint32_t(vertical * horizontalSubDivisions + horizontal) * 4;
+			
+			if (vertical == 0)
+			{
+				triangles.push_back({{offset + 0, offset + 2, offset + 3}, {offset + 0, offset + 2, offset + 3}, {offset + 0, offset + 2, offset + 3}});
+			}
+			else if (vertical == (verticalSubDivisions - 1))
+			{
+				triangles.push_back({{offset + 2, offset + 0, offset + 1}, {offset + 2, offset + 0, offset + 1}, {offset + 2, offset + 0, offset + 1}});
+			}
+			else
+			{
+				triangles.push_back({{offset + 0, offset + 1, offset + 3}, {offset + 0, offset + 1, offset + 3}, {offset + 0, offset + 1, offset + 3}});
+				triangles.push_back({{offset + 1, offset + 2, offset + 3}, {offset + 1, offset + 2, offset + 3}, {offset + 1, offset + 2, offset + 3}});
+			}
+		}
+	}
+	
+	returnValue.materialOffset = materialOffset;
+	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleCount = uint32_t(triangles.size());
+	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexCount = uint32_t(vertices.size());
+	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalCount = uint32_t(normals.size());
+	
+	for (uint32_t triangleIndex = 0; triangleIndex < returnValue.triangleCount; triangleIndex++)
+	{
+		for (uint32_t &vertexIndex : triangles[triangleIndex].vertices)
+		{
+			vertexIndex += returnValue.vertexOffset;
+		}
+		
+		for (uint32_t &normalIndex : triangles[triangleIndex].normals)
+		{
+			normalIndex += returnValue.normalOffset;
+		}
+	}
+	
+	vertexBuffer.insert(vertexBuffer.end(), vertices.cbegin(), vertices.cend());
+	normalBuffer.insert(normalBuffer.end(), normals.cbegin(), normals.cend());
+	triangleBuffer.insert(triangleBuffer.end(), triangles.cbegin(), triangles.cend());
 	
 	return returnValue;
 }

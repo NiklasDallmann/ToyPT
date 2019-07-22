@@ -34,27 +34,27 @@ int main()
 	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
 	cube0.translate({-1.5f, -0.2f, -4.5f}, renderer.vertexBuffer.data());
 	
-//	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, magenta);
-//	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f));
-//	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f));
-//	cube1.translate({2.5f, 0.2f, -5.5f});
+	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, 4, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	cube1.translate({2.5f, 0.2f, -5.5f}, renderer.vertexBuffer.data());
 	
-//	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, blue);
-//	sphere.translate({0.0f, 0.2f, -5.0f});
+	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, 2, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	sphere.translate({0.0f, 0.2f, -5.0f}, renderer.vertexBuffer.data());
 	
 	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, 9, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 	worldCube.invert(renderer.triangleBuffer.data(), renderer.normalBuffer.data());
 	worldCube.translate({-12.0f, 15.0f, 5.0f}, renderer.vertexBuffer.data());
 	
 	renderer.meshBuffer.push_back(cube0);
-//	renderer.meshBuffer.push_back(cube1);
-//	renderer.meshBuffer.push_back(sphere);
+	renderer.meshBuffer.push_back(cube1);
+	renderer.meshBuffer.push_back(sphere);
 	renderer.meshBuffer.push_back(worldCube);
 	
 	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, -8.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
 	Rendering::FrameBuffer frameBuffer(200, 100);
-	renderer.render(frameBuffer, 70, 16, 4);
+	renderer.render(frameBuffer, 70, 64, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
