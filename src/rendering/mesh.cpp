@@ -174,10 +174,6 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 {
 	Mesh returnValue(materialOffset);
 	
-	const uint32_t vertexOffset = vertexBuffer.size();
-	const uint32_t normalOffset = normalBuffer.size();
-	const uint32_t triangleOffset = triangleBuffer.size();
-	
 	std::vector<Vertex> vertices;
 	std::vector<Math::Vector4> normals;
 	std::vector<Triangle> triangles;

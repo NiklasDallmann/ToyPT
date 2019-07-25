@@ -133,34 +133,35 @@ bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const M
 	const float determinant = v01.dotProduct(pVector);
 	const float inverseDeterminant = 1.0f / determinant;
 	
-	// FIXME no abs
-	if (std::abs(determinant) < _epsilon)
-	{
-		returnValue = false;
-		goto exit;
-	}
+//	if (determinant < _epsilon)
+//	{
+//		returnValue = false;
+//		goto exit;
+//	}
 	
 	tVector = origin - v0;
 	u = tVector.dotProduct(pVector) * inverseDeterminant;
 	
-	if (u < 0 | u > 1)
-	{
-		returnValue = false;
-		goto exit;
-	}
+//	if (u < 0 | u > 1)
+//	{
+//		returnValue = false;
+//		goto exit;
+//	}
 	
 	qVector = tVector.crossProduct(v01);
 	v = direction.dotProduct(qVector) * inverseDeterminant;
 	
-	if (v < 0 | (u + v) > 1)
-	{
-		returnValue = false;
-		goto exit;
-	}
+//	if (v < 0 | (u + v) > 1)
+//	{
+//		returnValue = false;
+//		goto exit;
+//	}
 	
 	t = v02.dotProduct(qVector) * inverseDeterminant;
 	
-exit:
+	returnValue = Math::lerp(false, true, ((determinant < _epsilon) | (u < 0) | (u > 1) | (v < 0) | ((u + v) > 1)));
+	
+//exit:
 	return returnValue;
 }
 
@@ -260,14 +261,14 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		{
 			Math::Vector4 color = this->materialBuffer[intersection.mesh->materialOffset].color();
 			Math::Vector4 directLight = {0.0f, 0.0f, 0.0f};
-			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
-//			Math::Vector4 n0, n1, n2;
+//			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
+			Math::Vector4 n0, n1, n2;
 			
-//			n0 = this->normalBuffer[intersection.triangle->normals[0]];
-//			n1 = this->normalBuffer[intersection.triangle->normals[1]];
-//			n2 = this->normalBuffer[intersection.triangle->normals[2]];
+			n0 = this->normalBuffer[intersection.triangle->normals[0]];
+			n1 = this->normalBuffer[intersection.triangle->normals[1]];
+			n2 = this->normalBuffer[intersection.triangle->normals[2]];
 			
-//			normal = intersection.u * n1 + intersection.v * n2 + (1.0f - intersection.u - intersection.v) * n0;
+			normal = (1.0f - intersection.u - intersection.v) * n0 + intersection.u * n1 + intersection.v * n2;
 			
 			// Intersection found
 			for (const PointLight &pointLight : this->pointLightBuffer)
