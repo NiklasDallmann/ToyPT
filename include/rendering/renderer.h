@@ -37,12 +37,15 @@ private:
 	{
 		Mesh *mesh = nullptr;
 		Triangle *triangle = nullptr;
+		float u = 0;
+		float v = 0;
 	};
 	
-	static constexpr float _epsilon = 0.000001f;
+	static constexpr float _epsilon = 1.0E-7f;
 	
 	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
 	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
+	bool _intersectMoellerTrumbore(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle, float &t, float &u, float &v);
 	__m256 _intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const __m256 normals);
 	float _traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection);
 	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
