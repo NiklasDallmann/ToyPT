@@ -261,14 +261,41 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		{
 			Math::Vector4 color = this->materialBuffer[intersection.mesh->materialOffset].color();
 			Math::Vector4 directLight = {0.0f, 0.0f, 0.0f};
+			
+			// Face normal
 //			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
-			Math::Vector4 n0, n1, n2;
+			
+			// Vertex normals
+			Math::Vector4 n0, n1, n2, n01, n02, v0, v1, v2, v01, v02, v12, vp, proj01, proj02, proj12;
 			
 			n0 = this->normalBuffer[intersection.triangle->normals[0]];
 			n1 = this->normalBuffer[intersection.triangle->normals[1]];
 			n2 = this->normalBuffer[intersection.triangle->normals[2]];
 			
-			normal = (1.0f - intersection.u - intersection.v) * n0 + intersection.u * n1 + intersection.v * n2;
+			v0 = this->vertexBuffer[intersection.triangle->vertices[0]];
+			v1 = this->vertexBuffer[intersection.triangle->vertices[1]];
+			v2 = this->vertexBuffer[intersection.triangle->vertices[2]];
+			
+			// Gauroud
+//			normal = (1.0f - intersection.u - intersection.v) * n0 + intersection.u * n1 + intersection.v * n2;
+			
+			// Phong
+			v01 = v1 - v0;
+			v02 = v2 - v0;
+			v12 = v2 - v1;
+			vp = intersectionPoint - v0;
+			
+			// Projections
+			proj01 = (vp.dotProduct(v01) / std::pow(v01.magnitude(), 2.0f)) * v01;
+			proj02 = (vp.dotProduct(v02) / std::pow(v02.magnitude(), 2.0f)) * v02;
+			proj12 = (vp.dotProduct(v12) / std::pow(v12.magnitude(), 2.0f)) * v12;
+			
+			// Linear interpolation
+			float t01 = 1.0f - (proj01.magnitude() / v01.magnitude());
+			float t02 = 1.0f - (proj02.magnitude() / v02.magnitude());
+			float t12 = 1.0f - (proj12.magnitude() / v12.magnitude());
+			
+			normal = Math::lerp(Math::lerp(n0, n1, t01), Math::lerp(n0, n2, t02), t12);
 			
 			// Intersection found
 			for (const PointLight &pointLight : this->pointLightBuffer)
