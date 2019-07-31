@@ -28,7 +28,7 @@ public:
 	static Mesh plane(const float sideLength, const uint32_t materialOffset,
 					  std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer);
 	
-	static Mesh sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const uint32_t materialOffset,
+	static Mesh sphere(const float radius, const uint32_t horizontalSubDivisions, const uint32_t verticalSubDivisions, const uint32_t materialOffset,
 					   std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer);
 	
 	static Math::Vector4 sphericalToCartesian(const float horizontal, const float vertical, const float radius);

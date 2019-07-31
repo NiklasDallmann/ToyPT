@@ -169,7 +169,7 @@ Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
 	return returnValue;
 }
 
-Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const size_t verticalSubDivisions, const uint32_t materialOffset,
+Mesh Mesh::sphere(const float radius, const uint32_t horizontalSubDivisions, const uint32_t verticalSubDivisions, const uint32_t materialOffset,
 				  std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
 {
 	Mesh returnValue(materialOffset);
@@ -179,52 +179,42 @@ Mesh Mesh::sphere(const float radius, const size_t horizontalSubDivisions, const
 	std::vector<Triangle> triangles;
 	
 	// Generate vertices
-	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
+	for (uint32_t vertical = 0; vertical <= verticalSubDivisions; vertical++)
 	{
-		const float theta1 = float(M_PI) * (float(vertical) / float(verticalSubDivisions));
-		const float theta2 = float(M_PI) * (float(vertical + 1) / float(verticalSubDivisions));
+		const float theta = float(M_PI) * (float(vertical) / float(verticalSubDivisions));
 		
-		for (size_t horizontal = 0; horizontal < horizontalSubDivisions; horizontal++)
+		for (uint32_t horizontal = 0; horizontal <= horizontalSubDivisions; horizontal++)
 		{
-			const float phi1 = float(M_PI) * 2.0f * (float(horizontal) / float(horizontalSubDivisions));
-			const float phi2 = float(M_PI) * 2.0f * (float(horizontal + 1) / float(horizontalSubDivisions));
+			const float phi = float(M_PI) * 2.0f * (float(horizontal) / float(horizontalSubDivisions));
 			
-			const Math::Vector4 v1 = sphericalToCartesian(phi1, theta1, radius);
-			const Math::Vector4 v2 = sphericalToCartesian(phi2, theta1, radius);
-			const Math::Vector4 v3 = sphericalToCartesian(phi2, theta2, radius);
-			const Math::Vector4 v4 = sphericalToCartesian(phi1, theta2, radius);
+			const Math::Vector4 v = sphericalToCartesian(phi, theta, radius);
 			
-			vertices.push_back(v1);
-			vertices.push_back(v2);
-			vertices.push_back(v3);
-			vertices.push_back(v4);
+			vertices.push_back(v);
 			
-			normals.push_back(v1.normalized());
-			normals.push_back(v2.normalized());
-			normals.push_back(v3.normalized());
-			normals.push_back(v4.normalized());
+			normals.push_back(v.normalized());
 		}
 	}
 	
 	// Generate triangles
-	for (size_t vertical = 0; vertical < verticalSubDivisions; vertical++)
+	for (uint32_t vertical = 0; vertical < verticalSubDivisions; vertical++)
 	{
-		for (size_t horizontal = 0; horizontal < horizontalSubDivisions; horizontal++)
+		for (uint32_t horizontal = 0; horizontal < horizontalSubDivisions; horizontal++)
 		{
-			const uint32_t offset = uint32_t(vertical * horizontalSubDivisions + horizontal) * 4;
+			uint32_t v0, v1, v2, v3;
 			
-			if (vertical == 0)
+			v0 = (horizontalSubDivisions + 1) * vertical + horizontal;
+			v1 = (horizontalSubDivisions + 1) * vertical + horizontal + 1;
+			v2 = (horizontalSubDivisions + 1) * (vertical + 1) + horizontal + 1;
+			v3 = (horizontalSubDivisions + 1) * (vertical + 1) + horizontal;
+			
+			if (vertical != verticalSubDivisions - 1)
 			{
-				triangles.push_back({{offset + 0, offset + 2, offset + 3}, {offset + 0, offset + 2, offset + 3}, {offset + 0, offset + 2, offset + 3}});
+				triangles.push_back({{v0, v2, v3}, {}, {v0, v2, v3}});
 			}
-			else if (vertical == (verticalSubDivisions - 1))
+			
+			if (vertical != 0)
 			{
-				triangles.push_back({{offset + 2, offset + 0, offset + 1}, {offset + 2, offset + 0, offset + 1}, {offset + 2, offset + 0, offset + 1}});
-			}
-			else
-			{
-				triangles.push_back({{offset + 0, offset + 1, offset + 3}, {offset + 0, offset + 1, offset + 3}, {offset + 0, offset + 1, offset + 3}});
-				triangles.push_back({{offset + 1, offset + 2, offset + 3}, {offset + 1, offset + 2, offset + 3}, {offset + 1, offset + 2, offset + 3}});
+				triangles.push_back({{v0, v1, v2}, {}, {v0, v1, v2}});
 			}
 		}
 	}

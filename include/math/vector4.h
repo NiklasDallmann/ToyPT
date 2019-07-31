@@ -32,7 +32,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 1)
+	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 0)
 	{
 		this->_coordinates = __m128{x, y, z, w};
 	}

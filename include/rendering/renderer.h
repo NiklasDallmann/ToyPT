@@ -51,7 +51,7 @@ private:
 	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
 							const size_t maxBounces = 4);
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
-	float _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v);
+	Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v);
 };
 
 } // namespace Rendering
