@@ -54,8 +54,8 @@ int main()
 	
 	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, 0.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(300, 150);
-	renderer.render(frameBuffer, 70, 4, 3);
+	Rendering::FrameBuffer frameBuffer(500, 250);
+	renderer.render(frameBuffer, 70, 1024, 3);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

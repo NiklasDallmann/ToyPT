@@ -310,7 +310,8 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 				
 //				const Math::Vector4 brdf = this->_brdf(material, normal, lightDirection, currentDirection);
 				
-				directLight += ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
+				Math::Vector4 incidentLight = ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
+				directLight += incidentLight;
 			}
 			
 			directLight = directLight * color;
@@ -335,14 +336,13 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			
 			Math::Vector4 sampleWorld = matrix * sampleHemisphere;
 			Math::Vector4 newDirection = (intersectionPoint + sampleWorld).normalized();
-			Math::Vector4 brdf = this->_brdf(material, normal, currentDirection, newDirection);
+//			Math::Vector4 brdf = this->_brdf(material, normal, currentDirection, newDirection);
 			
 			currentDirection = newDirection;
 			currentOrigin = sampleWorld;
 			
 			returnValue += mask * directLight;
-			mask = mask * color;
-			mask = mask * r1 * pdf * brdf;
+			mask = mask * color * r1 * pdf;
 		}
 		else
 		{
@@ -380,16 +380,17 @@ Math::Vector4 Renderer::_brdf(const Material &material, const Math::Vector4 &n, 
 	
 	// D term (GGX - Trowbridge-Reitz)
 	const float d = a_2 /
-			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1) + 1), 2.0f));
+			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
 	
 	// F (fresnel) term (Schlick approximation)
 	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
 	
 	// G term (Schlick-GGX)
-	const float g = a / 2.0f;
+	const float k = a / 2.0f;
+	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
 	
-//	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
-	returnValue = (d * f * g);
+	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
+//	returnValue = (d * f * g);
 	
 	return returnValue;
 }
