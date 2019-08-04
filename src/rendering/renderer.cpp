@@ -265,32 +265,13 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			
 			normal = Math::lerp(n01, n2, (v2p.magnitude() / v2ab.magnitude())).normalize();
 			
-			// Intersection found
-			for (const PointLight &pointLight : this->pointLightBuffer)
-			{
-				IntersectionInfo occlusionIntersection;
-				const Math::Vector4 lightDirection = pointLight.position() - intersectionPoint;
-				const float occlusionDistance = this->_traceRay(lightDirection.normalized(), intersectionPoint, occlusionIntersection);
-				const bool visible = ((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) &
-									  ((normal.dotProduct(lightDirection)) > 0.0f));
-				
-				Math::Vector4 incidentLight = ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
-				directLight += incidentLight;
-			}
-			
-			directLight = directLight * color;
-			
 			// Indirect lighting
 			this->_createCoordinateSystem(normal, Nt, Nb);
 			
 			// Generate hemisphere
 			r1 = distribution(generator);
 			r2 = distribution(generator);
-			float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
-			float phi = 2.0f * float(M_PI) * r2;
-			float x = sinTheta * std::cos(phi);
-			float z = sinTheta * std::sin(phi);
-			Math::Vector4 sampleHemisphere{x, r1, z};
+			Math::Vector4 sampleHemisphere = this->_createUniformHemisphere(r1, r2);
 			
 			Math::Matrix4x4 matrix{
 				{Nb.x(), normal.x(), Nt.x()},
@@ -304,7 +285,7 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			currentDirection = newDirection;
 			currentOrigin = sampleWorld;
 			
-			returnValue += mask * directLight;
+			returnValue += mask * material.emittance();
 			
 			mask = mask * color * r1 * pdf;
 		}
@@ -326,6 +307,15 @@ void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 	tangentNormal = Math::lerp(a, b, t).normalized();
 	
 	binormal = normal.crossProduct(tangentNormal);
+}
+
+Math::Vector4 Renderer::_createUniformHemisphere(const float r1, const float r2)
+{
+	float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
+	float phi = 2.0f * float(M_PI) * r2;
+	float x = sinTheta * std::cos(phi);
+	float z = sinTheta * std::sin(phi);
+	return {x, r1, z};
 }
 
 Math::Vector4 Renderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)

@@ -17,13 +17,13 @@ int main()
 	Rendering::Renderer renderer;
 	
 	Rendering::Material red{{1, 0, 0}};
-	Rendering::Material green{{0, 1, 0}};
+	Rendering::Material green{{0, 1, 0}, 1.0f};
 	Rendering::Material blue{{0, 0, 0.5}, 0.0f};
 	Rendering::Material cyan{{0, 1, 1}};
 	Rendering::Material magenta{{1, 0, 1}};
 	Rendering::Material yellow{{1, 1, 0}};
 	Rendering::Material black{{0, 0, 0}};
-	Rendering::Material white{{1, 1, 1}};
+	Rendering::Material white{{1, 1, 1}, 2.0f};
 	Rendering::Material halfGrey{{0.5f, 0.5f, 0.5f}};
 	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
 	
@@ -43,9 +43,10 @@ int main()
 //	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
 //	sphere.translate({0.0f, 0.2f, -5.0f}, renderer.vertexBuffer.data());
 	
-	Rendering::Mesh plane = Rendering::Mesh::plane(1.0f, 1, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	Rendering::Mesh plane = Rendering::Mesh::plane(1.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 	plane.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	plane.translate({0.0f, 1.0f, -5.0f}, renderer.vertexBuffer.data());
+	plane.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	plane.translate({-2.0f, 0.5f, -5.0f}, renderer.vertexBuffer.data());
 	
 	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, 9, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 	worldCube.invert(renderer.triangleBuffer.data(), renderer.normalBuffer.data());
@@ -60,7 +61,7 @@ int main()
 	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, 0.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
 	Rendering::FrameBuffer frameBuffer(200, 100);
-	renderer.render(frameBuffer, 70, 32, 3);
+	renderer.render(frameBuffer, 70, 16, 10);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
