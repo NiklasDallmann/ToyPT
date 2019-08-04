@@ -133,35 +133,16 @@ bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const M
 	const float determinant = v01.dotProduct(pVector);
 	const float inverseDeterminant = 1.0f / determinant;
 	
-//	if (determinant < _epsilon)
-//	{
-//		returnValue = false;
-//		goto exit;
-//	}
-	
 	tVector = origin - v0;
 	u = tVector.dotProduct(pVector) * inverseDeterminant;
 	
-//	if (u < 0 | u > 1)
-//	{
-//		returnValue = false;
-//		goto exit;
-//	}
-	
 	qVector = tVector.crossProduct(v01);
 	v = direction.dotProduct(qVector) * inverseDeterminant;
-	
-//	if (v < 0 | (u + v) > 1)
-//	{
-//		returnValue = false;
-//		goto exit;
-//	}
 	
 	t = v02.dotProduct(qVector) * inverseDeterminant;
 	
 	returnValue = Math::lerp(false, true, ((determinant < _epsilon) | (u < 0) | (u > 1) | (v < 0) | ((u + v) > 1)));
 	
-//exit:
 	return returnValue;
 }
 
@@ -185,22 +166,6 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	float u = 0;
 	float v = 0;
 	planeDistance = distance;
-	
-//	for (Mesh &mesh : this->meshBuffer)
-//	{
-//		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
-//		{
-//			Triangle *triangle = &this->triangleBuffer[triangleIndex];
-//			planeDistance = this->_intersectPlane(direction, origin, triangle);
-			
-//			if ((planeDistance > _epsilon) & (planeDistance < distance) & this->_intersectTriangle(planeDistance, direction, origin, triangle))
-//			{
-//				distance = planeDistance;
-//				nearestMesh = &mesh;
-//				nearestTriangle = triangle;
-//			}
-//		}
-//	}
 	
 	for (Mesh &mesh : this->meshBuffer)
 	{
@@ -254,6 +219,7 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		IntersectionInfo intersection;
 		Math::Vector4 normal;
 		float distance = this->_traceRay(currentDirection, currentOrigin, intersection);
+		
 		// Use offset to avoid self intersections
 		intersectionPoint = currentOrigin + (distance * currentDirection * (1.0f - _epsilon));
 		
@@ -308,8 +274,6 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 				const bool visible = ((occlusionIntersection.triangle == nullptr | occlusionDistance > lightDirection.magnitude()) &
 									  ((normal.dotProduct(lightDirection)) > 0.0f));
 				
-//				const Math::Vector4 brdf = this->_brdf(material, normal, lightDirection, currentDirection);
-				
 				Math::Vector4 incidentLight = ((normal.dotProduct(lightDirection.normalized())) * pointLight.color()) * visible;
 				directLight += incidentLight;
 			}
@@ -336,12 +300,12 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 			
 			Math::Vector4 sampleWorld = matrix * sampleHemisphere;
 			Math::Vector4 newDirection = (intersectionPoint + sampleWorld).normalized();
-//			Math::Vector4 brdf = this->_brdf(material, normal, currentDirection, newDirection);
 			
 			currentDirection = newDirection;
 			currentOrigin = sampleWorld;
 			
 			returnValue += mask * directLight;
+			
 			mask = mask * color * r1 * pdf;
 		}
 		else

@@ -9,7 +9,7 @@ namespace Rendering
 class Material
 {
 public:
-	Material(const Math::Vector4 &color = {}, const float roughness = 0.5f, const float metallic = 0.0f, const float cavity = 0.04f);
+	Material(const Math::Vector4 &color = {}, const float roughness = 1.0f, const float metallic = 0.0f, const float cavity = 0.04f);
 	
 	const Math::Vector4 &color() const;
 	float roughness() const;

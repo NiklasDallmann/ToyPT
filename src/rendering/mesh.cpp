@@ -150,21 +150,43 @@ Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
 	
 	float halfSideLength = sideLength / 2.0f;
 	Math::Vector4 v0, v1, v2, v3;
-	Math::Vector4 n;
 	
 	v0 = {-halfSideLength, 0, halfSideLength};
 	v1 = {halfSideLength, 0, halfSideLength};
 	v2 = {halfSideLength, 0, -halfSideLength};
 	v3 = {-halfSideLength, 0, -halfSideLength};
 	
-	// FIXME finish
+	std::vector<Vertex> vertices{v0, v1, v2, v3};
+	std::vector<Triangle> triangles{
+		{{0, 1, 2}, {}, {0, 0, 0}},
+		{{0, 2, 3}, {}, {0, 0, 0}}
+	};
+	std::vector<Math::Vector4> normals{Triangle::normal(triangles.data(), vertices.data())};
 	
-//	n = Triangle{{v0, v1, v2}}.normal();
+	returnValue.materialOffset = materialOffset;
+	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleCount = uint32_t(triangles.size());
+	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexCount = uint32_t(vertices.size());
+	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalCount = uint32_t(normals.size());
 	
-//	returnValue._triangles = {
-//		{{v0, v1, v2}, {n, n, n}},
-//		{{v0, v2, v3}, {n, n, n}}
-//	};
+	for (uint32_t triangleIndex = 0; triangleIndex < returnValue.triangleCount; triangleIndex++)
+	{
+		for (uint32_t &vertexIndex : triangles[triangleIndex].vertices)
+		{
+			vertexIndex += returnValue.vertexOffset;
+		}
+		
+		for (uint32_t &normalIndex : triangles[triangleIndex].normals)
+		{
+			normalIndex += returnValue.normalOffset;
+		}
+	}
+	
+	vertexBuffer.insert(vertexBuffer.end(), vertices.cbegin(), vertices.cend());
+	normalBuffer.insert(normalBuffer.end(), normals.cbegin(), normals.cend());
+	triangleBuffer.insert(triangleBuffer.end(), triangles.cbegin(), triangles.cend());
 	
 	return returnValue;
 }
