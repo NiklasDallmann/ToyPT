@@ -47,7 +47,8 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			for (size_t sample = 0; sample < samples; sample++)
 			{
-				color += this->_castRay(direction, {0, 0, 0}, bounces);
+				bool debug = (i == width / 2) & (j == 3 * (height / 4)) & (sample == 0);
+				color += this->_castRay(direction, {0, 0, 0}, bounces, debug);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -128,29 +129,20 @@ bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const M
 	const Math::Vector4 v01 = v1 - v0;
 	const Math::Vector4 v02 = v2 - v0;
 	Math::Vector4 pVector = direction.crossProduct(v02);
-	Math::Vector4 tVector;
+	Math::Vector4 v0o;
 	Math::Vector4 qVector;
 	const float determinant = v01.dotProduct(pVector);
 	const float inverseDeterminant = 1.0f / determinant;
 	
-	tVector = origin - v0;
-	u = tVector.dotProduct(pVector) * inverseDeterminant;
+	v0o = origin - v0;
+	u = v0o.dotProduct(pVector) * inverseDeterminant;
 	
-	qVector = tVector.crossProduct(v01);
+	qVector = v0o.crossProduct(v01);
 	v = direction.dotProduct(qVector) * inverseDeterminant;
 	
 	t = v02.dotProduct(qVector) * inverseDeterminant;
 	
-	returnValue = Math::lerp(false, true, ((determinant < _epsilon) | (u < 0) | (u > 1) | (v < 0) | ((u + v) > 1)));
-	
-	return returnValue;
-}
-
-__m256 Renderer::_intersectPlaneSimd(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangles, const __m256 normals)
-{
-	__m256 returnValue = {0.0f, 0.0f, 0.0f, 0.0f};
-	
-//	__m256 t0 = 
+	returnValue = ~((determinant < _epsilon) | (u < 0.0f) | (u > 1.0f) | (v < 0.0f) | ((u + v) > 1.0f)) & (t > _epsilon);
 	
 	return returnValue;
 }
@@ -161,24 +153,24 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	
 	Mesh *nearestMesh = nullptr;
 	Triangle *nearestTriangle = nullptr;
-	float planeDistance = 0.0f;
+	float newDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
 	float u = 0;
 	float v = 0;
-	planeDistance = distance;
+	newDistance = distance;
 	
 	for (Mesh &mesh : this->meshBuffer)
 	{
 		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
 		{
 			Triangle *triangle = &this->triangleBuffer[triangleIndex];
-			planeDistance = this->_intersectPlane(direction, origin, triangle);
+			newDistance = this->_intersectPlane(direction, origin, triangle);
 			
-			bool intersected = this->_intersectMoellerTrumbore(direction, origin, triangle, planeDistance, u, v);
+			bool intersected = this->_intersectMoellerTrumbore(direction, origin, triangle, newDistance, u, v);
 			
-			if ((planeDistance > _epsilon) & (planeDistance < distance) & intersected)
+			if ((newDistance < distance) & intersected)
 			{
-				distance = planeDistance;
+				distance = newDistance;
 				nearestMesh = &mesh;
 				nearestTriangle = triangle;
 			}
@@ -194,18 +186,23 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t maxBounces)
+Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t maxBounces, const bool debug)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
+	
+	// Multiply colors
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
+	
+	// Emitted light: += (mask * (color * emittance))
+	Math::Vector4 emittedLight = {0.0f, 0.0f, 0.0f};
 	
 	Math::Vector4 currentDirection = direction;
 	Math::Vector4 currentOrigin = origin;
 	
 	// FIXME This won't stay constant
 	float pdf = 2.0f * float(M_PI);
-	float r1 = 1.0f;
-	float r2 = 1.0f;
+	float cosinusTheta = 1.0f;
+	float ratio = 1.0f;
 	
 	std::random_device device;
 	std::default_random_engine generator(device());
@@ -220,80 +217,52 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		Math::Vector4 normal;
 		float distance = this->_traceRay(currentDirection, currentOrigin, intersection);
 		
-		// Use offset to avoid self intersections
-		intersectionPoint = currentOrigin + (distance * currentDirection * (1.0f - _epsilon));
+		intersectionPoint = currentOrigin + (distance * currentDirection);
 		
 		if (intersection.triangle != nullptr)
 		{
 			Material &material = this->materialBuffer[intersection.mesh->materialOffset];
 			Math::Vector4 color = material.color();
-			Math::Vector4 directLight = {0.0f, 0.0f, 0.0f};
 			
 			// Face normal
 //			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
 			
-			// Vertex normals
-			Math::Vector4 p, n0, n1, n2, n01, n02, v0, v1, v2, v01, v02, v12, v0p, v1p, v2p, vab, v2ab;
-			
-			n0 = this->normalBuffer[intersection.triangle->normals[0]];
-			n1 = this->normalBuffer[intersection.triangle->normals[1]];
-			n2 = this->normalBuffer[intersection.triangle->normals[2]];
-			
-			v0 = this->vertexBuffer[intersection.triangle->vertices[0]];
-			v1 = this->vertexBuffer[intersection.triangle->vertices[1]];
-			v2 = this->vertexBuffer[intersection.triangle->vertices[2]];
-			
-			p = intersectionPoint;
-			v01 = v1 - v0;
-			v02 = v2 - v0;
-			v12 = v2 - v1;
-			v0p = p - v0;
-			v1p = p - v1;
-			v2p = p - v2;
-			
-			// Phong
-			float a, b, denominator;
-			
-			denominator = (v01.x() * v2p.y() - v2p.x() * v01.y()) + _epsilon;
-			a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-			b = (v01.x() * v0.y() - v01.x() * v2.y() - v0.x() * v01.y() + v2.x() * v01.y()) / denominator;
-			
-			vab = v0 + a * v01;
-			
-			n01 = Math::lerp(n1, n0, a).normalize();
-			v2ab = vab - v2;
-			
-			normal = Math::lerp(n01, n2, (v2p.magnitude() / v2ab.magnitude())).normalize();
+			normal = this->_interpolateNormal(intersection, intersectionPoint);
 			
 			// Indirect lighting
 			this->_createCoordinateSystem(normal, Nt, Nb);
 			
 			// Generate hemisphere
-			r1 = distribution(generator);
-			r2 = distribution(generator);
-			Math::Vector4 sampleHemisphere = this->_createUniformHemisphere(r1, r2);
+			cosinusTheta = distribution(generator);
+			ratio = distribution(generator);
+			Math::Vector4 sample = this->_createUniformHemisphere(cosinusTheta, ratio);
 			
-			Math::Matrix4x4 matrix{
+			Math::Matrix4x4 localToWorldMatrix{
 				{Nb.x(), normal.x(), Nt.x()},
 				{Nb.y(), normal.y(), Nt.y()},
 				{Nb.z(), normal.z(), Nt.z()}
 			};
 			
-			Math::Vector4 sampleWorld = matrix * sampleHemisphere;
-			Math::Vector4 newDirection = (intersectionPoint + sampleWorld).normalized();
+			Math::Vector4 newDirection = (localToWorldMatrix * sample).normalized();
+			currentOrigin = intersectionPoint + (_epsilon * normal);
 			
+//			Math::Vector4 brdf = this->_brdf(material, normal, newDirection, currentDirection);
 			currentDirection = newDirection;
-			currentOrigin = sampleWorld;
 			
-			returnValue += mask * material.emittance();
+			Math::Vector4 diffuse, specular;
+			diffuse = 2.0f * color;
+//			specular = brdf;
 			
-			mask = mask * color * r1 * pdf;
+			emittedLight += color * material.emittance() * mask;
+			mask *= (diffuse) * cosinusTheta;
 		}
 		else
 		{
 			break;
 		}
 	}
+	
+	returnValue = emittedLight;
 	
 	return returnValue;
 }
@@ -302,7 +271,7 @@ void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 {
 	const Math::Vector4 a = Math::Vector4{normal.z(), 0.0f, -normal.x()};
 	const Math::Vector4 b = Math::Vector4{0.0f, -normal.z(), normal.y()};
-	float t = std::abs(normal.x()) > std::fabs(normal.y());
+	float t = std::abs(normal.x()) > std::abs(normal.y());
 	
 	tangentNormal = Math::lerp(a, b, t).normalized();
 	
@@ -311,11 +280,47 @@ void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 
 Math::Vector4 Renderer::_createUniformHemisphere(const float r1, const float r2)
 {
-	float sinTheta = std::pow((1.0f - r1 * r1), 0.5f);
+	float sinTheta = std::sqrt(1.0f - r1 * r1);
 	float phi = 2.0f * float(M_PI) * r2;
 	float x = sinTheta * std::cos(phi);
 	float z = sinTheta * std::sin(phi);
 	return {x, r1, z};
+}
+
+Math::Vector4 Renderer::_interpolateNormal(const IntersectionInfo &intersection, const Math::Vector4 &intersectionPoint)
+{
+	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, v01, v02, v12, v0p, v1p, v2p, vab, v2ab;
+	
+	n0 = this->normalBuffer[intersection.triangle->normals[0]];
+	n1 = this->normalBuffer[intersection.triangle->normals[1]];
+	n2 = this->normalBuffer[intersection.triangle->normals[2]];
+	
+	v0 = this->vertexBuffer[intersection.triangle->vertices[0]];
+	v1 = this->vertexBuffer[intersection.triangle->vertices[1]];
+	v2 = this->vertexBuffer[intersection.triangle->vertices[2]];
+	
+	p = intersectionPoint;
+	v01 = v1 - v0;
+	v02 = v2 - v0;
+	v12 = v2 - v1;
+	v0p = p - v0;
+	v1p = p - v1;
+	v2p = p - v2;
+	
+	float a, b, denominator;
+	
+	denominator = (v01.x() * v2p.y() - v2p.x() * v01.y()) + _epsilon;
+	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
+	b = (v01.x() * v0.y() - v01.x() * v2.y() - v0.x() * v01.y() + v2.x() * v01.y()) / denominator;
+	
+	vab = v0 + a * v01;
+	
+	n01 = Math::lerp(n1, n0, a).normalize();
+	v2ab = vab - v2;
+	
+	returnValue = Math::lerp(n01, n2, (v2p.magnitude() / v2ab.magnitude())).normalize();
+	
+	return returnValue;
 }
 
 Math::Vector4 Renderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)
@@ -325,26 +330,31 @@ Math::Vector4 Renderer::_brdf(const Material &material, const Math::Vector4 &n, 
 	// specular color
 	const Math::Vector4 c_spec = {1.0f, 1.0f, 1.0f};
 	
-	// half vector
-	const Math::Vector4 h = (l + v).normalized();
+//	// half vector
+//	const Math::Vector4 h = (l + v).normalized();
 	
-	// a (alpha) = roughness^2
-	const float a = std::pow(material.roughness(), 2.0f);
-	const float a_2 = std::pow(material.roughness(), 4.0f);
+//	// a (alpha) = roughness^2
+//	const float a = std::pow(material.roughness(), 2.0f);
+//	const float a_2 = std::pow(material.roughness(), 4.0f);
 	
-	// D term (GGX - Trowbridge-Reitz)
-	const float d = a_2 /
-			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
+//	// D term (GGX - Trowbridge-Reitz)
+//	const float d = a_2 /
+//			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
 	
-	// F (fresnel) term (Schlick approximation)
-	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
+//	// F (fresnel) term (Schlick approximation)
+//	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
 	
-	// G term (Schlick-GGX)
-	const float k = a / 2.0f;
-	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
+//	// G term (Schlick-GGX)
+//	const float k = a / 2.0f;
+//	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
 	
-	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
-//	returnValue = (d * f * g);
+//	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
+	
+	// [0, 1] |-> [1, MAX]
+//	float alpha = (512.0f * std::pow(1.953125E-3f, material.roughness()));
+	float alpha = 300.0f;
+	
+	returnValue = (alpha + 2.0f) * c_spec * std::pow(v.dotProduct(l), alpha);
 	
 	return returnValue;
 }

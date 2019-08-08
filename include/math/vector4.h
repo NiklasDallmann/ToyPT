@@ -353,9 +353,9 @@ inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
 ///
 inline Vector4 operator*(const Vector4 &left, const Vector4 &right)
 {
-	Vector4 returnValue;
+	Vector4 returnValue = left;
 	
-	returnValue._coordinates = _mm_mul_ps(left._coordinates, right._coordinates);
+	returnValue *= right;
 	
 	return returnValue;
 }

@@ -19,20 +19,22 @@ int main()
 	Rendering::Material red{{1, 0, 0}};
 	Rendering::Material green{{0, 1, 0}, 1.0f};
 	Rendering::Material blue{{0, 0, 0.5}, 0.0f};
-	Rendering::Material cyan{{0, 1, 1}};
-	Rendering::Material magenta{{1, 0, 1}};
+	Rendering::Material cyan{{0, 0.5f, 0.5f}};
+	Rendering::Material magenta{{0.5f, 0, 0.5f}};
 	Rendering::Material yellow{{1, 1, 0}};
 	Rendering::Material black{{0, 0, 0}};
-	Rendering::Material white{{1, 1, 1}, 2.0f};
-	Rendering::Material halfGrey{{0.5f, 0.5f, 0.5f}};
+	Rendering::Material halfWhite{{1, 1, 1}, 1.0f};
+	Rendering::Material white{{1, 1, 1}, 8.0f};
+	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
 	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
 	
 	renderer.materialBuffer = {red, green, blue, cyan, magenta, yellow, black, white, halfGrey, grey};
 	
 	Rendering::Mesh cube0 = Rendering::Mesh::cube(1, 3, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+//	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
 	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	cube0.translate({-1.5f, -0.2f, -4.5f}, renderer.vertexBuffer.data());
+//	cube0.translate({-1.5f, -0.2f, -4.5f}, renderer.vertexBuffer.data());
+	cube0.translate({-1.5f, -0.5f, -4.5f}, renderer.vertexBuffer.data());
 	
 	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, 4, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
@@ -43,25 +45,31 @@ int main()
 //	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
 //	sphere.translate({0.0f, 0.2f, -5.0f}, renderer.vertexBuffer.data());
 	
-	Rendering::Mesh plane = Rendering::Mesh::plane(1.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	plane.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	plane.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	plane.translate({-2.0f, 0.5f, -5.0f}, renderer.vertexBuffer.data());
+	Rendering::Mesh lightPlane0 = Rendering::Mesh::plane(1.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	lightPlane0.translate({-2.5f, 0.0f, -5.0f}, renderer.vertexBuffer.data());
 	
-	Rendering::Mesh worldCube = Rendering::Mesh::cube(32, 9, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	Rendering::Mesh lightPlane1 = Rendering::Mesh::plane(2.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	lightPlane1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 1.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
+	lightPlane1.translate({0.0f, 0.0f, -1.0f}, renderer.vertexBuffer.data());
+	
+	Rendering::Mesh worldCube = Rendering::Mesh::cube(20, 8, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 	worldCube.invert(renderer.triangleBuffer.data(), renderer.normalBuffer.data());
-	worldCube.translate({-12.0f, 15.0f, 5.0f}, renderer.vertexBuffer.data());
+	worldCube.translate({-2.0f, 9.0f, -2.0f}, renderer.vertexBuffer.data());
 	
 	renderer.meshBuffer.push_back(cube0);
 	renderer.meshBuffer.push_back(cube1);
 //	renderer.meshBuffer.push_back(sphere);
-	renderer.meshBuffer.push_back(plane);
+	renderer.meshBuffer.push_back(lightPlane0);
+	renderer.meshBuffer.push_back(lightPlane1);
 	renderer.meshBuffer.push_back(worldCube);
 	
 	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, 0.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
 	
-	Rendering::FrameBuffer frameBuffer(200, 100);
-	renderer.render(frameBuffer, 70, 16, 10);
+	Rendering::FrameBuffer frameBuffer(400, 200);
+	renderer.render(frameBuffer, 70, 2048, 16);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))
