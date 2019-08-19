@@ -48,7 +48,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			for (size_t sample = 0; sample < samples; sample++)
 			{
 //				bool debug = (i == width / 2) & (j == 3 * (height / 4)) & (sample == 0);
-				color += this->_castRay({direction, {0, 0, 0}}, bounces);
+				color += this->_castRay({{0, 0, 0}, direction}, bounces);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -166,7 +166,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 		Math::Vector4 intersectionPoint;
 		IntersectionInfo intersection;
 		Math::Vector4 normal;
-		float distance = this->_traceRay({currentDirection, currentOrigin}, intersection);
+		float distance = this->_traceRay({currentOrigin, currentDirection}, intersection);
 		
 		intersectionPoint = currentOrigin + (distance * currentDirection);
 		
