@@ -47,8 +47,8 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			for (size_t sample = 0; sample < samples; sample++)
 			{
-				bool debug = (i == width / 2) & (j == 3 * (height / 4)) & (sample == 0);
-				color += this->_castRay(direction, {0, 0, 0}, bounces, debug);
+//				bool debug = (i == width / 2) & (j == 3 * (height / 4)) & (sample == 0);
+				color += this->_castRay({direction, {0, 0, 0}}, bounces);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -70,55 +70,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-bool Renderer::_intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle)
-{
-	bool returnValue = false;
-	
-	Vertex v0, v1, v2;
-	v0 = this->vertexBuffer[triangle->vertices[0]];
-	v1 = this->vertexBuffer[triangle->vertices[1]];
-	v2 = this->vertexBuffer[triangle->vertices[2]];
-	
-	Math::Vector4 n = Triangle::normal(triangle, this->vertexBuffer.data());
-	Math::Vector4 p = origin + distance * direction;
-	Math::Vector4 e01 = v1 - v0;
-	Math::Vector4 e12 = v2 - v1;
-	Math::Vector4 e20 = v0 - v2;
-	Math::Vector4 e0p = p - v0;
-	Math::Vector4 e1p = p - v1;
-	Math::Vector4 e2p = p - v2;
-	
-	float conditionInsideE01 = e01.crossProduct(e0p).dotProduct(n);
-	float conditionInsideE12 = e12.crossProduct(e1p).dotProduct(n);
-	float conditionInsideE20 = e20.crossProduct(e2p).dotProduct(n);
-	
-	returnValue = (conditionInsideE01 >= 0.0f & conditionInsideE12 >= 0.0f & conditionInsideE20 >= 0.0f);
-	
-	return returnValue;
-}
-
-float Renderer::_intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle)
-{
-	float returnValue = 0;
-	
-	Math::Vector4 n = Triangle::normal(triangle, this->vertexBuffer.data());
-	float t0 = (this->vertexBuffer[triangle->vertices[0]] - origin).dotProduct(n);
-	float t1 = n.dotProduct(direction);
-	
-	if (t1 <= _epsilon & t1 >= -_epsilon)
-//	if (t1 >= -_epsilon)
-	{
-		returnValue = -1.0f;
-		goto exit;
-	}
-	
-	returnValue = t0 / t1;
-	
-exit:
-	return returnValue;
-}
-
-bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle, float &t, float &u, float &v)
+bool Renderer::_intersectMoellerTrumbore(const Ray &ray, const Triangle *triangle, float &t, float &u, float &v)
 {
 	bool returnValue = true;
 	
@@ -128,17 +80,17 @@ bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const M
 	
 	const Math::Vector4 v01 = v1 - v0;
 	const Math::Vector4 v02 = v2 - v0;
-	Math::Vector4 pVector = direction.crossProduct(v02);
+	Math::Vector4 pVector = ray.direction.crossProduct(v02);
 	Math::Vector4 v0o;
 	Math::Vector4 qVector;
 	const float determinant = v01.dotProduct(pVector);
 	const float inverseDeterminant = 1.0f / determinant;
 	
-	v0o = origin - v0;
+	v0o = ray.origin - v0;
 	u = v0o.dotProduct(pVector) * inverseDeterminant;
 	
 	qVector = v0o.crossProduct(v01);
-	v = direction.dotProduct(qVector) * inverseDeterminant;
+	v = ray.direction.dotProduct(qVector) * inverseDeterminant;
 	
 	t = v02.dotProduct(qVector) * inverseDeterminant;
 	
@@ -147,7 +99,7 @@ bool Renderer::_intersectMoellerTrumbore(const Math::Vector4 &direction, const M
 	return returnValue;
 }
 
-float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection)
+float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
@@ -164,9 +116,8 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
 		{
 			Triangle *triangle = &this->triangleBuffer[triangleIndex];
-			newDistance = this->_intersectPlane(direction, origin, triangle);
 			
-			bool intersected = this->_intersectMoellerTrumbore(direction, origin, triangle, newDistance, u, v);
+			bool intersected = this->_intersectMoellerTrumbore(ray, triangle, newDistance, u, v);
 			
 			if ((newDistance < distance) & intersected)
 			{
@@ -186,7 +137,7 @@ float Renderer::_traceRay(const Math::Vector4 &direction, const Math::Vector4 &o
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vector4 &origin, const size_t maxBounces, const bool debug)
+Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const bool debug)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	
@@ -196,8 +147,8 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 	// Emitted light: += (mask * (color * emittance))
 	Math::Vector4 emittedLight = {0.0f, 0.0f, 0.0f};
 	
-	Math::Vector4 currentDirection = direction;
-	Math::Vector4 currentOrigin = origin;
+	Math::Vector4 currentDirection = ray.direction;
+	Math::Vector4 currentOrigin = ray.origin;
 	
 	// FIXME This won't stay constant
 	float pdf = 2.0f * float(M_PI);
@@ -215,7 +166,7 @@ Math::Vector4 Renderer::_castRay(const Math::Vector4 &direction, const Math::Vec
 		Math::Vector4 intersectionPoint;
 		IntersectionInfo intersection;
 		Math::Vector4 normal;
-		float distance = this->_traceRay(currentDirection, currentOrigin, intersection);
+		float distance = this->_traceRay({currentDirection, currentOrigin}, intersection);
 		
 		intersectionPoint = currentOrigin + (distance * currentDirection);
 		

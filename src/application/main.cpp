@@ -66,10 +66,8 @@ int main()
 	renderer.meshBuffer.push_back(lightPlane1);
 	renderer.meshBuffer.push_back(worldCube);
 	
-	renderer.pointLightBuffer.push_back({Math::Vector4{-3.0f, 4.0f, 0.0f}, Math::Vector4{1.0f, 1.0f, 1.0f}});
-	
 	Rendering::FrameBuffer frameBuffer(400, 200);
-	renderer.render(frameBuffer, 70, 2048, 16);
+	renderer.render(frameBuffer, 70, 16, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

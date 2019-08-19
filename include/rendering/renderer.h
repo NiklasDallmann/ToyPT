@@ -28,7 +28,6 @@ public:
 	std::vector<Triangle> triangleBuffer;
 	std::vector<Material> materialBuffer;
 	std::vector<Mesh> meshBuffer;
-	std::vector<PointLight> pointLightBuffer;
 	
 	void render(FrameBuffer &frameBuffer, const float fieldOfView = 75.0f, const size_t samples = 10, const size_t bounces = 2);
 	
@@ -41,14 +40,27 @@ private:
 		float v = 0;
 	};
 	
+	struct CoordinateBuffer
+	{
+		std::vector<float> x;
+		std::vector<float> y;
+		std::vector<float> z;
+	};
+	
+	struct Ray
+	{
+		Math::Vector4 origin;
+		Math::Vector4 direction;
+	};
+	
 	static constexpr float _epsilon = 1.0E-7f;
 	
-	bool _intersectTriangle(const float distance, const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
-	float _intersectPlane(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle);
-	bool _intersectMoellerTrumbore(const Math::Vector4 &direction, const Math::Vector4 &origin, const Triangle *triangle, float &t, float &u, float &v);
+	bool _intersectMoellerTrumbore(const Ray &ray, const Triangle *triangle, float &t, float &u, float &v);
 	
-	float _traceRay(const Math::Vector4 &direction, const Math::Vector4 &origin, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Math::Vector4 &direction, const Math::Vector4 &origin,
+//	__m256 _intersectAvx2(const Ray)
+	
+	float _traceRay(const Ray &ray, IntersectionInfo &intersection);
+	Math::Vector4 _castRay(const Ray &ray,
 							const size_t maxBounces = 4, const bool debug = false);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
