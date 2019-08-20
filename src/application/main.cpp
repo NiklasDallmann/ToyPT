@@ -28,43 +28,41 @@ int main()
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
 	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
 	
-	renderer.materialBuffer = {red, green, blue, cyan, magenta, yellow, black, white, halfGrey, grey};
+	renderer.geometry.materialBuffer = {red, green, blue, cyan, magenta, yellow, black, white, halfGrey, grey};
 	
-	Rendering::Mesh cube0 = Rendering::Mesh::cube(1, 3, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-//	cube0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-//	cube0.translate({-1.5f, -0.2f, -4.5f}, renderer.vertexBuffer.data());
-	cube0.translate({-1.5f, -0.5f, -4.5f}, renderer.vertexBuffer.data());
+	Rendering::Obj::Mesh cube0 = Rendering::Obj::Mesh::cube(1, 3, renderer.geometry);
+	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.geometry);
+	cube0.translate({-1.5f, -0.5f, -4.5f}, renderer.geometry);
 	
-	Rendering::Mesh cube1 = Rendering::Mesh::cube(1, 4, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	cube1.translate({2.5f, 0.2f, -5.5f}, renderer.vertexBuffer.data());
+	Rendering::Obj::Mesh cube1 = Rendering::Obj::Mesh::cube(1, 4, renderer.geometry);
+	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f), renderer.geometry);
+	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), renderer.geometry);
+	cube1.translate({2.5f, 0.2f, -5.5f}, renderer.geometry);
 	
-//	Rendering::Mesh sphere = Rendering::Mesh::sphere(1.0f, 16, 8, 2, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
+//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
 //	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
 //	sphere.translate({0.0f, 0.2f, -5.0f}, renderer.vertexBuffer.data());
 	
-	Rendering::Mesh lightPlane0 = Rendering::Mesh::plane(1.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	lightPlane0.translate({-2.5f, 0.0f, -5.0f}, renderer.vertexBuffer.data());
+	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(1.0f, 7, renderer.geometry);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.geometry);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), renderer.geometry);
+	lightPlane0.translate({-2.5f, 0.0f, -5.0f}, renderer.geometry);
 	
-	Rendering::Mesh lightPlane1 = Rendering::Mesh::plane(2.0f, 7, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	lightPlane1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 1.0f), renderer.vertexBuffer.data(), renderer.normalBuffer.data());
-	lightPlane1.translate({0.0f, 0.0f, -1.0f}, renderer.vertexBuffer.data());
+	Rendering::Obj::Mesh lightPlane1 = Rendering::Obj::Mesh::plane(2.0f, 7, renderer.geometry);
+	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), renderer.geometry);
+	lightPlane1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 1.0f), renderer.geometry);
+	lightPlane1.translate({0.0f, 0.0f, -1.0f}, renderer.geometry);
 	
-	Rendering::Mesh worldCube = Rendering::Mesh::cube(20, 8, renderer.triangleBuffer, renderer.vertexBuffer, renderer.normalBuffer);
-	worldCube.invert(renderer.triangleBuffer.data(), renderer.normalBuffer.data());
-	worldCube.translate({-2.0f, 9.0f, -2.0f}, renderer.vertexBuffer.data());
+	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 8, renderer.geometry);
+	worldCube.invert(renderer.geometry);
+	worldCube.translate({-2.0f, 9.0f, -2.0f}, renderer.geometry);
 	
-	renderer.meshBuffer.push_back(cube0);
-	renderer.meshBuffer.push_back(cube1);
-//	renderer.meshBuffer.push_back(sphere);
-	renderer.meshBuffer.push_back(lightPlane0);
-	renderer.meshBuffer.push_back(lightPlane1);
-	renderer.meshBuffer.push_back(worldCube);
+	renderer.geometry.meshBuffer.push_back(cube0);
+	renderer.geometry.meshBuffer.push_back(cube1);
+//	renderer.geometry.meshBuffer.push_back(sphere);
+	renderer.geometry.meshBuffer.push_back(lightPlane0);
+	renderer.geometry.meshBuffer.push_back(lightPlane1);
+	renderer.geometry.meshBuffer.push_back(worldCube);
 	
 	Rendering::FrameBuffer frameBuffer(400, 200);
 	renderer.render(frameBuffer, 70, 16, 4);

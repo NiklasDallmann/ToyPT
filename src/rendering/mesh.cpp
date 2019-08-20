@@ -1,9 +1,10 @@
 #include <cmath>
 #include <math.h>
 
+#include "geometrycontainer.h"
 #include "mesh.h"
 
-namespace Rendering
+namespace Rendering::Obj
 {
 
 Mesh::Mesh(const uint32_t triangleOffset, const uint32_t triangleCount, const uint32_t materialOffset, const uint32_t vertexOffset, const uint32_t vertexCount,
@@ -18,32 +19,33 @@ Mesh::Mesh(const uint32_t triangleOffset, const uint32_t triangleCount, const ui
 {
 }
 
-void Mesh::transform(const Math::Matrix4x4 &matrix, Vertex *vertexBuffer, Math::Vector4 *normalBuffer)
+void Mesh::transform(const Math::Matrix4x4 &matrix, GeometryContainer &container)
 {
 	for (uint32_t vertexIndex = this->vertexOffset; vertexIndex < (this->vertexOffset + vertexCount); vertexIndex++)
 	{
-		vertexBuffer[vertexIndex] = matrix * vertexBuffer[vertexIndex];
+		container.vertexBuffer[vertexIndex] = matrix * container.vertexBuffer[vertexIndex];
 	}
 	
 	for (uint32_t normalIndex = this->normalOffset; normalIndex < (this->normalOffset + normalCount); normalIndex++)
 	{
-		normalBuffer[normalIndex] = matrix * normalBuffer[normalIndex];
+		// FIXME normalize
+		container.normalBuffer[normalIndex] = matrix * container.normalBuffer[normalIndex];
 	}
 }
 
-void Mesh::translate(const Math::Vector4 &vector, Vertex *vertexBuffer)
+void Mesh::translate(const Math::Vector4 &vector, GeometryContainer &container)
 {
 	for (uint32_t vertexIndex = this->vertexOffset; vertexIndex < (this->vertexOffset + this->vertexCount); vertexIndex++)
 	{
-		vertexBuffer[vertexIndex] += vector;
+		container.vertexBuffer[vertexIndex] += vector;
 	}
 }
 
-void Mesh::invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer)
+void Mesh::invert(GeometryContainer &container)
 {
 	for (uint32_t triangleIndex = this->triangleOffset; triangleIndex < (this->triangleOffset + this->triangleCount); triangleIndex++)
 	{
-		Triangle &triangle = triangleBuffer[triangleIndex];
+		Triangle &triangle = container.triangleBuffer[triangleIndex];
 		Triangle inverse{
 			{
 				triangle.vertices[2],
@@ -57,7 +59,7 @@ void Mesh::invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer)
 		
 		for (uint32_t normalIndex = 0; normalIndex < triangle.normals.size(); normalIndex++)
 		{
-			normalBuffer[triangle.normals[normalIndex]] *= -1.0f;
+			container.normalBuffer[triangle.normals[normalIndex]] *= -1.0f;
 		}
 		
 		triangle = inverse;
@@ -65,7 +67,7 @@ void Mesh::invert(Triangle *triangleBuffer, Math::Vector4 *normalBuffer)
 }
 
 Mesh Mesh::cube(const float sideLength, const uint32_t materialOffset,
-				std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
+				GeometryContainer &container)
 {
 	Mesh returnValue;
 	
@@ -88,11 +90,11 @@ Mesh Mesh::cube(const float sideLength, const uint32_t materialOffset,
 	v7 = {-halfSideLength, -halfSideLength, -halfSideLength};
 	
 	returnValue.materialOffset = materialOffset;
-	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleOffset = uint32_t(container.triangleBuffer.size());
 	returnValue.triangleCount = 12;
-	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexOffset = uint32_t(container.vertexBuffer.size());
 	returnValue.vertexCount = 8;
-	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalOffset = uint32_t(container.normalBuffer.size());
 	returnValue.normalCount = 6;
 	
 	std::vector<Vertex> vertices{v0, v1, v2, v3, v4, v5, v6, v7};
@@ -123,28 +125,28 @@ Mesh Mesh::cube(const float sideLength, const uint32_t materialOffset,
 	{	
 		for (uint32_t &vertexIndex : triangle.vertices)
 		{
-			vertexIndex += vertexBuffer.size();
+			vertexIndex += container.vertexBuffer.size();
 		}
 	}
 	
-	vertexBuffer.insert(vertexBuffer.end(), vertices.begin(), vertices.end());
-	triangleBuffer.insert(triangleBuffer.end(), triangles.begin(), triangles.end());
+	container.vertexBuffer.insert(container.vertexBuffer.end(), vertices.begin(), vertices.end());
+	container.triangleBuffer.insert(container.triangleBuffer.end(), triangles.begin(), triangles.end());
 	
 	for (uint32_t triangleIndex = 0; triangleIndex < triangles.size(); triangleIndex++)
 	{
-		Triangle *triangle = &triangleBuffer[returnValue.triangleOffset + triangleIndex];
-		const Math::Vector4 normal = Triangle::normal(triangle, vertexBuffer.data());
-		const uint32_t normalIndex = uint32_t(normalBuffer.size());
+		Triangle *triangle = &container.triangleBuffer[returnValue.triangleOffset + triangleIndex];
+		const Math::Vector4 normal = Triangle::normal(triangle, container.vertexBuffer.data());
+		const uint32_t normalIndex = uint32_t(container.normalBuffer.size());
 		
 		triangle->normals = {normalIndex, normalIndex, normalIndex};
-		normalBuffer.push_back(normal);
+		container.normalBuffer.push_back(normal);
 	}
 	
 	return returnValue;
 }
 
 Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
-				 std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
+				 GeometryContainer &container)
 {
 	Mesh returnValue(materialOffset);
 	
@@ -164,11 +166,11 @@ Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
 	std::vector<Math::Vector4> normals{Triangle::normal(triangles.data(), vertices.data())};
 	
 	returnValue.materialOffset = materialOffset;
-	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleOffset = uint32_t(container.triangleBuffer.size());
 	returnValue.triangleCount = uint32_t(triangles.size());
-	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexOffset = uint32_t(container.vertexBuffer.size());
 	returnValue.vertexCount = uint32_t(vertices.size());
-	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalOffset = uint32_t(container.normalBuffer.size());
 	returnValue.normalCount = uint32_t(normals.size());
 	
 	for (uint32_t triangleIndex = 0; triangleIndex < returnValue.triangleCount; triangleIndex++)
@@ -184,15 +186,15 @@ Mesh Mesh::plane(const float sideLength, const uint32_t materialOffset,
 		}
 	}
 	
-	vertexBuffer.insert(vertexBuffer.end(), vertices.cbegin(), vertices.cend());
-	normalBuffer.insert(normalBuffer.end(), normals.cbegin(), normals.cend());
-	triangleBuffer.insert(triangleBuffer.end(), triangles.cbegin(), triangles.cend());
+	container.vertexBuffer.insert(container.vertexBuffer.end(), vertices.cbegin(), vertices.cend());
+	container.normalBuffer.insert(container.normalBuffer.end(), normals.cbegin(), normals.cend());
+	container.triangleBuffer.insert(container.triangleBuffer.end(), triangles.cbegin(), triangles.cend());
 	
 	return returnValue;
 }
 
 Mesh Mesh::sphere(const float radius, const uint32_t horizontalSubDivisions, const uint32_t verticalSubDivisions, const uint32_t materialOffset,
-				  std::vector<Triangle> &triangleBuffer, std::vector<Vertex> &vertexBuffer, std::vector<Math::Vector4> &normalBuffer)
+				  GeometryContainer &container)
 {
 	Mesh returnValue(materialOffset);
 	
@@ -242,11 +244,11 @@ Mesh Mesh::sphere(const float radius, const uint32_t horizontalSubDivisions, con
 	}
 	
 	returnValue.materialOffset = materialOffset;
-	returnValue.triangleOffset = uint32_t(triangleBuffer.size());
+	returnValue.triangleOffset = uint32_t(container.triangleBuffer.size());
 	returnValue.triangleCount = uint32_t(triangles.size());
-	returnValue.vertexOffset = uint32_t(vertexBuffer.size());
+	returnValue.vertexOffset = uint32_t(container.vertexBuffer.size());
 	returnValue.vertexCount = uint32_t(vertices.size());
-	returnValue.normalOffset = uint32_t(normalBuffer.size());
+	returnValue.normalOffset = uint32_t(container.normalBuffer.size());
 	returnValue.normalCount = uint32_t(normals.size());
 	
 	for (uint32_t triangleIndex = 0; triangleIndex < returnValue.triangleCount; triangleIndex++)
@@ -262,9 +264,9 @@ Mesh Mesh::sphere(const float radius, const uint32_t horizontalSubDivisions, con
 		}
 	}
 	
-	vertexBuffer.insert(vertexBuffer.end(), vertices.cbegin(), vertices.cend());
-	normalBuffer.insert(normalBuffer.end(), normals.cbegin(), normals.cend());
-	triangleBuffer.insert(triangleBuffer.end(), triangles.cbegin(), triangles.cend());
+	container.vertexBuffer.insert(container.vertexBuffer.end(), vertices.cbegin(), vertices.cend());
+	container.normalBuffer.insert(container.normalBuffer.end(), normals.cbegin(), normals.cend());
+	container.triangleBuffer.insert(container.triangleBuffer.end(), triangles.cbegin(), triangles.cend());
 	
 	return returnValue;
 }

@@ -4,15 +4,15 @@ project(pathtracer)
 
 find_package(OpenMP)
 
-#set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2")
-set(CMAKE_CXX_FLAGS "-g -mavx2")
+set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2 -std=c++17")
+#set(CMAKE_CXX_FLAGS "-g -mavx2 -std=c++17")
 
-add_library(math STATIC "src/math/vector4.cpp" "src/math/matrix4x4.cpp" "src/math/algorithms.cpp")
-target_include_directories(math
-	PUBLIC
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
-)
-target_link_libraries(math OpenMP::OpenMP_CXX)
+#add_library(math STATIC )
+#target_include_directories(math
+#	PUBLIC
+#		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
+#)
+#target_link_libraries(math OpenMP::OpenMP_CXX)
 
 add_library(rendering STATIC
 	"src/rendering/framebuffer.cpp"
@@ -21,13 +21,16 @@ add_library(rendering STATIC
 	"src/rendering/triangle.cpp"
 	"src/rendering/material.cpp"
 	"src/rendering/mesh.cpp"
-	"src/rendering/pointlight.cpp")
-target_include_directories(math
+	"src/rendering/pointlight.cpp"
+	"src/rendering/geometrycontainer.cpp"
+	"src/rendering/ray.cpp"
+	"src/rendering/simdtypes.cpp")
+target_include_directories(rendering
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
 )
-target_link_libraries(rendering math OpenMP::OpenMP_CXX)
+target_link_libraries(rendering OpenMP::OpenMP_CXX)
 
 add_executable(${PROJECT_NAME} "src/application/main.cpp")
 target_include_directories(${PROJECT_NAME}
@@ -35,4 +38,4 @@ target_include_directories(${PROJECT_NAME}
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
 )
-target_link_libraries(${PROJECT_NAME} math rendering)
+target_link_libraries(${PROJECT_NAME} rendering)

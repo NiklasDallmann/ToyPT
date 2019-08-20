@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <avx2coordinatepack.h>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -70,13 +71,38 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-bool Renderer::_intersectMoellerTrumbore(const Ray &ray, const Triangle *triangle, float &t, float &u, float &v)
+void Renderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::VertexBuffer &vertexBuffer, Simd::NormalBuffer &normalBuffer, Simd::MeshBuffer &meshBuffer)
+{
+	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
+	{
+		const Obj::Mesh &objMesh = geometry.meshBuffer[meshIndex];
+		Simd::Mesh mesh;
+		mesh.vertexOffset = vertexBuffer.size();
+		mesh.vertexCount = objMesh.vertexCount * Simd::triangleVertexCount;
+		mesh.materialOffset = objMesh.materialOffset;
+		
+		for (uint32_t triangleIndex = 0; triangleIndex < objMesh.triangleCount; triangleIndex++)
+		{
+			const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset];
+			
+			for (uint32_t vertexIndex = 0; vertexIndex < Simd::triangleVertexCount; vertexIndex++)
+			{
+				vertexBuffer.append(geometry.vertexBuffer[triangle.vertices[vertexIndex]]);
+				normalBuffer.append(geometry.normalBuffer[triangle.normals[vertexIndex]]);
+			}
+		}
+		
+		meshBuffer.push_back(mesh);
+	}
+}
+
+bool Renderer::_intersectMoellerTrumbore(const Ray &ray, const Obj::Triangle *triangle, float &t, float &u, float &v)
 {
 	bool returnValue = true;
 	
-	const Math::Vector4 v0 = this->vertexBuffer[triangle->vertices[0]];
-	const Math::Vector4 v1 = this->vertexBuffer[triangle->vertices[1]];
-	const Math::Vector4 v2 = this->vertexBuffer[triangle->vertices[2]];
+	const Math::Vector4 v0 = this->geometry.vertexBuffer[triangle->vertices[0]];
+	const Math::Vector4 v1 = this->geometry.vertexBuffer[triangle->vertices[1]];
+	const Math::Vector4 v2 = this->geometry.vertexBuffer[triangle->vertices[2]];
 	
 	const Math::Vector4 v01 = v1 - v0;
 	const Math::Vector4 v02 = v2 - v0;
@@ -99,23 +125,97 @@ bool Renderer::_intersectMoellerTrumbore(const Ray &ray, const Triangle *triangl
 	return returnValue;
 }
 
+__m256i Renderer::_intersectAvx2(const Ray &ray, float *verticesXs, float *verticesYs, float *verticesZs, __m256 &ts, __m256 &us, __m256 &vs)
+{
+	__m256i returnValue;
+	__m256 determinant, inverseDeterminant, epsilon;
+	
+	Math::Avx2CoordinatePack origin, direction, v0, v1, v2, v01, v02, v0o, pVector, qVector;
+	
+	// Duplicate ray data
+	origin.x = _mm256_set1_ps(ray.origin.x());
+	origin.y = _mm256_set1_ps(ray.origin.y());
+	origin.z = _mm256_set1_ps(ray.origin.z());
+	
+	direction.x = _mm256_set1_ps(ray.direction.x());
+	direction.y = _mm256_set1_ps(ray.direction.y());
+	direction.z = _mm256_set1_ps(ray.direction.z());
+	
+	epsilon = _mm256_set1_ps(_epsilon);
+	
+	// Load vertex coordinates
+	v0.x = _mm256_loadu_ps(verticesXs);
+	v0.y = _mm256_loadu_ps(verticesYs);
+	v0.z = _mm256_loadu_ps(verticesZs);
+	
+	verticesXs += _avx2FloatCount;
+	verticesYs += _avx2FloatCount;
+	verticesZs += _avx2FloatCount;
+	
+	v1.x = _mm256_loadu_ps(verticesXs);
+	v1.y = _mm256_loadu_ps(verticesYs);
+	v1.z = _mm256_loadu_ps(verticesZs);
+	
+	verticesXs += _avx2FloatCount;
+	verticesYs += _avx2FloatCount;
+	verticesZs += _avx2FloatCount;
+	
+	v2.x = _mm256_loadu_ps(verticesXs);
+	v2.y = _mm256_loadu_ps(verticesYs);
+	v2.z = _mm256_loadu_ps(verticesZs);
+	
+	verticesXs += _avx2FloatCount;
+	verticesYs += _avx2FloatCount;
+	verticesZs += _avx2FloatCount;
+	
+	// Sub
+	v01 = v1 - v0;
+	v02 = v2 - v0;
+	v0o = origin - v0;
+	
+	// Cross
+	pVector = direction.crossProduct(v02);
+	qVector = v0o.crossProduct(v02);
+	
+	determinant = v01.dotProduct(pVector);
+	inverseDeterminant = _mm256_div_ps(_mm256_set1_ps(1.0f), determinant);
+	
+	us = v0o.dotProduct(pVector) * inverseDeterminant;
+	vs = direction.dotProduct(qVector) * inverseDeterminant;
+	ts = v02.dotProduct(qVector) * inverseDeterminant;
+	
+	// Conditions
+	__m256 c0 = _mm256_cmp_ps(determinant, epsilon, _CMP_LT_OQ);
+	__m256 c1 = _mm256_cmp_ps(us, _mm256_set1_ps(0.0f), _CMP_LT_OQ);
+	__m256 c2 = _mm256_cmp_ps(us, _mm256_set1_ps(1.0f), _CMP_GT_OQ);
+	__m256 c3 = _mm256_cmp_ps(vs, _mm256_set1_ps(0.0f), _CMP_LT_OQ);
+	__m256 c4 = _mm256_cmp_ps(_mm256_add_ps(us, vs), _mm256_set1_ps(1.0f), _CMP_GT_OQ);
+	__m256 c5 = _mm256_cmp_ps(ts, epsilon, _CMP_GT_OQ);
+	__m256 c = _mm256_and_ps(_mm256_or_ps(c0, _mm256_or_ps(c1, _mm256_or_ps(c2, _mm256_or_ps(c3, c4)))), c5);
+	
+	// Convert to integer vector of values of either 0x00 or 0x01
+	returnValue = _mm256_andnot_si256(_mm256_castps_si256(c), _mm256_set1_epi32(0x01));
+	
+	return returnValue;
+}
+
 float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
-	Mesh *nearestMesh = nullptr;
-	Triangle *nearestTriangle = nullptr;
+	Obj::Mesh *nearestMesh = nullptr;
+	Obj::Triangle *nearestTriangle = nullptr;
 	float newDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
 	float u = 0;
 	float v = 0;
 	newDistance = distance;
 	
-	for (Mesh &mesh : this->meshBuffer)
+	for (Obj::Mesh &mesh : this->geometry.meshBuffer)
 	{
 		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
 		{
-			Triangle *triangle = &this->triangleBuffer[triangleIndex];
+			Obj::Triangle *triangle = &this->geometry.triangleBuffer[triangleIndex];
 			
 			bool intersected = this->_intersectMoellerTrumbore(ray, triangle, newDistance, u, v);
 			
@@ -172,7 +272,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 		
 		if (intersection.triangle != nullptr)
 		{
-			Material &material = this->materialBuffer[intersection.mesh->materialOffset];
+			Material &material = this->geometry.materialBuffer[intersection.mesh->materialOffset];
 			Math::Vector4 color = material.color();
 			
 			// Face normal
@@ -242,13 +342,13 @@ Math::Vector4 Renderer::_interpolateNormal(const IntersectionInfo &intersection,
 {
 	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, v01, v02, v12, v0p, v1p, v2p, vab, v2ab;
 	
-	n0 = this->normalBuffer[intersection.triangle->normals[0]];
-	n1 = this->normalBuffer[intersection.triangle->normals[1]];
-	n2 = this->normalBuffer[intersection.triangle->normals[2]];
+	n0 = this->geometry.normalBuffer[intersection.triangle->normals[0]];
+	n1 = this->geometry.normalBuffer[intersection.triangle->normals[1]];
+	n2 = this->geometry.normalBuffer[intersection.triangle->normals[2]];
 	
-	v0 = this->vertexBuffer[intersection.triangle->vertices[0]];
-	v1 = this->vertexBuffer[intersection.triangle->vertices[1]];
-	v2 = this->vertexBuffer[intersection.triangle->vertices[2]];
+	v0 = this->geometry.vertexBuffer[intersection.triangle->vertices[0]];
+	v1 = this->geometry.vertexBuffer[intersection.triangle->vertices[1]];
+	v2 = this->geometry.vertexBuffer[intersection.triangle->vertices[2]];
 	
 	p = intersectionPoint;
 	v01 = v1 - v0;

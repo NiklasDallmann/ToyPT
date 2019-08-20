@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include <vector4.h>
 
-namespace Rendering
+namespace Rendering::Obj
 {
 
 using Vertex = Math::Vector4;
@@ -47,6 +47,6 @@ inline std::ostream &operator<<(std::ostream &stream, const Triangle &triangle)
 	return stream;
 }
 
-} // namespace Rendering
+} // namespace Rendering::Obj
 
 #endif // TRIANGLE_H
