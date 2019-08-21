@@ -32,6 +32,8 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::stringstream stream;
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
+	
+	this->_geometryToBuffer(this->geometry, this->_triangleBuffer, this->_meshBuffer);
 
 #pragma omp parallel for schedule(dynamic)
 	for (size_t j = 0; j < height; j++)
@@ -71,66 +73,81 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-void Renderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::VertexBuffer &vertexBuffer, Simd::NormalBuffer &normalBuffer, Simd::MeshBuffer &meshBuffer)
+void Renderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
 {
 	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
 	{
 		const Obj::Mesh &objMesh = geometry.meshBuffer[meshIndex];
 		Simd::Mesh mesh;
-		mesh.vertexOffset = vertexBuffer.size();
-		mesh.vertexCount = objMesh.vertexCount * Simd::triangleVertexCount;
+		mesh.triangleOffset = triangleBuffer.size();
+		mesh.triangleCount = objMesh.triangleCount;
 		mesh.materialOffset = objMesh.materialOffset;
 		
 		for (uint32_t triangleIndex = 0; triangleIndex < objMesh.triangleCount; triangleIndex++)
 		{
-			const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset];
+			const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset + triangleIndex];
 			
-			for (uint32_t vertexIndex = 0; vertexIndex < Simd::triangleVertexCount; vertexIndex++)
-			{
-				vertexBuffer.append(geometry.vertexBuffer[triangle.vertices[vertexIndex]]);
-				normalBuffer.append(geometry.normalBuffer[triangle.normals[vertexIndex]]);
-			}
+			Simd::Vertex v0, v1, v2;
+			Simd::Normal n0, n1, n2;
+			
+			v0 = geometry.vertexBuffer[triangle.vertices[0]];
+			v1 = geometry.vertexBuffer[triangle.vertices[1]];
+			v2 = geometry.vertexBuffer[triangle.vertices[2]];
+			
+			n0 = geometry.normalBuffer[triangle.normals[0]];
+			n1 = geometry.normalBuffer[triangle.normals[1]];
+			n2 = geometry.normalBuffer[triangle.normals[2]];
+			
+			triangleBuffer.append(v0, v1, v2, n0, n1, n2);
 		}
 		
 		meshBuffer.push_back(mesh);
 	}
+	
+//	for (uint32_t index = 0; index < this->_triangleBuffer.size(); index++)
+//	{
+//		std::cout << this->_triangleBuffer.v0.x[index] << "\n";
+//	}
 }
 
-bool Renderer::_intersectMoellerTrumbore(const Ray &ray, const Obj::Triangle *triangle, float &t, float &u, float &v)
+bool Renderer::_intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer &data, float &t, float &u, float &v)
 {
 	bool returnValue = true;
 	
-	const Math::Vector4 v0 = this->geometry.vertexBuffer[triangle->vertices[0]];
-	const Math::Vector4 v1 = this->geometry.vertexBuffer[triangle->vertices[1]];
-	const Math::Vector4 v2 = this->geometry.vertexBuffer[triangle->vertices[2]];
+	Math::Vector4 v0, v1, v2, e01, e02;
+	v0 = {*data.v0.x, *data.v0.y, *data.v0.z};
+	v1 = {*data.v1.x, *data.v1.y, *data.v1.z};
+	v2 = {*data.v2.x, *data.v2.y, *data.v2.z};
+	e01 = {*data.e01.x, *data.e01.y, *data.e01.z};
+	e02 = {*data.e02.x, *data.e02.y, *data.e02.z};
 	
-	const Math::Vector4 v01 = v1 - v0;
-	const Math::Vector4 v02 = v2 - v0;
-	Math::Vector4 pVector = ray.direction.crossProduct(v02);
+	data++;
+	
+	Math::Vector4 pVector = ray.direction.crossProduct(e02);
 	Math::Vector4 v0o;
 	Math::Vector4 qVector;
-	const float determinant = v01.dotProduct(pVector);
+	const float determinant = e01.dotProduct(pVector);
 	const float inverseDeterminant = 1.0f / determinant;
 	
 	v0o = ray.origin - v0;
 	u = v0o.dotProduct(pVector) * inverseDeterminant;
 	
-	qVector = v0o.crossProduct(v01);
+	qVector = v0o.crossProduct(e01);
 	v = ray.direction.dotProduct(qVector) * inverseDeterminant;
 	
-	t = v02.dotProduct(qVector) * inverseDeterminant;
+	t = e02.dotProduct(qVector) * inverseDeterminant;
 	
 	returnValue = ~((determinant < _epsilon) | (u < 0.0f) | (u > 1.0f) | (v < 0.0f) | ((u + v) > 1.0f)) & (t > _epsilon);
 	
 	return returnValue;
 }
 
-__m256i Renderer::_intersectAvx2(const Ray &ray, float *verticesXs, float *verticesYs, float *verticesZs, __m256 &ts, __m256 &us, __m256 &vs)
+__m256 Renderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
 {
-	__m256i returnValue;
+	__m256 returnValue;
 	__m256 determinant, inverseDeterminant, epsilon;
 	
-	Math::Avx2CoordinatePack origin, direction, v0, v1, v2, v01, v02, v0o, pVector, qVector;
+	Math::Avx2CoordinatePack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
 	
 	// Duplicate ray data
 	origin.x = _mm256_set1_ps(ray.origin.x());
@@ -144,45 +161,41 @@ __m256i Renderer::_intersectAvx2(const Ray &ray, float *verticesXs, float *verti
 	epsilon = _mm256_set1_ps(_epsilon);
 	
 	// Load vertex coordinates
-	v0.x = _mm256_loadu_ps(verticesXs);
-	v0.y = _mm256_loadu_ps(verticesYs);
-	v0.z = _mm256_loadu_ps(verticesZs);
+	v0.x = _mm256_loadu_ps(data.v0.x);
+	v0.y = _mm256_loadu_ps(data.v0.y);
+	v0.z = _mm256_loadu_ps(data.v0.z);
 	
-	verticesXs += _avx2FloatCount;
-	verticesYs += _avx2FloatCount;
-	verticesZs += _avx2FloatCount;
+	v1.x = _mm256_loadu_ps(data.v1.x);
+	v1.y = _mm256_loadu_ps(data.v1.y);
+	v1.z = _mm256_loadu_ps(data.v1.z);
 	
-	v1.x = _mm256_loadu_ps(verticesXs);
-	v1.y = _mm256_loadu_ps(verticesYs);
-	v1.z = _mm256_loadu_ps(verticesZs);
+	v2.x = _mm256_loadu_ps(data.v2.x);
+	v2.y = _mm256_loadu_ps(data.v2.y);
+	v2.z = _mm256_loadu_ps(data.v2.z);
 	
-	verticesXs += _avx2FloatCount;
-	verticesYs += _avx2FloatCount;
-	verticesZs += _avx2FloatCount;
+	e01.x = _mm256_loadu_ps(data.e01.x);
+	e01.y = _mm256_loadu_ps(data.e01.y);
+	e01.z = _mm256_loadu_ps(data.e01.z);
 	
-	v2.x = _mm256_loadu_ps(verticesXs);
-	v2.y = _mm256_loadu_ps(verticesYs);
-	v2.z = _mm256_loadu_ps(verticesZs);
+	e02.x = _mm256_loadu_ps(data.e02.x);
+	e02.y = _mm256_loadu_ps(data.e02.y);
+	e02.z = _mm256_loadu_ps(data.e02.z);
 	
-	verticesXs += _avx2FloatCount;
-	verticesYs += _avx2FloatCount;
-	verticesZs += _avx2FloatCount;
+	data += _avx2FloatCount;
 	
 	// Sub
-	v01 = v1 - v0;
-	v02 = v2 - v0;
 	v0o = origin - v0;
 	
 	// Cross
-	pVector = direction.crossProduct(v02);
-	qVector = v0o.crossProduct(v02);
+	pVector = direction.crossProduct(e02);
+	qVector = v0o.crossProduct(e01);
 	
-	determinant = v01.dotProduct(pVector);
+	determinant = e01.dotProduct(pVector);
 	inverseDeterminant = _mm256_div_ps(_mm256_set1_ps(1.0f), determinant);
 	
 	us = v0o.dotProduct(pVector) * inverseDeterminant;
 	vs = direction.dotProduct(qVector) * inverseDeterminant;
-	ts = v02.dotProduct(qVector) * inverseDeterminant;
+	ts = e02.dotProduct(qVector) * inverseDeterminant;
 	
 	// Conditions
 	__m256 c0 = _mm256_cmp_ps(determinant, epsilon, _CMP_LT_OQ);
@@ -191,10 +204,10 @@ __m256i Renderer::_intersectAvx2(const Ray &ray, float *verticesXs, float *verti
 	__m256 c3 = _mm256_cmp_ps(vs, _mm256_set1_ps(0.0f), _CMP_LT_OQ);
 	__m256 c4 = _mm256_cmp_ps(_mm256_add_ps(us, vs), _mm256_set1_ps(1.0f), _CMP_GT_OQ);
 	__m256 c5 = _mm256_cmp_ps(ts, epsilon, _CMP_GT_OQ);
-	__m256 c = _mm256_and_ps(_mm256_or_ps(c0, _mm256_or_ps(c1, _mm256_or_ps(c2, _mm256_or_ps(c3, c4)))), c5);
+	__m256 c = _mm256_or_ps(c0, _mm256_or_ps(c1, _mm256_or_ps(c2, _mm256_or_ps(c3, c4))));
 	
 	// Convert to integer vector of values of either 0x00 or 0x01
-	returnValue = _mm256_andnot_si256(_mm256_castps_si256(c), _mm256_set1_epi32(0x01));
+	returnValue = _mm256_and_ps(_mm256_andnot_ps(c, _mm256_set1_ps(0x01)), c5);
 	
 	return returnValue;
 }
@@ -203,34 +216,70 @@ float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
-	Obj::Mesh *nearestMesh = nullptr;
-	Obj::Triangle *nearestTriangle = nullptr;
+	uint32_t triangleCount = this->_triangleBuffer.size();
+	bool intersectionFound = false;
+	Simd::Mesh *nearestMesh = nullptr;
+	uint32_t nearestTriangle = 0xFFFFFFFF;
 	float newDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
 	float u = 0;
 	float v = 0;
 	newDistance = distance;
 	
-	for (Obj::Mesh &mesh : this->geometry.meshBuffer)
+	// Intersect triangles
+	Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
+	
+	uint32_t triangleIndex = 0;
+	uint32_t avx2Loops = triangleCount / _avx2FloatCount;
+	
+	for (; triangleIndex < avx2Loops; triangleIndex += _avx2FloatCount)
 	{
-		for (uint32_t triangleIndex = mesh.triangleOffset; triangleIndex < (mesh.triangleOffset + mesh.triangleCount); triangleIndex++)
+		__m256 ts, us, vs;
+		__m256 intersected = this->_intersectAvx2(ray, dataPointer, ts, us, vs);
+		
+		for (uint32_t index = 0; index < _avx2FloatCount; index++)
 		{
-			Obj::Triangle *triangle = &this->geometry.triangleBuffer[triangleIndex];
-			
-			bool intersected = this->_intersectMoellerTrumbore(ray, triangle, newDistance, u, v);
-			
-			if ((newDistance < distance) & intersected)
+			newDistance = ts[index];
+			if ((newDistance < distance) & bool(intersected[index]))
 			{
+				intersectionFound = true;
 				distance = newDistance;
+				nearestTriangle = triangleIndex;
+			}
+		}
+	}
+	
+	for (; triangleIndex < triangleCount; triangleIndex++)
+	{
+		bool intersected = this->_intersectScalar(ray, dataPointer, newDistance, u, v);
+		
+		if ((newDistance < distance) & intersected)
+		{
+			intersectionFound = true;
+			distance = newDistance;
+			nearestTriangle = triangleIndex;
+		}
+	}
+	
+	// Find corresponding mesh
+	if (intersectionFound)
+	{
+		for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+		{
+			Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+			
+			if ((nearestTriangle >= mesh.triangleOffset) &
+				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
+			{
 				nearestMesh = &mesh;
-				nearestTriangle = triangle;
+				break;
 			}
 		}
 	}
 	
 	returnValue = distance;
 	intersection.mesh = nearestMesh;
-	intersection.triangle = nearestTriangle;
+	intersection.triangleOffset = nearestTriangle;
 	intersection.u = u;
 	intersection.v = v;
 	
@@ -243,9 +292,6 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 	
 	// Multiply colors
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
-	
-	// Emitted light: += (mask * (color * emittance))
-	Math::Vector4 emittedLight = {0.0f, 0.0f, 0.0f};
 	
 	Math::Vector4 currentDirection = ray.direction;
 	Math::Vector4 currentOrigin = ray.origin;
@@ -270,7 +316,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 		
 		intersectionPoint = currentOrigin + (distance * currentDirection);
 		
-		if (intersection.triangle != nullptr)
+		if (intersection.mesh != nullptr)
 		{
 			Material &material = this->geometry.materialBuffer[intersection.mesh->materialOffset];
 			Math::Vector4 color = material.color();
@@ -278,7 +324,9 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 			// Face normal
 //			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
 			
-			normal = this->_interpolateNormal(intersection, intersectionPoint);
+			Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + intersection.triangleOffset;
+			
+			normal = this->_interpolateNormal(intersectionPoint, dataPointer);
 			
 			// Indirect lighting
 			this->_createCoordinateSystem(normal, Nt, Nb);
@@ -304,7 +352,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 			diffuse = 2.0f * color;
 //			specular = brdf;
 			
-			emittedLight += color * material.emittance() * mask;
+			returnValue += color * material.emittance() * mask;
 			mask *= (diffuse) * cosinusTheta;
 		}
 		else
@@ -312,8 +360,6 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 			break;
 		}
 	}
-	
-	returnValue = emittedLight;
 	
 	return returnValue;
 }
@@ -338,21 +384,24 @@ Math::Vector4 Renderer::_createUniformHemisphere(const float r1, const float r2)
 	return {x, r1, z};
 }
 
-Math::Vector4 Renderer::_interpolateNormal(const IntersectionInfo &intersection, const Math::Vector4 &intersectionPoint)
+Math::Vector4 Renderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data)
 {
-	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, v01, v02, v12, v0p, v1p, v2p, vab, v2ab;
+	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, e01, e02, v12, v0p, v1p, v2p, vab, v2ab;
 	
-	n0 = this->geometry.normalBuffer[intersection.triangle->normals[0]];
-	n1 = this->geometry.normalBuffer[intersection.triangle->normals[1]];
-	n2 = this->geometry.normalBuffer[intersection.triangle->normals[2]];
+	v0 = {*data.v0.x, *data.v0.y, *data.v0.z};
+	v1 = {*data.v1.x, *data.v1.y, *data.v1.z};
+	v2 = {*data.v2.x, *data.v2.y, *data.v2.z};
+	e01 = {*data.e01.x, *data.e01.y, *data.e01.z};
+	e02 = {*data.e02.x, *data.e02.y, *data.e02.z};
+	n0 = {*data.n0.x, *data.n0.y, *data.n0.z};
+	n1 = {*data.n1.x, *data.n1.y, *data.n1.z};
+	n2 = {*data.n2.x, *data.n2.y, *data.n2.z};
 	
-	v0 = this->geometry.vertexBuffer[intersection.triangle->vertices[0]];
-	v1 = this->geometry.vertexBuffer[intersection.triangle->vertices[1]];
-	v2 = this->geometry.vertexBuffer[intersection.triangle->vertices[2]];
+	data++;
 	
 	p = intersectionPoint;
-	v01 = v1 - v0;
-	v02 = v2 - v0;
+	e01 = v1 - v0;
+	e02 = v2 - v0;
 	v12 = v2 - v1;
 	v0p = p - v0;
 	v1p = p - v1;
@@ -360,11 +409,11 @@ Math::Vector4 Renderer::_interpolateNormal(const IntersectionInfo &intersection,
 	
 	float a, b, denominator;
 	
-	denominator = (v01.x() * v2p.y() - v2p.x() * v01.y()) + _epsilon;
+	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + _epsilon;
 	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-	b = (v01.x() * v0.y() - v01.x() * v2.y() - v0.x() * v01.y() + v2.x() * v01.y()) / denominator;
+	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
 	
-	vab = v0 + a * v01;
+	vab = v0 + a * e01;
 	
 	n01 = Math::lerp(n1, n0, a).normalize();
 	v2ab = vab - v2;

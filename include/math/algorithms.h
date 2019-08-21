@@ -37,6 +37,14 @@ inline __m256 lerp<__m256>(const __m256 a, const __m256 b, const float t)
 	return _mm256_add_ps(_mm256_mul_ps(inverseTVector, b), _mm256_mul_ps(tVector, a));
 }
 
+inline __m256 lerp(const __m256 a, const __m256 b, const __m256 t)
+{
+	__m256 one = _mm256_set1_ps(1.0f);
+	__m256 inverseTVector = _mm256_sub_ps(one, t);
+	
+	return _mm256_add_ps(_mm256_mul_ps(inverseTVector, b), _mm256_mul_ps(t, a));
+}
+
 
 } // namespace Math
 
