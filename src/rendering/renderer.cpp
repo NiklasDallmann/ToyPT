@@ -50,8 +50,10 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 			
 			for (size_t sample = 0; sample < samples; sample++)
 			{
-//				bool debug = (i == width / 2) & (j == 3 * (height / 4)) & (sample == 0);
-				color += this->_castRay({{0, 0, 0}, direction}, bounces);
+				std::random_device device;
+				RandomNumberGenerator rng(device.operator()());
+				
+				color += this->_castRay({{0, 0, 0}, direction}, rng, bounces);
 			}
 			
 			frameBuffer.pixel(i, j) = (color / float(samples));
@@ -286,7 +288,7 @@ float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const bool debug)
+Math::Vector4 Renderer::_castRay(const Ray &ray, RandomNumberGenerator rng, const size_t maxBounces)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	
@@ -301,9 +303,9 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 	float cosinusTheta = 1.0f;
 	float ratio = 1.0f;
 	
-	std::random_device device;
-	std::default_random_engine generator(device());
-	std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
+//	std::random_device device;
+//	std::default_random_engine generator(device());
+//	std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
 	Math::Vector4 Nt;
 	Math::Vector4 Nb;
 	
@@ -332,8 +334,13 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, const size_t maxBounces, const 
 			this->_createCoordinateSystem(normal, Nt, Nb);
 			
 			// Generate hemisphere
-			cosinusTheta = distribution(generator);
-			ratio = distribution(generator);
+//			cosinusTheta = distribution(generator);
+//			ratio = distribution(generator);
+			
+			constexpr float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+			cosinusTheta = rng.get(scalingFactor);
+			ratio = rng.get(scalingFactor);
+			
 			Math::Vector4 sample = this->_createUniformHemisphere(cosinusTheta, ratio);
 			
 			Math::Matrix4x4 localToWorldMatrix{

@@ -65,7 +65,7 @@ int main()
 	renderer.geometry.meshBuffer.push_back(worldCube);
 	
 	Rendering::FrameBuffer frameBuffer(400, 200);
-	renderer.render(frameBuffer, 70, 128, 4);
+	renderer.render(frameBuffer, 70, 16, 4);
 	
 	std::cout << "Saving file..." << std::endl;
 	if (frameBuffer.save("img.ppm"))

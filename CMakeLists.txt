@@ -24,7 +24,8 @@ add_library(rendering STATIC
 	"src/rendering/pointlight.cpp"
 	"src/rendering/geometrycontainer.cpp"
 	"src/rendering/ray.cpp"
-	"src/rendering/simdtypes.cpp")
+	"src/rendering/simdtypes.cpp"
+	"src/rendering/randomnumbergenerator.cpp")
 target_include_directories(rendering
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>

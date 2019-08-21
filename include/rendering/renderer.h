@@ -14,6 +14,7 @@
 #include "mesh.h"
 #include "material.h"
 #include "pointlight.h"
+#include "randomnumbergenerator.h"
 #include "ray.h"
 #include "simdtypes.h"
 #include "triangle.h"
@@ -52,7 +53,7 @@ private:
 	__m256 _intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
 	
 	float _traceRay(const Ray &ray, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Ray &ray, const size_t maxBounces = 4, const bool debug = false);
+	Math::Vector4 _castRay(const Ray &ray, RandomNumberGenerator rng, const size_t maxBounces = 4);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
 	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
