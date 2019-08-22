@@ -7,26 +7,32 @@
 namespace Rendering
 {
 
-FrameBuffer::FrameBuffer(const size_t width, const size_t height) :
+FrameBuffer::FrameBuffer(const uint32_t width, const uint32_t height) :
 	_width(width),
 	_height(height)
 {
 	this->_buffer.resize(width * height);
 }
 
-size_t FrameBuffer::width() const
+uint32_t FrameBuffer::width() const
 {
 	return this->_width;
 }
 
-size_t FrameBuffer::height() const
+uint32_t FrameBuffer::height() const
 {
 	return this->_height;
 }
 
-Math::Vector4 &FrameBuffer::pixel(const size_t x, const size_t y)
+Math::Vector4 &FrameBuffer::pixel(const uint32_t x, const uint32_t y)
 {
 	return this->_buffer[x + this->_width * y];
+}
+
+void FrameBuffer::setPixel(const uint32_t x, const uint32_t y, const Math::Vector4 &color)
+{
+	this->_buffer[x + this->_width * y] = color;
+	this->runCallBacks(x, y);
 }
 
 bool FrameBuffer::save(const std::string &fileName)
@@ -40,7 +46,7 @@ bool FrameBuffer::save(const std::string &fileName)
 		
 		for (const Math::Vector4 &vector : this->_buffer)
 		{
-			Color color = Color::fromVector3D(vector);
+			Color color = Color::fromVector4(vector);
 			
 			stream << color.red() << color.green() << color.blue();
 		}
@@ -52,6 +58,19 @@ bool FrameBuffer::save(const std::string &fileName)
 	else
 	{
 		return false;
+	}
+}
+
+void FrameBuffer::registerCallBack(const FrameBuffer::CallBack callBack)
+{
+	this->_callbacks.push_back(callBack);
+}
+
+void FrameBuffer::runCallBacks(const uint32_t x, const uint32_t y)
+{
+	for (CallBack &callBack : this->_callbacks)
+	{
+		callBack(x, y);
 	}
 }
 

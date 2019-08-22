@@ -13,19 +13,19 @@
 #include <iostream>
 #include <sstream>
 
-#include "renderer.h"
+#include "simdrenderer.h"
 
 namespace Rendering
 {
 
-Renderer::Renderer()
+SimdRenderer::SimdRenderer()
 {
 }
 
-void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const size_t samples, const size_t bounces)
+void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const float fieldOfView, const uint32_t samples, const uint32_t bounces, bool fastImage)
 {
-	const size_t width = frameBuffer.width();
-	const size_t height = frameBuffer.height();
+	const uint32_t width = frameBuffer.width();
+	const uint32_t height = frameBuffer.height();
 	float fovRadians = fieldOfView / 180.0f * float(M_PI);
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	size_t linesFinished = 0;
@@ -33,39 +33,76 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
 	
-	this->_geometryToBuffer(this->geometry, this->_triangleBuffer, this->_meshBuffer);
-
-#pragma omp parallel for schedule(dynamic)
-	for (size_t j = 0; j < height; j++)
+	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
+	
+	if (fastImage)
 	{
-		for (size_t i = 0; i < width; i++)
+		for (size_t sample = 1; sample <= samples; sample++)
 		{
-			float x = (i + 0.5f) - (width / 2.0f);
-			float y = -(j + 0.5f) + (height / 2.0f);
-			
-			Math::Vector4 direction{x, y, zCoordinate};
-			direction.normalize();
-			
-			Math::Vector4 color;
-			
-			for (size_t sample = 0; sample < samples; sample++)
+#pragma omp parallel for schedule(dynamic, 20) collapse(2)
+			for (uint32_t h = 0; h < height; h++)
 			{
-				std::random_device device;
-				RandomNumberGenerator rng(device.operator()());
-				
-				color += this->_castRay({{0, 0, 0}, direction}, rng, bounces);
+				for (uint32_t w = 0; w < width; w++)
+				{
+					float x = (w + 0.5f) - (width / 2.0f);
+					float y = -(h + 0.5f) + (height / 2.0f);
+					
+					Math::Vector4 direction{x, y, zCoordinate};
+					direction.normalize();
+					
+					Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
+					
+					std::random_device device;
+					RandomNumberGenerator rng(device());
+					
+					color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
+					
+					frameBuffer.setPixel(w, h, (color / float(sample)));
+				}
 			}
 			
-			frameBuffer.pixel(i, j) = (color / float(samples));
-		}
-		
-#pragma omp critical
-		{
+			callBack();
 			std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
 			std::chrono::duration<float> elapsed = current - begin;
-			linesFinished++;
-			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\r";
+//			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(sample) / float(samples) * 100.0f) << "% " << elapsed.count() << "s\r";
+			stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples\r";
 			std::cout << stream.str() << std::flush;
+		}
+	}
+	else
+	{
+#pragma omp parallel for schedule(dynamic, 20)
+		for (uint32_t h = 0; h < height; h++)
+		{
+			for (uint32_t w = 0; w < width; w++)
+			{
+				float x = (w + 0.5f) - (width / 2.0f);
+				float y = -(h + 0.5f) + (height / 2.0f);
+				
+				Math::Vector4 direction{x, y, zCoordinate};
+				direction.normalize();
+				
+				Math::Vector4 color = frameBuffer.pixel(w, h);
+				
+				for (size_t sample = 0; sample < samples; sample++)
+				{
+					std::random_device device;
+					RandomNumberGenerator rng(device.operator()());
+					
+					color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
+				}
+				
+				frameBuffer.setPixel(w, h, (color / float(samples)));
+			}
+			
+#pragma omp critical
+			{
+				std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
+				std::chrono::duration<float> elapsed = current - begin;
+				linesFinished++;
+				stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\r";
+				std::cout << stream.str() << std::flush;
+			}
 		}
 	}
 	
@@ -75,7 +112,7 @@ void Renderer::render(FrameBuffer &frameBuffer, const float fieldOfView, const s
 	std::cout << stream.str();
 }
 
-void Renderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
+void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
 {
 	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
 	{
@@ -105,14 +142,9 @@ void Renderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::P
 		
 		meshBuffer.push_back(mesh);
 	}
-	
-//	for (uint32_t index = 0; index < this->_triangleBuffer.size(); index++)
-//	{
-//		std::cout << this->_triangleBuffer.v0.x[index] << "\n";
-//	}
 }
 
-bool Renderer::_intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer &data, float &t, float &u, float &v)
+bool SimdRenderer::_intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer &data, float &t, float &u, float &v)
 {
 	bool returnValue = true;
 	
@@ -144,7 +176,7 @@ bool Renderer::_intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer
 	return returnValue;
 }
 
-__m256 Renderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
+__m256 SimdRenderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
 {
 	__m256 returnValue;
 	__m256 determinant, inverseDeterminant, epsilon;
@@ -214,7 +246,7 @@ __m256 Renderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer
 	return returnValue;
 }
 
-float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
+float SimdRenderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
@@ -288,7 +320,7 @@ float Renderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_castRay(const Ray &ray, RandomNumberGenerator rng, const size_t maxBounces)
+Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	
@@ -320,7 +352,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, RandomNumberGenerator rng, cons
 		
 		if (intersection.mesh != nullptr)
 		{
-			Material &material = this->geometry.materialBuffer[intersection.mesh->materialOffset];
+			const Material &material = geometry.materialBuffer[intersection.mesh->materialOffset];
 			Math::Vector4 color = material.color();
 			
 			// Face normal
@@ -371,7 +403,7 @@ Math::Vector4 Renderer::_castRay(const Ray &ray, RandomNumberGenerator rng, cons
 	return returnValue;
 }
 
-void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal)
+void SimdRenderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal)
 {
 	const Math::Vector4 a = Math::Vector4{normal.z(), 0.0f, -normal.x()};
 	const Math::Vector4 b = Math::Vector4{0.0f, -normal.z(), normal.y()};
@@ -382,7 +414,7 @@ void Renderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 	binormal = normal.crossProduct(tangentNormal);
 }
 
-Math::Vector4 Renderer::_createUniformHemisphere(const float r1, const float r2)
+Math::Vector4 SimdRenderer::_createUniformHemisphere(const float r1, const float r2)
 {
 	float sinTheta = std::sqrt(1.0f - r1 * r1);
 	float phi = 2.0f * float(M_PI) * r2;
@@ -391,7 +423,7 @@ Math::Vector4 Renderer::_createUniformHemisphere(const float r1, const float r2)
 	return {x, r1, z};
 }
 
-Math::Vector4 Renderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data)
+Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data)
 {
 	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, e01, e02, v12, v0p, v1p, v2p, vab, v2ab;
 	
@@ -407,8 +439,6 @@ Math::Vector4 Renderer::_interpolateNormal(const Math::Vector4 &intersectionPoin
 	data++;
 	
 	p = intersectionPoint;
-	e01 = v1 - v0;
-	e02 = v2 - v0;
 	v12 = v2 - v1;
 	v0p = p - v0;
 	v1p = p - v1;
@@ -430,7 +460,7 @@ Math::Vector4 Renderer::_interpolateNormal(const Math::Vector4 &intersectionPoin
 	return returnValue;
 }
 
-Math::Vector4 Renderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)
+Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)
 {
 	Math::Vector4 returnValue;
 	

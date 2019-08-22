@@ -43,7 +43,12 @@ uint8_t Color::blue() const
 	return uint8_t(this->_data >> 8);
 }
 
-Color Color::fromVector3D(Math::Vector4 vector)
+uint32_t Color::rgba() const
+{
+	return this->_data;
+}
+
+Color Color::fromVector4(Math::Vector4 vector)
 {
 	Color returnValue;
 	Math::Vector4 excessLight;

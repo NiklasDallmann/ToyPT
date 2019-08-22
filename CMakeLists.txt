@@ -2,7 +2,12 @@ cmake_minimum_required(VERSION 2.8)
 
 project(pathtracer)
 
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
+
 find_package(OpenMP)
+find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2 -std=c++17")
 #set(CMAKE_CXX_FLAGS "-g -mavx2 -std=c++17")
@@ -17,7 +22,7 @@ set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2 -std=c++17")
 add_library(rendering STATIC
 	"src/rendering/framebuffer.cpp"
 	"src/rendering/color.cpp"
-	"src/rendering/renderer.cpp"
+	"src/rendering/simdrenderer.cpp"
 	"src/rendering/triangle.cpp"
 	"src/rendering/material.cpp"
 	"src/rendering/mesh.cpp"
@@ -33,10 +38,16 @@ target_include_directories(rendering
 )
 target_link_libraries(rendering OpenMP::OpenMP_CXX)
 
-add_executable(${PROJECT_NAME} "src/application/main.cpp")
+add_executable(${PROJECT_NAME}
+	"src/application/main.cpp"
+	"src/application/application.cpp"
+	"include/application/application.h"
+	"src/application/renderthread.cpp"
+	"include/application/renderthread.h")
 target_include_directories(${PROJECT_NAME}
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
+		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/application>
 )
-target_link_libraries(${PROJECT_NAME} rendering)
+target_link_libraries(${PROJECT_NAME} rendering Qt5::Widgets)

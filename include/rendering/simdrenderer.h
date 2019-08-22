@@ -4,6 +4,7 @@
 #include <array>
 #include <immintrin.h>
 #include <framebuffer.h>
+#include <functional>
 #include <stddef.h>
 #include <vector>
 
@@ -22,14 +23,14 @@
 namespace Rendering
 {
 
-class Renderer
-{
+class SimdRenderer
+{	
 public:
-	Renderer();
+	using CallBack = std::function<void()>;
 	
-	Obj::GeometryContainer geometry;
+	SimdRenderer();
 	
-	void render(FrameBuffer &frameBuffer, const float fieldOfView = 75.0f, const size_t samples = 10, const size_t bounces = 2);
+	void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const float fieldOfView = 75.0f, const uint32_t samples = 10, const uint32_t bounces = 2, bool fastImage = true);
 	
 private:
 	struct IntersectionInfo
@@ -53,7 +54,7 @@ private:
 	__m256 _intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
 	
 	float _traceRay(const Ray &ray, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Ray &ray, RandomNumberGenerator rng, const size_t maxBounces = 4);
+	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces = 4);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
 	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
