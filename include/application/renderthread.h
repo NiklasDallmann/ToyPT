@@ -29,7 +29,11 @@ signals:
 	void pixelAvailable(const uint32_t x, const uint32_t y);
 	void dataAvailable();
 	
+public slots:
+	void quit();
+	
 private:
+	bool _abort;
 	float _fieldOfView;
 	uint32_t _samples;
 	uint32_t _bounces;

@@ -22,7 +22,7 @@ SimdRenderer::SimdRenderer()
 {
 }
 
-void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const float fieldOfView, const uint32_t samples, const uint32_t bounces, bool fastImage)
+void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
@@ -35,43 +35,9 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	
 	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
 	
-	if (fastImage)
+	for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
 	{
-		for (size_t sample = 1; sample <= samples; sample++)
-		{
 #pragma omp parallel for schedule(dynamic, 20) collapse(2)
-			for (uint32_t h = 0; h < height; h++)
-			{
-				for (uint32_t w = 0; w < width; w++)
-				{
-					float x = (w + 0.5f) - (width / 2.0f);
-					float y = -(h + 0.5f) + (height / 2.0f);
-					
-					Math::Vector4 direction{x, y, zCoordinate};
-					direction.normalize();
-					
-					Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
-					
-					std::random_device device;
-					RandomNumberGenerator rng(device());
-					
-					color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
-					
-					frameBuffer.setPixel(w, h, (color / float(sample)));
-				}
-			}
-			
-			callBack();
-			std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
-			std::chrono::duration<float> elapsed = current - begin;
-//			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(sample) / float(samples) * 100.0f) << "% " << elapsed.count() << "s\r";
-			stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples\r";
-			std::cout << stream.str() << std::flush;
-		}
-	}
-	else
-	{
-#pragma omp parallel for schedule(dynamic, 20)
 		for (uint32_t h = 0; h < height; h++)
 		{
 			for (uint32_t w = 0; w < width; w++)
@@ -82,28 +48,23 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 				Math::Vector4 direction{x, y, zCoordinate};
 				direction.normalize();
 				
-				Math::Vector4 color = frameBuffer.pixel(w, h);
+				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
 				
-				for (size_t sample = 0; sample < samples; sample++)
-				{
-					std::random_device device;
-					RandomNumberGenerator rng(device.operator()());
-					
-					color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
-				}
+				std::random_device device;
+				RandomNumberGenerator rng(device());
 				
-				frameBuffer.setPixel(w, h, (color / float(samples)));
-			}
-			
-#pragma omp critical
-			{
-				std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
-				std::chrono::duration<float> elapsed = current - begin;
-				linesFinished++;
-				stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\r";
-				std::cout << stream.str() << std::flush;
+				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
+				
+				frameBuffer.setPixel(w, h, (color / float(sample)));
 			}
 		}
+		
+		callBack();
+		std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<float> elapsed = current - begin;
+//			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(sample) / float(samples) * 100.0f) << "% " << elapsed.count() << "s\r";
+		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples\r";
+		std::cout << stream.str() << std::flush;
 	}
 	
 	end = std::chrono::high_resolution_clock::now();
@@ -246,7 +207,8 @@ __m256 SimdRenderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePoi
 	return returnValue;
 }
 
-float SimdRenderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
+template <SimdRenderer::TraceType T>
+float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
@@ -279,6 +241,22 @@ float SimdRenderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 				intersectionFound = true;
 				distance = newDistance;
 				nearestTriangle = triangleIndex;
+				
+				if constexpr (T == TraceType::Light)
+				{
+					for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+					{
+						Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+						
+						if ((nearestTriangle >= mesh.triangleOffset) &
+							(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)) &
+							(geometry.materialBuffer[mesh.materialOffset].emittance() > 0.0f))
+						{
+							nearestMesh = &mesh;
+							break;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -292,21 +270,40 @@ float SimdRenderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 			intersectionFound = true;
 			distance = newDistance;
 			nearestTriangle = triangleIndex;
+			
+			if constexpr (T == TraceType::Light)
+			{
+				for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+				{
+					Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+					
+					if ((nearestTriangle >= mesh.triangleOffset) &
+						(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)) &
+						(geometry.materialBuffer[mesh.materialOffset].emittance() > 0.0f))
+					{
+						nearestMesh = &mesh;
+						break;
+					}
+				}
+			}
 		}
 	}
 	
 	// Find corresponding mesh
-	if (intersectionFound)
+	if constexpr (T == TraceType::Object)
 	{
-		for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+		if (intersectionFound)
 		{
-			Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
-			
-			if ((nearestTriangle >= mesh.triangleOffset) &
-				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
+			for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
 			{
-				nearestMesh = &mesh;
-				break;
+				Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+				
+				if ((nearestTriangle >= mesh.triangleOffset) &
+					(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
+				{
+					nearestMesh = &mesh;
+					break;
+				}
 			}
 		}
 	}
@@ -332,66 +329,62 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 	
 	// FIXME This won't stay constant
 	float pdf = 2.0f * float(M_PI);
-	float cosinusTheta = 1.0f;
-	float ratio = 1.0f;
-	
-//	std::random_device device;
-//	std::default_random_engine generator(device());
-//	std::uniform_real_distribution<float> distribution(0.0f, 1.0f);
-	Math::Vector4 Nt;
-	Math::Vector4 Nb;
+	float cosinusTheta;
 	
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
 		Math::Vector4 intersectionPoint;
-		IntersectionInfo intersection;
+		IntersectionInfo objectIntersection;
 		Math::Vector4 normal;
-		float distance = this->_traceRay({currentOrigin, currentDirection}, intersection);
+		float distance = this->_traceRay<TraceType::Object>({currentOrigin, currentDirection}, geometry, objectIntersection);
 		
 		intersectionPoint = currentOrigin + (distance * currentDirection);
 		
-		if (intersection.mesh != nullptr)
+		if (objectIntersection.mesh != nullptr)
 		{
-			const Material &material = geometry.materialBuffer[intersection.mesh->materialOffset];
-			Math::Vector4 color = material.color();
+			const Material &objectMaterial = geometry.materialBuffer[objectIntersection.mesh->materialOffset];
+			const Math::Vector4 &objectColor = objectMaterial.color();
 			
-			// Face normal
-//			normal = Triangle::normal(intersection.triangle, this->vertexBuffer.data());
-			
-			Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + intersection.triangleOffset;
-			
+			// Calculate normal
+			Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
 			normal = this->_interpolateNormal(intersectionPoint, dataPointer);
 			
-			// Indirect lighting
-			this->_createCoordinateSystem(normal, Nt, Nb);
-			
-			// Generate hemisphere
-//			cosinusTheta = distribution(generator);
-//			ratio = distribution(generator);
-			
-			constexpr float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
-			cosinusTheta = rng.get(scalingFactor);
-			ratio = rng.get(scalingFactor);
-			
-			Math::Vector4 sample = this->_createUniformHemisphere(cosinusTheta, ratio);
-			
-			Math::Matrix4x4 localToWorldMatrix{
-				{Nb.x(), normal.x(), Nt.x()},
-				{Nb.y(), normal.y(), Nt.y()},
-				{Nb.z(), normal.z(), Nt.z()}
-			};
-			
-			Math::Vector4 newDirection = (localToWorldMatrix * sample).normalized();
+			// Calculate new origin and offset
 			currentOrigin = intersectionPoint + (_epsilon * normal);
 			
-//			Math::Vector4 brdf = this->_brdf(material, normal, newDirection, currentDirection);
+			// Direct illumination
+			Math::Vector4 newDirection, reflectedDirection, diffuseDirection, directIllumination;
+			IntersectionInfo lightIntersection;
+			
+			if (objectMaterial.roughness() > 0.0f)
+			{
+				diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
+				this->_traceRay<TraceType::Light>({currentOrigin, diffuseDirection}, geometry, lightIntersection);
+				
+				if (lightIntersection.mesh != nullptr)
+				{
+					const Material &lightMaterial = geometry.materialBuffer[lightIntersection.mesh->materialOffset];
+					const Math::Vector4 &lightColor = lightMaterial.color();
+					
+					directIllumination = objectColor * lightColor * lightMaterial.emittance();
+				}
+			}
+			
+			// Global illumination
+			Math::Vector4 diffuse, specular;
+			
+			diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
+			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
+			
+			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
+			
+			diffuse = 2.0f * objectColor;
+//			specular = this->_brdf(material, normal, newDirection, currentDirection);
+			
 			currentDirection = newDirection;
 			
-			Math::Vector4 diffuse, specular;
-			diffuse = 2.0f * color;
-//			specular = brdf;
-			
-			returnValue += color * material.emittance() * mask;
+//			returnValue += objectColor * objectMaterial.emittance() * mask;
+			returnValue += directIllumination;
 			mask *= (diffuse) * cosinusTheta;
 		}
 		else
@@ -421,6 +414,31 @@ Math::Vector4 SimdRenderer::_createUniformHemisphere(const float r1, const float
 	float x = sinTheta * std::cos(phi);
 	float z = sinTheta * std::sin(phi);
 	return {x, r1, z};
+}
+
+Math::Vector4 SimdRenderer::_randomDirection(const Math::Vector4 &normal, RandomNumberGenerator &rng, float &cosinusTheta)
+{
+	float ratio;
+	
+	Math::Vector4 Nt;
+	Math::Vector4 Nb;
+	
+	this->_createCoordinateSystem(normal, Nt, Nb);
+	
+	// Generate hemisphere
+	constexpr float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+	cosinusTheta = rng.get(scalingFactor);
+	ratio = rng.get(scalingFactor);
+	
+	Math::Vector4 sample = this->_createUniformHemisphere(cosinusTheta, ratio);
+	
+	Math::Matrix4x4 localToWorldMatrix{
+		{Nb.x(), normal.x(), Nt.x()},
+		{Nb.y(), normal.y(), Nt.y()},
+		{Nb.z(), normal.z(), Nt.z()}
+	};
+	
+	return (localToWorldMatrix * sample).normalize();
 }
 
 Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data)
@@ -467,31 +485,33 @@ Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 
 	// specular color
 	const Math::Vector4 c_spec = {1.0f, 1.0f, 1.0f};
 	
-//	// half vector
-//	const Math::Vector4 h = (l + v).normalized();
+	// half vector
+	const Math::Vector4 h = (l + v).normalized();
 	
-//	// a (alpha) = roughness^2
-//	const float a = std::pow(material.roughness(), 2.0f);
-//	const float a_2 = std::pow(material.roughness(), 4.0f);
+	// a (alpha) = roughness^2
+	const float a = std::pow(material.roughness(), 2.0f);
+	const float a_2 = std::pow(material.roughness(), 4.0f);
 	
-//	// D term (GGX - Trowbridge-Reitz)
-//	const float d = a_2 /
-//			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
+	// D term (GGX - Trowbridge-Reitz)
+	const float d = a_2 /
+			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
 	
-//	// F (fresnel) term (Schlick approximation)
-//	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
+	// F (fresnel) term (Schlick approximation)
+	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
 	
-//	// G term (Schlick-GGX)
-//	const float k = a / 2.0f;
-//	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
+	// G term (Schlick-GGX)
+	const float k = a / 2.0f;
+	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
 	
-//	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
+	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
 	
 	// [0, 1] |-> [1, MAX]
 //	float alpha = (512.0f * std::pow(1.953125E-3f, material.roughness()));
-	float alpha = 300.0f;
+//	float alpha = 15.0f;
+//	float alpha = material.roughness();
+//	Math::Vector4 reflected = v - 2.0f * v.dotProduct(n) * n;
 	
-	returnValue = (alpha + 2.0f) * c_spec * std::pow(v.dotProduct(l), alpha);
+//	returnValue = c_spec * (alpha + 2.0f) * std::pow(v.dotProduct(reflected), alpha);
 	
 	return returnValue;
 }

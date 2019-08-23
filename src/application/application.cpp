@@ -30,9 +30,8 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 
 Application::~Application()
 {
-//	this->_renderThread->quit();
-//	this->_renderThread->wait();
-	this->_renderThread->terminate();
+	this->_renderThread->quit();
+	this->_renderThread->wait();
 }
 
 void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
@@ -40,6 +39,7 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 //	this->resize(int(width), int(height));
 	this->_progressBar->setRange(0, int(samples));
 	this->_progressBar->setValue(0);
+	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
 	
 	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
 	this->_image.fill(Qt::GlobalColor::black);
@@ -86,14 +86,14 @@ void Application::_initializeScene()
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
 	Rendering::Material blue{{0.0f, 0.0f, 0.7f}};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
-	Rendering::Material magenta{{0.7f, 0.0f, 0.7f}};
+	Rendering::Material magenta{{0.7f, 0.0f, 0.7f}, 0.0f, 0.5f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
 	Rendering::Material black{{0.0f, 0.0f, 0.0f}};
 	Rendering::Material halfWhite{{1.0f, 1.0f, 1.0f}};
 	Rendering::Material white{{1.0f, 1.0f, 1.0f}};
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
-	Rendering::Material grey{{0.2f, 0.2f, 0.2f}};
-	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 8.0f};
+	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.5f};
+	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 5.0f};
 	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 1.0f};
 	
 	this->_geometry.materialBuffer = {red, green, blue, cyan, magenta, yellow, black, white, halfGrey, grey, whiteLight, cyanLight};
@@ -107,14 +107,14 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
+//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 9, this->_geometry);
 //	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
 //	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
-	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(4.0f, 10, this->_geometry);
+	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
-	lightPlane0.translate({-5.5f, 1.5f, -9.0f}, this->_geometry);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 2.0f), this->_geometry);
+	lightPlane0.translate({-12.0f, 1.5f, -10.0f}, this->_geometry);
 	
 //	Rendering::Obj::Mesh lightPlane1 = Rendering::Obj::Mesh::plane(2.0f, 11, this->_geometry);
 //	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
