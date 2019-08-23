@@ -226,7 +226,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
 	
 	uint32_t triangleIndex = 0;
-	uint32_t avx2Loops = triangleCount / _avx2FloatCount;
+	uint32_t avx2Loops = triangleCount - (triangleCount % _avx2FloatCount);
 	
 	for (; triangleIndex < avx2Loops; triangleIndex += _avx2FloatCount)
 	{
@@ -240,7 +240,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 			{
 				intersectionFound = true;
 				distance = newDistance;
-				nearestTriangle = triangleIndex;
+				nearestTriangle = triangleIndex + index;
 				
 				if constexpr (T == TraceType::Light)
 				{
