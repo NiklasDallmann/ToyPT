@@ -24,7 +24,7 @@ int main(int argc, char **argv)
 	
 	app.show();
 	//			width	height	FOV		samples	bounces
-	app.render(	400,	200,	70.0f,	1024,		4);
+	app.render(	800,	400,	70.0f,	8192,		4);
 	
 	qtApp.exec();
 	

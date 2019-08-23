@@ -28,12 +28,13 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	const uint32_t height = frameBuffer.height();
 	float fovRadians = fieldOfView / 180.0f * float(M_PI);
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
-	size_t linesFinished = 0;
 	std::stringstream stream;
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
 	
 	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
+	
+	std::random_device device;
 	
 	for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
 	{
@@ -42,16 +43,19 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 		{
 			for (uint32_t w = 0; w < width; w++)
 			{
-				float x = (w + 0.5f) - (width / 2.0f);
-				float y = -(h + 0.5f) + (height / 2.0f);
+				RandomNumberGenerator rng(device());
+				float offsetX, offsetY;
+				const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+				offsetX = rng.get(scalingFactor)  - 0.5f;
+				offsetY = rng.get(scalingFactor) - 0.5f;
+				
+				float x = (w + offsetX + 0.5f) - (width / 2.0f);
+				float y = -(h + offsetY + 0.5f) + (height / 2.0f);
 				
 				Math::Vector4 direction{x, y, zCoordinate};
 				direction.normalize();
 				
 				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
-				
-				std::random_device device;
-				RandomNumberGenerator rng(device());
 				
 				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
 				
@@ -62,15 +66,11 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 		callBack();
 		std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed = current - begin;
-//			stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(sample) / float(samples) * 100.0f) << "% " << elapsed.count() << "s\r";
-		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples\r";
+		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples; " << elapsed.count() << " seconds\r";
 		std::cout << stream.str() << std::flush;
 	}
 	
-	end = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<float> elapsed = end - begin;
-	stream << std::setw(4) << std::setfill('0') << std::fixed << std::setprecision(1) << (float(linesFinished) / float(height) * 100.0f) << "% " << elapsed.count() << "s\n";
-	std::cout << stream.str();
+	std::cout << std::endl;
 }
 
 void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)

@@ -101,7 +101,7 @@ void Application::_initializeScene()
 	
 	Rendering::Obj::Mesh cube0 = Rendering::Obj::Mesh::cube(1, 3, this->_geometry);
 	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
-	cube0.translate({-1.5f, -0.5f, -4.5f}, this->_geometry);
+	cube0.translate({-1.5f, -0.5f, -4.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh cube1 = Rendering::Obj::Mesh::cube(1, 4, this->_geometry);
 	cube1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / -4.0f), this->_geometry);
@@ -117,7 +117,7 @@ void Application::_initializeScene()
 //	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 2.0f), this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
 //	lightPlane0.translate({-12.0f, 1.5f, -10.0f}, this->_geometry);
-	lightPlane0.translate({-0.5f, 3.0f, -3.0f}, this->_geometry);
+	lightPlane0.translate({-0.5f, 3.0f, -5.0f}, this->_geometry);
 	
 //	Rendering::Obj::Mesh lightPlane1 = Rendering::Obj::Mesh::plane(2.0f, 11, this->_geometry);
 //	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
