@@ -84,9 +84,9 @@ void Application::_initializeScene()
 {
 	Rendering::Material red{{1.0f, 0.0f, 0.0f}};
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
-	Rendering::Material blue{{0.0f, 0.0f, 0.7f}};
+	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.8f};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
-	Rendering::Material magenta{{0.7f, 0.0f, 0.7f}, 0.0f, 0.5f};
+	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 0.5f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
 	Rendering::Material black{{0.0f, 0.0f, 0.0f}};
 	Rendering::Material halfWhite{{1.0f, 1.0f, 1.0f}};
@@ -108,15 +108,16 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 9, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
 	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
 	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 2.0f), this->_geometry);
-	lightPlane0.translate({-12.0f, 1.5f, -10.0f}, this->_geometry);
-	
+//	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
+//	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 2.0f), this->_geometry);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
+//	lightPlane0.translate({-12.0f, 1.5f, -10.0f}, this->_geometry);
+	lightPlane0.translate({-0.5f, 3.0f, -3.0f}, this->_geometry);
 	
 //	Rendering::Obj::Mesh lightPlane1 = Rendering::Obj::Mesh::plane(2.0f, 11, this->_geometry);
 //	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
