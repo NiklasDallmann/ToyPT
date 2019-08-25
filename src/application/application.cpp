@@ -1,4 +1,5 @@
 #include <QDebug>
+#include <QString>
 
 #include <color.h>
 
@@ -9,21 +10,154 @@ namespace PathTracer
 
 Application::Application(QWidget *parent) : QMainWindow(parent)
 {
-	this->_scrollArea = new QScrollArea();
 	this->_imageLabel = new QLabel();
+	this->_scrollArea = new QScrollArea();
+	
 	this->_toolBar = new QToolBar();
+	
+	this->_renderSettingsLayout = new QVBoxLayout();
+	this->_renderSettingsGroupbox = new QGroupBox();
+	
+	this->_widthInput = new QLineEdit();
+	this->_heightInput = new QLineEdit();
+	this->_fovInput = new QLineEdit();
+	this->_samplesInput = new QLineEdit();
+	this->_bouncesInput = new QLineEdit();
+	
+	this->_startStopLayout = new QHBoxLayout();
+	this->_startRenderButton = new QPushButton(QStringLiteral("Start"));
+	this->_stopRenderButton = new QPushButton(QStringLiteral("Stop"));
+	
 	this->_progressBar = new QProgressBar();
 	
+	// Image view
 	this->_scrollArea->setWidget(this->_imageLabel);
 	this->_scrollArea->setWidgetResizable(true);
 	this->_imageLabel->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-//	this->_imageLabel->setScaledContents(true);
 	this->setCentralWidget(this->_scrollArea);
 	
-	this->_toolBar->addWidget(this->_progressBar);
-	this->addToolBar(Qt::ToolBarArea::BottomToolBarArea, this->_toolBar);
+	// Toolbar
+	this->_startStopLayout->addWidget(this->_startRenderButton);
+	this->_startStopLayout->addWidget(this->_stopRenderButton);
 	
-	this->resize(640, 480);
+	this->_widthInput->setText(QString::number(this->_settings.width));
+	this->_heightInput->setText(QString::number(this->_settings.height));
+	this->_fovInput->setText(QString::number(double(this->_settings.fieldOfView)));
+	this->_samplesInput->setText(QString::number(this->_settings.samples));
+	this->_bouncesInput->setText(QString::number(this->_settings.bounces));
+	
+	this->_renderSettingsLayout->addWidget(this->_widthInput);
+	this->_renderSettingsLayout->addWidget(this->_heightInput);
+	this->_renderSettingsLayout->addWidget(this->_fovInput);
+	this->_renderSettingsLayout->addWidget(this->_samplesInput);
+	this->_renderSettingsLayout->addWidget(this->_bouncesInput);
+	this->_renderSettingsLayout->addLayout(this->_startStopLayout);
+	
+	this->_renderSettingsGroupbox->setTitle(QStringLiteral("Render Settings"));
+	this->_renderSettingsGroupbox->setLayout(this->_renderSettingsLayout);
+	
+	this->_toolBar->addWidget(this->_renderSettingsGroupbox);
+	this->_toolBar->addWidget(this->_progressBar);
+	
+	this->addToolBar(Qt::ToolBarArea::RightToolBarArea, this->_toolBar);
+	
+	this->resize(1024, 480);
+	
+	connect(this->_widthInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		uint32_t newValue = this->_widthInput->text().toUInt(&success);
+		
+		if (success)
+		{
+			this->_settings.width = newValue;
+		}
+		else
+		{
+			this->_widthInput->setText(QString::number(this->_settings.width));
+		}
+	});
+	
+	connect(this->_heightInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		uint32_t newValue = this->_heightInput->text().toUInt(&success);
+		
+		if (success)
+		{
+			this->_settings.height = newValue;
+		}
+		else
+		{
+			this->_heightInput->setText(QString::number(this->_settings.height));
+		}
+	});
+	
+	connect(this->_fovInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		float newValue = this->_fovInput->text().toFloat(&success);
+		
+		if (success)
+		{
+			this->_settings.fieldOfView = newValue;
+		}
+		else
+		{
+			this->_fovInput->setText(QString::number(double(this->_settings.fieldOfView)));
+		}
+	});
+	
+	connect(this->_samplesInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		uint32_t newValue = this->_samplesInput->text().toUInt(&success);
+		
+		if (success)
+		{
+			this->_settings.samples = newValue;
+		}
+		else
+		{
+			this->_samplesInput->setText(QString::number(this->_settings.samples));
+		}
+	});
+	
+	connect(this->_bouncesInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		uint32_t newValue = this->_bouncesInput->text().toUInt(&success);
+		
+		if (success)
+		{
+			this->_settings.bounces = newValue;
+		}
+		else
+		{
+			this->_bouncesInput->setText(QString::number(this->_settings.bounces));
+		}
+	});
+	
+	connect(this->_startRenderButton, &QPushButton::clicked, [this]()
+	{
+		if (this->_renderThread != nullptr && this->_renderThread->isRunning())
+		{
+			this->_renderThread->quit();
+			this->_renderThread->wait();
+		}
+		
+		qDebug() << "here";
+		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces);
+	});
+	
+	connect(this->_stopRenderButton, &QPushButton::clicked, [this]()
+	{
+		if (this->_renderThread->isRunning())
+		{
+			this->_renderThread->quit();
+			this->_renderThread->wait();
+		}
+	});
 	
 	this->_initializeScene();
 }
