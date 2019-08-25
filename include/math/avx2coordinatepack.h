@@ -28,11 +28,13 @@ public:
 	{
 		__m256 returnValue;
 		
-		__m256 x = _mm256_mul_ps(this->x, other.x);
-		__m256 y = _mm256_mul_ps(this->y, other.y);
-		__m256 z = _mm256_mul_ps(this->z, other.z);
+//		__m256 x = _mm256_mul_ps(this->x, other.x);
+//		__m256 y = _mm256_mul_ps(this->y, other.y);
+//		__m256 z = _mm256_mul_ps(this->z, other.z);
 		
-		returnValue = _mm256_add_ps(x, _mm256_add_ps(y, z));
+//		returnValue = _mm256_add_ps(x, _mm256_add_ps(y, z));
+		
+		returnValue = _mm256_fmadd_ps(this->x, other.x, _mm256_fmadd_ps(this->y, other.y, _mm256_mul_ps(this->z, other.z)));
 		
 		return returnValue;
 	}
@@ -41,9 +43,9 @@ public:
 	{
 		Avx2CoordinatePack returnValue;
 		
-		returnValue.x = _mm256_sub_ps(_mm256_mul_ps(this->y, other.z), _mm256_mul_ps(this->z, other.y));
-		returnValue.y = _mm256_sub_ps(_mm256_mul_ps(this->z, other.x), _mm256_mul_ps(this->x, other.z));
-		returnValue.z = _mm256_sub_ps(_mm256_mul_ps(this->x, other.y), _mm256_mul_ps(this->y, other.x));
+		returnValue.x = _mm256_fmsub_ps(this->y, other.z, _mm256_mul_ps(this->z, other.y));
+		returnValue.y = _mm256_fmsub_ps(this->z, other.x, _mm256_mul_ps(this->x, other.z));
+		returnValue.z = _mm256_fmsub_ps(this->x, other.y, _mm256_mul_ps(this->y, other.x));
 		
 		return returnValue;
 	}

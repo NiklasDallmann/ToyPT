@@ -31,6 +31,7 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	std::stringstream stream;
 	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
 	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
+	std::chrono::duration<float> elapsed;
 	
 	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
 	
@@ -64,8 +65,8 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 		}
 		
 		callBack();
-		std::chrono::time_point<std::chrono::high_resolution_clock> current = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> elapsed = current - begin;
+		end = std::chrono::high_resolution_clock::now();
+		elapsed = end - begin;
 		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples; " << elapsed.count() << " seconds\r";
 		std::cout << stream.str() << std::flush;
 	}
@@ -98,10 +99,18 @@ void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Sim
 			n1 = geometry.normalBuffer[triangle.normals[1]];
 			n2 = geometry.normalBuffer[triangle.normals[2]];
 			
-			triangleBuffer.append(v0, v1, v2, n0, n1, n2);
+			triangleBuffer.append(v0, v1, v2, n0, n1, n2, Simd::maskTrue);
 		}
 		
 		meshBuffer.push_back(mesh);
+	}
+	
+	const uint32_t triangleBufferSize = uint32_t(triangleBuffer.size());
+	const uint32_t paddingTriangles = Simd::avx2FloatCount % (triangleBufferSize % Simd::avx2FloatCount);
+	
+	for (uint32_t i = 0; i < paddingTriangles; i++)
+	{
+		triangleBuffer.append({}, {}, {}, {}, {}, {}, Simd::maskFalse);
 	}
 }
 
@@ -176,7 +185,7 @@ __m256 SimdRenderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePoi
 	e02.y = _mm256_loadu_ps(data.e02.y);
 	e02.z = _mm256_loadu_ps(data.e02.z);
 	
-	data += _avx2FloatCount;
+	data += Simd::avx2FloatCount;
 	
 	// Sub
 	v0o = origin - v0;
@@ -226,14 +235,14 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
 	
 	uint32_t triangleIndex = 0;
-	uint32_t avx2Loops = triangleCount - (triangleCount % _avx2FloatCount);
+	uint32_t avx2Loops = triangleCount - (triangleCount % Simd::avx2FloatCount);
 	
-	for (; triangleIndex < avx2Loops; triangleIndex += _avx2FloatCount)
+	for (; triangleIndex < avx2Loops; triangleIndex += Simd::avx2FloatCount)
 	{
 		__m256 ts, us, vs;
 		__m256 intersected = this->_intersectAvx2(ray, dataPointer, ts, us, vs);
 		
-		for (uint32_t index = 0; index < _avx2FloatCount; index++)
+		for (uint32_t index = 0; index < Simd::avx2FloatCount; index++)
 		{
 			newDistance = ts[index];
 			if ((newDistance < distance) & bool(intersected[index]))
@@ -255,34 +264,6 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 							nearestMesh = &mesh;
 							break;
 						}
-					}
-				}
-			}
-		}
-	}
-	
-	for (; triangleIndex < triangleCount; triangleIndex++)
-	{
-		bool intersected = this->_intersectScalar(ray, dataPointer, newDistance, u, v);
-		
-		if ((newDistance < distance) & intersected)
-		{
-			intersectionFound = true;
-			distance = newDistance;
-			nearestTriangle = triangleIndex;
-			
-			if constexpr (T == TraceType::Light)
-			{
-				for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
-				{
-					Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
-					
-					if ((nearestTriangle >= mesh.triangleOffset) &
-						(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)) &
-						(geometry.materialBuffer[mesh.materialOffset].emittance() > 0.0f))
-					{
-						nearestMesh = &mesh;
-						break;
 					}
 				}
 			}
@@ -328,7 +309,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 	Math::Vector4 currentOrigin = ray.origin;
 	
 	// FIXME This won't stay constant
-	float pdf = 2.0f * float(M_PI);
+//	float pdf = 2.0f * float(M_PI);
 	float cosinusTheta;
 	
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
@@ -402,7 +383,7 @@ void SimdRenderer::_createCoordinateSystem(const Math::Vector4 &normal, Math::Ve
 	const Math::Vector4 b = Math::Vector4{0.0f, -normal.z(), normal.y()};
 	float t = std::abs(normal.x()) > std::abs(normal.y());
 	
-	tangentNormal = Math::lerp(a, b, t).normalized();
+	tangentNormal = Math::lerp(a, b, t).normalize();
 	
 	binormal = normal.crossProduct(tangentNormal);
 }
@@ -456,6 +437,18 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	
 	data++;
 	
+	float v0x, v0y, v1x, v1y, v2x, v2y, v2px, v2py, e01x, e01y;
+	v0x = v0.x();
+	v0y = v0.y();
+	v1x = v1.x();
+	v1y = v1.y();
+	v2x = v2.x();
+	v2y = v2.y();
+	v2px = v2p.x();
+	v2py = v2p.y();
+	e01x = e01.x();
+	e01y = e01.y();
+	
 	p = intersectionPoint;
 	v12 = v2 - v1;
 	v0p = p - v0;
@@ -464,9 +457,13 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	
 	float a, b, denominator;
 	
-	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + _epsilon;
-	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
+//	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + _epsilon;
+//	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
+//	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
+	
+	denominator = (e01x * v2py - v2px * e01y) + _epsilon;
+	a = (-(v0x * v2py - v2px * v0y + v2px * v2y - v2x * v2py)) / denominator;
+	b = (e01x * v0y - e01x * v2y - v0x * e01y + v2x * e01y) / denominator;
 	
 	vab = v0 + a * e01;
 	

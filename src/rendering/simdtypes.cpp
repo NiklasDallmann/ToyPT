@@ -43,7 +43,7 @@ uint32_t PreComputedTriangleBuffer::size() const
 	return this->v0.size();
 }
 
-void PreComputedTriangleBuffer::append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2, const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2)
+void PreComputedTriangleBuffer::append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2, const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2, const uint32_t m)
 {
 	this->v0.append(v0);
 	this->v1.append(v1);
@@ -53,11 +53,15 @@ void PreComputedTriangleBuffer::append(const Math::Vector4 &v0, const Math::Vect
 	this->n0.append(n0);
 	this->n1.append(n1);
 	this->n2.append(n2);
+	this->m.push_back(m);
 }
 
 PrecomputedTrianglePointer PreComputedTriangleBuffer::data()
 {
-	return {this->v0.data(), this->v1.data(), this->v2.data(), this->e01.data(), this->e02.data(), this->n0.data(), this->n1.data(), this->n2.data()};
+	return {this->v0.data(), this->v1.data(), this->v2.data(),
+			this->e01.data(), this->e02.data(),
+			this->n0.data(), this->n1.data(), this->n2.data(),
+			this->m.data()};
 }
 
 PrecomputedTriangle PreComputedTriangleBuffer::operator[](const uint32_t index)
@@ -72,6 +76,7 @@ PrecomputedTriangle PreComputedTriangleBuffer::operator[](const uint32_t index)
 	returnValue.n0 = {this->n0.x[index], this->n0.y[index], this->n0.z[index]};
 	returnValue.n1 = {this->n1.x[index], this->n1.y[index], this->n1.z[index]};
 	returnValue.n2 = {this->n2.x[index], this->n2.y[index], this->n2.z[index]};
+	returnValue.m = this->m[index];
 	
 	return returnValue;
 }
@@ -86,6 +91,7 @@ PrecomputedTrianglePointer &PrecomputedTrianglePointer::operator++(int)
 	this->n0++;
 	this->n1++;
 	this->n2++;
+	this->m++;
 	
 	return *this;
 }
@@ -100,6 +106,7 @@ PrecomputedTrianglePointer &PrecomputedTrianglePointer::operator+=(const uint32_
 	this->n0 += offset;
 	this->n1 += offset;
 	this->n2 += offset;
+	this->m += offset;
 	
 	return *this;
 }

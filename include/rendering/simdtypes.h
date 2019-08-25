@@ -1,6 +1,7 @@
 #ifndef SIMDTYPES_H
 #define SIMDTYPES_H
 
+#include <immintrin.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <vector>
@@ -35,10 +36,13 @@ struct CoordinateBuffer
 
 using Vertex = Math::Vector4;
 using Normal = Math::Vector4;
+using Mask = uint32_t;
 using VertexPointer = CoordinateBufferPointer;
 using NormalPointer = CoordinateBufferPointer;
+using MaskPointer = Mask *;
 using VertexBuffer = CoordinateBuffer;
 using NormalBuffer = CoordinateBuffer;
+using MaskBuffer = std::vector<Mask>;
 
 struct PrecomputedTriangle
 {
@@ -50,6 +54,7 @@ struct PrecomputedTriangle
 	Normal n0;
 	Normal n1;
 	Normal n2;
+	Mask m;
 };
 
 struct PrecomputedTrianglePointer
@@ -62,6 +67,7 @@ struct PrecomputedTrianglePointer
 	NormalPointer n0;
 	NormalPointer n1;
 	NormalPointer n2;
+	MaskPointer m;
 	
 	PrecomputedTrianglePointer &operator++(int);
 	PrecomputedTrianglePointer &operator+=(const uint32_t offset);
@@ -79,10 +85,12 @@ struct PreComputedTriangleBuffer
 	NormalBuffer n0;
 	NormalBuffer n1;
 	NormalBuffer n2;
+	MaskBuffer m;
 	
 	uint32_t size() const;
 	void append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2,
-				const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2);
+				const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2,
+				const uint32_t m);
 	PrecomputedTrianglePointer data();
 	PrecomputedTriangle operator[](const uint32_t index);
 };
@@ -97,6 +105,9 @@ struct Mesh
 using MeshBuffer = std::vector<Mesh>;
 
 static constexpr uint32_t triangleVertexCount = 3;
+static constexpr uint32_t maskTrue = 0xFFFFFFFF;
+static constexpr uint32_t maskFalse = 0x00000000;
+static constexpr uint32_t avx2FloatCount = sizeof (__m256) / sizeof (float);
 
 } // namespace Rendering::Simd
 

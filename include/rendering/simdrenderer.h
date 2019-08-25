@@ -51,7 +51,6 @@ private:
 	Simd::MeshBuffer _meshBuffer;
 	
 	static constexpr float _epsilon = 1.0E-7f;
-	static constexpr uint32_t _avx2FloatCount = sizeof (__m256) / sizeof (float);
 	
 	void _geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer);
 	
