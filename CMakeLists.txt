@@ -9,15 +9,9 @@ set(CMAKE_AUTOUIC ON)
 find_package(OpenMP)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
-set(CMAKE_CXX_FLAGS "-o3 -flto -march=native -mtune=native -mavx2 -std=c++17")
-#set(CMAKE_CXX_FLAGS "-g -mavx2 -std=c++17")
-
-#add_library(math STATIC )
-#target_include_directories(math
-#	PUBLIC
-#		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
-#)
-#target_link_libraries(math OpenMP::OpenMP_CXX)
+set(CMAKE_CXX_FLAGS "-mavx2 -mfma -std=c++17")
+set(CMAKE_CXX_FLAGS_RELEASE "-o3 -flto -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 add_library(rendering STATIC
 	"src/rendering/framebuffer.cpp"

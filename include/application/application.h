@@ -1,6 +1,7 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include <QFileDialog>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QImage>
@@ -12,6 +13,7 @@
 #include <QProgressBar>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QString>
 #include <QToolBar>
 #include <QVBoxLayout>
 
@@ -73,11 +75,16 @@ private:
 	QHBoxLayout *_startStopLayout = nullptr;
 	QPushButton *_startRenderButton = nullptr;
 	QPushButton *_stopRenderButton = nullptr;
+	QPushButton *_saveButton = nullptr;
 	
 	QProgressBar *_progressBar = nullptr;
 	
+	QFileDialog *_fileDialog;
+	
 	RenderThread *_renderThread = nullptr;
 	
+	void _buildUi();
+	void _doConnects();
 	void _initializeScene();
 };
 

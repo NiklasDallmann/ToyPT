@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <avx2coordinatepack.h>
+#include <simdvector3pack.h>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -22,7 +22,7 @@ SimdRenderer::SimdRenderer()
 {
 }
 
-void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
+void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const Math::Vector4 &skyColor)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
@@ -58,7 +58,7 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 				
 				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
 				
-				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces);
+				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
 				
 				frameBuffer.setPixel(w, h, (color / float(sample)));
 			}
@@ -106,7 +106,7 @@ void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Sim
 	}
 	
 	const uint32_t triangleBufferSize = uint32_t(triangleBuffer.size());
-	const uint32_t paddingTriangles = Simd::avx2FloatCount % (triangleBufferSize % Simd::avx2FloatCount);
+	const uint32_t paddingTriangles = Simd::avx2FloatCount - (triangleBufferSize % Simd::avx2FloatCount);
 	
 	for (uint32_t i = 0; i < paddingTriangles; i++)
 	{
@@ -114,44 +114,12 @@ void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Sim
 	}
 }
 
-bool SimdRenderer::_intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer &data, float &t, float &u, float &v)
-{
-	bool returnValue = true;
-	
-	Math::Vector4 v0, v1, v2, e01, e02;
-	v0 = {*data.v0.x, *data.v0.y, *data.v0.z};
-	v1 = {*data.v1.x, *data.v1.y, *data.v1.z};
-	v2 = {*data.v2.x, *data.v2.y, *data.v2.z};
-	e01 = {*data.e01.x, *data.e01.y, *data.e01.z};
-	e02 = {*data.e02.x, *data.e02.y, *data.e02.z};
-	
-	data++;
-	
-	Math::Vector4 pVector = ray.direction.crossProduct(e02);
-	Math::Vector4 v0o;
-	Math::Vector4 qVector;
-	const float determinant = e01.dotProduct(pVector);
-	const float inverseDeterminant = 1.0f / determinant;
-	
-	v0o = ray.origin - v0;
-	u = v0o.dotProduct(pVector) * inverseDeterminant;
-	
-	qVector = v0o.crossProduct(e01);
-	v = ray.direction.dotProduct(qVector) * inverseDeterminant;
-	
-	t = e02.dotProduct(qVector) * inverseDeterminant;
-	
-	returnValue = ~((determinant < _epsilon) | (u < 0.0f) | (u > 1.0f) | (v < 0.0f) | ((u + v) > 1.0f)) & (t > _epsilon);
-	
-	return returnValue;
-}
-
-__m256 SimdRenderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
+__m256 SimdRenderer::_intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
 {
 	__m256 returnValue;
 	__m256 determinant, inverseDeterminant, epsilon;
 	
-	Math::Avx2CoordinatePack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
+	Math::SimdVector3Pack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
 	
 	// Duplicate ray data
 	origin.x = _mm256_set1_ps(ray.origin.x());
@@ -165,25 +133,11 @@ __m256 SimdRenderer::_intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePoi
 	epsilon = _mm256_set1_ps(_epsilon);
 	
 	// Load vertex coordinates
-	v0.x = _mm256_loadu_ps(data.v0.x);
-	v0.y = _mm256_loadu_ps(data.v0.y);
-	v0.z = _mm256_loadu_ps(data.v0.z);
-	
-	v1.x = _mm256_loadu_ps(data.v1.x);
-	v1.y = _mm256_loadu_ps(data.v1.y);
-	v1.z = _mm256_loadu_ps(data.v1.z);
-	
-	v2.x = _mm256_loadu_ps(data.v2.x);
-	v2.y = _mm256_loadu_ps(data.v2.y);
-	v2.z = _mm256_loadu_ps(data.v2.z);
-	
-	e01.x = _mm256_loadu_ps(data.e01.x);
-	e01.y = _mm256_loadu_ps(data.e01.y);
-	e01.z = _mm256_loadu_ps(data.e01.z);
-	
-	e02.x = _mm256_loadu_ps(data.e02.x);
-	e02.y = _mm256_loadu_ps(data.e02.y);
-	e02.z = _mm256_loadu_ps(data.e02.z);
+	v0.loadUnaligned(data.v0.x, data.v0.y, data.v0.z);
+	v1.loadUnaligned(data.v1.x, data.v1.y, data.v1.z);
+	v2.loadUnaligned(data.v2.x, data.v2.y, data.v2.z);
+	e01.loadUnaligned(data.e01.x, data.e01.y, data.e01.z);
+	e02.loadUnaligned(data.e02.x, data.e02.y, data.e02.z);
 	
 	data += Simd::avx2FloatCount;
 	
@@ -240,7 +194,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	for (; triangleIndex < avx2Loops; triangleIndex += Simd::avx2FloatCount)
 	{
 		__m256 ts, us, vs;
-		__m256 intersected = this->_intersectAvx2(ray, dataPointer, ts, us, vs);
+		__m256 intersected = this->_intersectSimd(ray, dataPointer, ts, us, vs);
 		
 		for (uint32_t index = 0; index < Simd::avx2FloatCount; index++)
 		{
@@ -298,7 +252,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	return returnValue;
 }
 
-Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces)
+Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	
@@ -370,6 +324,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 		}
 		else
 		{
+			returnValue += skyColor * mask;
 			break;
 		}
 	}

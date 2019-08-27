@@ -10,6 +10,71 @@ namespace PathTracer
 
 Application::Application(QWidget *parent) : QMainWindow(parent)
 {
+	this->_buildUi();
+	
+	this->_doConnects();
+	
+	this->_initializeScene();
+}
+
+Application::~Application()
+{
+	this->_renderThread->quit();
+	this->_renderThread->wait();
+}
+
+void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
+{
+//	this->resize(int(width), int(height));
+	this->_progressBar->setRange(0, int(samples));
+	this->_progressBar->setValue(0);
+	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
+	
+	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
+	this->_image.fill(Qt::GlobalColor::black);
+	this->_frameBuffer = {width, height};
+	this->_frameBuffer.registerCallBack([this](const uint32_t x, const uint32_t y){
+		emit this->dataAvailable(x, y);
+	});
+	
+	this->_renderThread = new RenderThread(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, this);
+	
+//	connect(this, &Application::dataAvailable, this, &Application::_updatePixel);
+	connect(this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
+	
+	this->_renderThread->start();
+}
+
+void Application::_updatePixel(const quint32 x, const quint32 y)
+{
+	Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(x, y));
+	this->_image.setPixel(int(x), int(y), qRgb(color.red(), color.green(), color.blue()));
+	
+	this->_imageLabel->setPixmap(QPixmap::fromImage(this->_image));
+}
+
+void Application::_updateImage()
+{
+	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
+	{
+		for (uint32_t w = 0; w < this->_frameBuffer.width(); w++)
+		{
+			Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(w, h));
+			this->_image.setPixel(int(w), int(h), qRgb(color.red(), color.green(), color.blue()));
+		}
+	}
+	
+	QPixmap pixmap = QPixmap::fromImage(this->_image);
+	int width = this->_imageLabel->width();
+	int height = this->_imageLabel->height();
+	
+	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
+	
+	this->_progressBar->setValue(this->_progressBar->value() + 1);
+}
+
+void Application::_buildUi()
+{
 	this->_imageLabel = new QLabel();
 	this->_scrollArea = new QScrollArea();
 	
@@ -28,7 +93,10 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 	this->_startRenderButton = new QPushButton(QStringLiteral("Start"));
 	this->_stopRenderButton = new QPushButton(QStringLiteral("Stop"));
 	
+	this->_saveButton = new QPushButton(QStringLiteral("Save"));
 	this->_progressBar = new QProgressBar();
+	
+	this->_fileDialog = new QFileDialog(this);
 	
 	// Image view
 	this->_scrollArea->setWidget(this->_imageLabel);
@@ -57,12 +125,16 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 	this->_renderSettingsGroupbox->setLayout(this->_renderSettingsLayout);
 	
 	this->_toolBar->addWidget(this->_renderSettingsGroupbox);
+	this->_toolBar->addWidget(this->_saveButton);
 	this->_toolBar->addWidget(this->_progressBar);
 	
 	this->addToolBar(Qt::ToolBarArea::RightToolBarArea, this->_toolBar);
 	
 	this->resize(1024, 480);
-	
+}
+
+void Application::_doConnects()
+{
 	connect(this->_widthInput, &QLineEdit::textEdited, [this]()
 	{
 		bool success;
@@ -146,7 +218,6 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 			this->_renderThread->wait();
 		}
 		
-		qDebug() << "here";
 		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces);
 	});
 	
@@ -159,59 +230,15 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 		}
 	});
 	
-	this->_initializeScene();
-}
-
-Application::~Application()
-{
-	this->_renderThread->quit();
-	this->_renderThread->wait();
-}
-
-void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
-{
-//	this->resize(int(width), int(height));
-	this->_progressBar->setRange(0, int(samples));
-	this->_progressBar->setValue(0);
-	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
-	
-	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
-	this->_image.fill(Qt::GlobalColor::black);
-	this->_frameBuffer = {width, height};
-	this->_frameBuffer.registerCallBack([this](const uint32_t x, const uint32_t y){
-		emit this->dataAvailable(x, y);
+	connect(this->_saveButton, &QPushButton::clicked, [this]()
+	{
+		this->_fileDialog->show();
 	});
 	
-	this->_renderThread = new RenderThread(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, this);
-	
-//	connect(this, &Application::dataAvailable, this, &Application::_updatePixel);
-	connect(this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
-	
-	this->_renderThread->start();
-}
-
-void Application::_updatePixel(const quint32 x, const quint32 y)
-{
-	Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(x, y));
-	this->_image.setPixel(int(x), int(y), qRgb(color.red(), color.green(), color.blue()));
-	
-	this->_imageLabel->setPixmap(QPixmap::fromImage(this->_image));
-}
-
-void Application::_updateImage()
-{
-	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
+	connect(this->_fileDialog, &QFileDialog::fileSelected, [this](const QString &fileName)
 	{
-		for (uint32_t w = 0; w < this->_frameBuffer.width(); w++)
-		{
-			Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(w, h));
-			this->_image.setPixel(int(w), int(h), qRgb(color.red(), color.green(), color.blue()));
-		}
-	}
-	
-	this->_imageLabel->setPixmap(QPixmap::fromImage(this->_image));
-	
-	this->_progressBar->setValue(this->_progressBar->value() + 1);
+		this->_image.save(fileName, "PNG");
+	});
 }
 
 void Application::_initializeScene()
@@ -247,16 +274,11 @@ void Application::_initializeScene()
 //	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
-//	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-//	lightPlane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 2.0f), this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
-//	lightPlane0.translate({-12.0f, 1.5f, -10.0f}, this->_geometry);
 	lightPlane0.translate({-0.5f, 3.0f, -5.0f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh lightPlane1 = Rendering::Obj::Mesh::plane(2.0f, 11, this->_geometry);
-//	lightPlane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-//	lightPlane1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 1.0f), this->_geometry);
-//	lightPlane1.translate({0.0f, 0.0f, -1.0f}, this->_geometry);
+	Rendering::Obj::Mesh plane = Rendering::Obj::Mesh::plane(50.0f, 9, this->_geometry);
+	plane.translate({0.0f, -1.0f, 0.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
 	worldCube.invert(this->_geometry);
@@ -266,7 +288,6 @@ void Application::_initializeScene()
 	this->_geometry.meshBuffer.push_back(cube1);
 //	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(lightPlane0);
-//	this->_geometry.meshBuffer.push_back(lightPlane1);
 	this->_geometry.meshBuffer.push_back(worldCube);
 }
 

@@ -26,7 +26,7 @@ void RenderThread::run()
 		[this](){
 			emit this->dataAvailable();
 		},
-	this->_abort, this->_fieldOfView, this->_samples, this->_bounces);
+	this->_abort, this->_fieldOfView, this->_samples, this->_bounces, {1.0f, 1.0f, 1.0f});
 }
 
 void RenderThread::quit()

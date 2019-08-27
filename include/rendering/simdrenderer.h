@@ -30,7 +30,7 @@ public:
 	
 	SimdRenderer();
 	
-	void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView = 75.0f, const uint32_t samples = 10, const uint32_t bounces = 2);
+	void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView = 75.0f, const uint32_t samples = 10, const uint32_t bounces = 2, const Math::Vector4 &skyColor = {});
 	
 private:
 	enum class TraceType
@@ -43,8 +43,17 @@ private:
 	{
 		Simd::Mesh *mesh = nullptr;
 		uint32_t triangleOffset = 0xFFFFFFFF;
-		float u = 0;
-		float v = 0;
+		float u = 0.0f;
+		float v = 0.0f;
+	};
+	
+	struct Tile
+	{
+		uint32_t beginX = 0;
+		uint32_t beginY = 0;
+		
+		uint32_t endX = 0;
+		uint32_t endY = 0;
 	};
 	
 	Simd::PreComputedTriangleBuffer _triangleBuffer;
@@ -54,13 +63,11 @@ private:
 	
 	void _geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer);
 	
-	bool _intersectScalar(const Ray &ray, Simd::PrecomputedTrianglePointer &data, float &t, float &u, float &v);
-	
-	__m256 _intersectAvx2(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
+	__m256 _intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
 	
 	template <TraceType T>
 	float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces = 4);
+	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
 	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
