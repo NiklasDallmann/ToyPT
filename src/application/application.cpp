@@ -98,6 +98,10 @@ void Application::_buildUi()
 	
 	this->_fileDialog = new QFileDialog(this);
 	
+	this->_fileDialog->setFileMode(QFileDialog::AnyFile);
+	this->_fileDialog->setNameFilter(QStringLiteral("Supported formats (*.png *.PNG)"));
+	this->_fileDialog->setAcceptMode(QFileDialog::AcceptSave);
+	
 	// Image view
 	this->_scrollArea->setWidget(this->_imageLabel);
 	this->_scrollArea->setWidgetResizable(true);
@@ -235,9 +239,16 @@ void Application::_doConnects()
 		this->_fileDialog->show();
 	});
 	
-	connect(this->_fileDialog, &QFileDialog::fileSelected, [this](const QString &fileName)
+	connect(this->_fileDialog, &QFileDialog::accepted, [this]()
 	{
-		this->_image.save(fileName, "PNG");
+		QStringList selectedFiles = this->_fileDialog->selectedFiles();
+		
+		if (!selectedFiles.empty())
+		{
+			QString filename = selectedFiles[0];
+			
+			this->_image.save(filename, "png");
+		}
 	});
 }
 
@@ -269,9 +280,9 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
-//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-//	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
+	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
@@ -286,7 +297,7 @@ void Application::_initializeScene()
 	
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
-//	this->_geometry.meshBuffer.push_back(sphere);
+	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(lightPlane0);
 	this->_geometry.meshBuffer.push_back(worldCube);
 }

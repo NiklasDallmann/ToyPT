@@ -319,7 +319,8 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			currentDirection = newDirection;
 			
 //			returnValue += objectColor * objectMaterial.emittance() * mask;
-			returnValue += directIllumination;
+//			returnValue += directIllumination;
+			returnValue = normal;
 			mask *= (diffuse) * cosinusTheta;
 		}
 		else
@@ -392,18 +393,6 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	
 	data++;
 	
-	float v0x, v0y, v1x, v1y, v2x, v2y, v2px, v2py, e01x, e01y;
-	v0x = v0.x();
-	v0y = v0.y();
-	v1x = v1.x();
-	v1y = v1.y();
-	v2x = v2.x();
-	v2y = v2.y();
-	v2px = v2p.x();
-	v2py = v2p.y();
-	e01x = e01.x();
-	e01y = e01.y();
-	
 	p = intersectionPoint;
 	v12 = v2 - v1;
 	v0p = p - v0;
@@ -412,13 +401,9 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	
 	float a, b, denominator;
 	
-//	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + _epsilon;
-//	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-//	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
-	
-	denominator = (e01x * v2py - v2px * e01y) + _epsilon;
-	a = (-(v0x * v2py - v2px * v0y + v2px * v2y - v2x * v2py)) / denominator;
-	b = (e01x * v0y - e01x * v2y - v0x * e01y + v2x * e01y) / denominator;
+	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + _epsilon;
+	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
+	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
 	
 	vab = v0 + a * e01;
 	
