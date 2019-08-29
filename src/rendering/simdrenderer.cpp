@@ -319,8 +319,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			currentDirection = newDirection;
 			
 //			returnValue += objectColor * objectMaterial.emittance() * mask;
-//			returnValue += directIllumination;
-			returnValue = normal;
+			returnValue += directIllumination;
 			mask *= (diffuse) * cosinusTheta;
 		}
 		else

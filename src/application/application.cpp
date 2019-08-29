@@ -39,7 +39,6 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	
 	this->_renderThread = new RenderThread(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, this);
 	
-//	connect(this, &Application::dataAvailable, this, &Application::_updatePixel);
 	connect(this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
 	
 	this->_renderThread->start();
@@ -267,9 +266,10 @@ void Application::_initializeScene()
 	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.5f};
 	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 5.0f};
 	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 1.0f};
+	Rendering::Material mirror{{0.0f, .0f, 0.0f}, 0.0f, 0.0f};
 	
-	//									0		1		2		3		4			5		6		7		8			9		10			11
-	this->_geometry.materialBuffer = {	red,	green,	blue,	cyan,	magenta,	yellow,	black,	white,	halfGrey,	grey,	whiteLight,	cyanLight};
+	//									0		1		2		3		4			5		6		7		8			9		10			11			12
+	this->_geometry.materialBuffer = {	red,	green,	blue,	cyan,	magenta,	yellow,	black,	white,	halfGrey,	grey,	whiteLight,	cyanLight,	mirror};
 	
 	Rendering::Obj::Mesh cube0 = Rendering::Obj::Mesh::cube(1, 3, this->_geometry);
 	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
@@ -280,7 +280,7 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
 	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
 	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
