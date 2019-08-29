@@ -8,6 +8,7 @@ set(CMAKE_AUTOUIC ON)
 
 find_package(OpenMP)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
+find_package(OpenImageDenoise)
 
 set(CMAKE_CXX_FLAGS "-mavx2 -mfma -std=c++17")
 set(CMAKE_CXX_FLAGS_RELEASE "-o3 -flto -march=native -mtune=native")
@@ -30,7 +31,7 @@ target_include_directories(rendering
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
 )
-target_link_libraries(rendering OpenMP::OpenMP_CXX)
+target_link_libraries(rendering OpenMP::OpenMP_CXX OpenImageDenoise)
 
 add_executable(${PROJECT_NAME}
 	"src/application/main.cpp"

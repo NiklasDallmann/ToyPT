@@ -1,6 +1,9 @@
 #include "framebuffer.h"
 
 #include <fstream>
+#include <iostream>
+
+#include <OpenImageDenoise/oidn.hpp>
 
 #include "color.h"
 
@@ -72,6 +75,63 @@ void FrameBuffer::runCallBacks(const uint32_t x, const uint32_t y)
 	{
 		callBack(x, y);
 	}
+}
+
+FrameBuffer FrameBuffer::denoise()
+{
+	FrameBuffer returnValue(this->_width, this->_height);
+	
+	
+	oidn::DeviceRef device = oidn::newDevice();
+	device.commit();
+	
+	size_t bufferSize = this->_width * this->_height * 3;
+	std::vector<float> input(bufferSize);
+	std::vector<float> output(bufferSize);
+	
+	size_t bufferIndex = 0;
+	for (uint32_t h = 0; h < this->_height; h++)
+	{
+		for (uint32_t w = 0; w < this->_width; w++)
+		{
+			Math::Vector4 &pixel = this->pixel(w, h);
+			
+			input[bufferIndex] =		pixel.x();
+			input[bufferIndex + 1] =	pixel.y();
+			input[bufferIndex + 2] =	pixel.z();
+			
+			bufferIndex += 3;
+		}
+	}
+	
+	oidn::FilterRef filter = device.newFilter("RT");
+	filter.setImage("color", input.data(), oidn::Format::Float3, this->_width, this->_height);
+	filter.setImage("output", output.data(), oidn::Format::Float3, this->_width, this->_height);
+	filter.commit();
+	filter.execute();
+	
+	bufferIndex = 0;
+	for (uint32_t h = 0; h < this->_height; h++)
+	{
+		for (uint32_t w = 0; w < this->_width; w++)
+		{
+			Math::Vector4 &pixel = returnValue.pixel(w, h);
+			
+			pixel.setX(input[bufferIndex]);
+			pixel.setY(input[bufferIndex + 1]);
+			pixel.setZ(input[bufferIndex + 2]);
+			
+			bufferIndex += 3;
+		}
+	}
+	
+	const char *errorMessage;
+	if (device.getError(errorMessage) != oidn::Error::None)
+	{
+		std::cout << "Error: " << errorMessage << std::endl;
+	}
+	
+	return returnValue;
 }
 
 }

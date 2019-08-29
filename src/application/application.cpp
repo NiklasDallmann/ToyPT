@@ -54,11 +54,13 @@ void Application::_updatePixel(const quint32 x, const quint32 y)
 
 void Application::_updateImage()
 {
-	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
+	Rendering::FrameBuffer frameBuffer = this->_frameBuffer.denoise();
+	
+	for (uint32_t h = 0; h < frameBuffer.height(); h++)
 	{
-		for (uint32_t w = 0; w < this->_frameBuffer.width(); w++)
+		for (uint32_t w = 0; w < frameBuffer.width(); w++)
 		{
-			Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(w, h));
+			Rendering::Color color = Rendering::Color::fromVector4(frameBuffer.pixel(w, h));
 			this->_image.setPixel(int(w), int(h), qRgb(color.red(), color.green(), color.blue()));
 		}
 	}

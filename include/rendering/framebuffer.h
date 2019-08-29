@@ -27,6 +27,7 @@ public:
 	bool save(const std::string &fileName);
 	void registerCallBack(const CallBack callBack);
 	void runCallBacks(const uint32_t x, const uint32_t y);
+	FrameBuffer denoise();
 	
 private:
 	uint32_t _width = 0;
