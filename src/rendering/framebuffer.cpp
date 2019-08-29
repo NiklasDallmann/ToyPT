@@ -32,6 +32,11 @@ Math::Vector4 &FrameBuffer::pixel(const uint32_t x, const uint32_t y)
 	return this->_buffer[x + this->_width * y];
 }
 
+const Math::Vector4 &FrameBuffer::pixel(const uint32_t x, const uint32_t y) const
+{
+	return this->_buffer[x + this->_width * y];
+}
+
 void FrameBuffer::setPixel(const uint32_t x, const uint32_t y, const Math::Vector4 &color)
 {
 	this->_buffer[x + this->_width * y] = color;
@@ -77,53 +82,37 @@ void FrameBuffer::runCallBacks(const uint32_t x, const uint32_t y)
 	}
 }
 
-FrameBuffer FrameBuffer::denoise()
+FrameBuffer FrameBuffer::denoise(const FrameBuffer &color, const FrameBuffer &normal)
 {
-	FrameBuffer returnValue(this->_width, this->_height);
+	uint32_t width = color.width();
+	uint32_t height = color.height();
 	
+	FrameBuffer returnValue(width, height);
+	
+	if ((normal.width() != width) | (normal.height() != height))
+	{
+		return returnValue;
+	}
 	
 	oidn::DeviceRef device = oidn::newDevice();
 	device.commit();
 	
-	size_t bufferSize = this->_width * this->_height * 3;
-	std::vector<float> input(bufferSize);
+	size_t bufferSize = width * height * 3;
+	std::vector<float> colorInput(bufferSize);
+	std::vector<float> normalInput(bufferSize);
 	std::vector<float> output(bufferSize);
 	
-	size_t bufferIndex = 0;
-	for (uint32_t h = 0; h < this->_height; h++)
-	{
-		for (uint32_t w = 0; w < this->_width; w++)
-		{
-			Math::Vector4 &pixel = this->pixel(w, h);
-			
-			input[bufferIndex] =		pixel.x();
-			input[bufferIndex + 1] =	pixel.y();
-			input[bufferIndex + 2] =	pixel.z();
-			
-			bufferIndex += 3;
-		}
-	}
+	_frameBufferToBuffer(color, colorInput);
+	_frameBufferToBuffer(normal, normalInput);
 	
 	oidn::FilterRef filter = device.newFilter("RT");
-	filter.setImage("color", input.data(), oidn::Format::Float3, this->_width, this->_height);
-	filter.setImage("output", output.data(), oidn::Format::Float3, this->_width, this->_height);
+	filter.setImage("color", colorInput.data(), oidn::Format::Float3, width, height);
+//	filter.setImage("normal", normalInput.data(), oidn::Format::Float3, width, height);
+	filter.setImage("output", output.data(), oidn::Format::Float3, width, height);
 	filter.commit();
 	filter.execute();
 	
-	bufferIndex = 0;
-	for (uint32_t h = 0; h < this->_height; h++)
-	{
-		for (uint32_t w = 0; w < this->_width; w++)
-		{
-			Math::Vector4 &pixel = returnValue.pixel(w, h);
-			
-			pixel.setX(input[bufferIndex]);
-			pixel.setY(input[bufferIndex + 1]);
-			pixel.setZ(input[bufferIndex + 2]);
-			
-			bufferIndex += 3;
-		}
-	}
+	_bufferToFrameBuffer(output, returnValue);
 	
 	const char *errorMessage;
 	if (device.getError(errorMessage) != oidn::Error::None)
@@ -132,6 +121,42 @@ FrameBuffer FrameBuffer::denoise()
 	}
 	
 	return returnValue;
+}
+
+void FrameBuffer::_frameBufferToBuffer(const FrameBuffer &frameBuffer, std::vector<float> &buffer)
+{
+	size_t bufferIndex = 0;
+	for (uint32_t h = 0; h < frameBuffer._height; h++)
+	{
+		for (uint32_t w = 0; w < frameBuffer._width; w++)
+		{
+			const Math::Vector4 pixel = frameBuffer.pixel(w, h);
+			
+			buffer[bufferIndex] =		pixel.x();
+			buffer[bufferIndex + 1] =	pixel.y();
+			buffer[bufferIndex + 2] =	pixel.z();
+			
+			bufferIndex += 3;
+		}
+	}
+}
+
+void FrameBuffer::_bufferToFrameBuffer(const std::vector<float> &buffer, FrameBuffer &frameBuffer)
+{
+	size_t bufferIndex = 0;
+	for (uint32_t h = 0; h < frameBuffer._height; h++)
+	{
+		for (uint32_t w = 0; w < frameBuffer._width; w++)
+		{
+			Math::Vector4 &pixel = frameBuffer.pixel(w, h);
+			
+			pixel.setX(buffer[bufferIndex]);
+			pixel.setY(buffer[bufferIndex + 1]);
+			pixel.setZ(buffer[bufferIndex + 2]);
+			
+			bufferIndex += 3;
+		}
+	}
 }
 
 }

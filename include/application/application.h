@@ -42,6 +42,7 @@ signals:
 private slots:
 	void _updatePixel(const quint32 x, const quint32 y);
 	void _updateImage();
+	void _normalMapFinished();
 	
 private:
 	struct RenderSettings
@@ -55,6 +56,7 @@ private:
 	
 	Rendering::Obj::GeometryContainer _geometry;
 	Rendering::FrameBuffer _frameBuffer;
+	Rendering::FrameBuffer _normalMap;
 	RenderSettings _settings;
 	
 	QImage _image;
@@ -76,12 +78,13 @@ private:
 	QPushButton *_startRenderButton = nullptr;
 	QPushButton *_stopRenderButton = nullptr;
 	QPushButton *_saveButton = nullptr;
+	QPushButton *_denoiseButton = nullptr;
 	
 	QProgressBar *_progressBar = nullptr;
 	
 	QFileDialog *_fileDialog;
 	
-	RenderThread *_renderThread = nullptr;
+	RenderThread _renderThread;
 	
 	void _buildUi();
 	void _doConnects();

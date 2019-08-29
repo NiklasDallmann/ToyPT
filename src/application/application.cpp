@@ -19,8 +19,8 @@ Application::Application(QWidget *parent) : QMainWindow(parent)
 
 Application::~Application()
 {
-	this->_renderThread->quit();
-	this->_renderThread->wait();
+	this->_renderThread.quit();
+	this->_renderThread.wait();
 }
 
 void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
@@ -37,11 +37,9 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 		emit this->dataAvailable(x, y);
 	});
 	
-	this->_renderThread = new RenderThread(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, this);
+	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, false);
 	
-	connect(this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
-	
-	this->_renderThread->start();
+	this->_renderThread.start();
 }
 
 void Application::_updatePixel(const quint32 x, const quint32 y)
@@ -54,13 +52,11 @@ void Application::_updatePixel(const quint32 x, const quint32 y)
 
 void Application::_updateImage()
 {
-	Rendering::FrameBuffer frameBuffer = this->_frameBuffer.denoise();
-	
-	for (uint32_t h = 0; h < frameBuffer.height(); h++)
+	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
 	{
-		for (uint32_t w = 0; w < frameBuffer.width(); w++)
+		for (uint32_t w = 0; w < this->_frameBuffer.width(); w++)
 		{
-			Rendering::Color color = Rendering::Color::fromVector4(frameBuffer.pixel(w, h));
+			Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(w, h));
 			this->_image.setPixel(int(w), int(h), qRgb(color.red(), color.green(), color.blue()));
 		}
 	}
@@ -72,6 +68,12 @@ void Application::_updateImage()
 	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 	
 	this->_progressBar->setValue(this->_progressBar->value() + 1);
+}
+
+void Application::_normalMapFinished()
+{
+	qDebug() << "finished";
+	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer, this->_normalMap);
 }
 
 void Application::_buildUi()
@@ -95,6 +97,7 @@ void Application::_buildUi()
 	this->_stopRenderButton = new QPushButton(QStringLiteral("Stop"));
 	
 	this->_saveButton = new QPushButton(QStringLiteral("Save"));
+	this->_denoiseButton = new QPushButton(QStringLiteral("Denoise"));
 	this->_progressBar = new QProgressBar();
 	
 	this->_fileDialog = new QFileDialog(this);
@@ -131,6 +134,7 @@ void Application::_buildUi()
 	
 	this->_toolBar->addWidget(this->_renderSettingsGroupbox);
 	this->_toolBar->addWidget(this->_saveButton);
+	this->_toolBar->addWidget(this->_denoiseButton);
 	this->_toolBar->addWidget(this->_progressBar);
 	
 	this->addToolBar(Qt::ToolBarArea::RightToolBarArea, this->_toolBar);
@@ -217,10 +221,10 @@ void Application::_doConnects()
 	
 	connect(this->_startRenderButton, &QPushButton::clicked, [this]()
 	{
-		if (this->_renderThread != nullptr && this->_renderThread->isRunning())
+		if (this->_renderThread.isRunning())
 		{
-			this->_renderThread->quit();
-			this->_renderThread->wait();
+			this->_renderThread.quit();
+			this->_renderThread.wait();
 		}
 		
 		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces);
@@ -228,16 +232,30 @@ void Application::_doConnects()
 	
 	connect(this->_stopRenderButton, &QPushButton::clicked, [this]()
 	{
-		if (this->_renderThread->isRunning())
+		if (this->_renderThread.isRunning())
 		{
-			this->_renderThread->quit();
-			this->_renderThread->wait();
+			this->_renderThread.quit();
+			this->_renderThread.wait();
 		}
 	});
 	
 	connect(this->_saveButton, &QPushButton::clicked, [this]()
 	{
 		this->_fileDialog->show();
+	});
+	
+	connect(this->_denoiseButton, &QPushButton::clicked, [this]()
+	{
+		if (this->_renderThread.isRunning())
+		{
+			this->_renderThread.quit();
+			this->_renderThread.wait();
+		}
+		
+		this->_normalMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
+		this->_renderThread.configure(&this->_normalMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, true);
+		
+		this->_renderThread.start();
 	});
 	
 	connect(this->_fileDialog, &QFileDialog::accepted, [this]()
@@ -251,6 +269,9 @@ void Application::_doConnects()
 			this->_image.save(filename, "png");
 		}
 	});
+	
+	connect(&this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
+	connect(&this->_renderThread, &RenderThread::normalMapFinished, this, &Application::_normalMapFinished);
 }
 
 void Application::_initializeScene()
@@ -282,9 +303,9 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
-	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
+//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
+//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+//	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
@@ -299,7 +320,7 @@ void Application::_initializeScene()
 	
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
-	this->_geometry.meshBuffer.push_back(sphere);
+//	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(lightPlane0);
 	this->_geometry.meshBuffer.push_back(worldCube);
 }

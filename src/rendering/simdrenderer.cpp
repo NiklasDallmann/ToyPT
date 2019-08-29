@@ -22,7 +22,8 @@ SimdRenderer::SimdRenderer()
 {
 }
 
-void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const Math::Vector4 &skyColor)
+void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView,
+						  const uint32_t samples, const uint32_t bounces, const Math::Vector4 &skyColor)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
@@ -72,6 +73,34 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	}
 	
 	std::cout << std::endl;
+}
+
+void SimdRenderer::renderNormalMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView)
+{
+	const uint32_t width = frameBuffer.width();
+	const uint32_t height = frameBuffer.height();
+	float fovRadians = fieldOfView / 180.0f * float(M_PI);
+	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
+	
+	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
+	
+#pragma omp parallel for schedule(dynamic, 20) collapse(2)
+	for (uint32_t h = 0; h < height; h++)
+	{
+		for (uint32_t w = 0; w < width; w++)
+		{
+			
+			float x = (w + 0.5f) - (width / 2.0f);
+			float y = -(h + 0.5f) + (height / 2.0f);
+			
+			Math::Vector4 direction{x, y, zCoordinate};
+			direction.normalize();
+			
+			Math::Vector4 color = this->_castNormalRay({{0, 0, 0}, direction}, geometry);
+			
+			frameBuffer.setPixel(w, h, color);
+		}
+	}
 }
 
 void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
@@ -327,6 +356,35 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			returnValue += skyColor * mask;
 			break;
 		}
+	}
+	
+	return returnValue;
+}
+
+Math::Vector4 SimdRenderer::_castNormalRay(const Ray &ray, const Obj::GeometryContainer &geometry)
+{
+	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
+	
+	// Multiply colors
+	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
+	
+	Math::Vector4 currentDirection = ray.direction;
+	Math::Vector4 currentOrigin = ray.origin;
+	
+	Math::Vector4 intersectionPoint;
+	IntersectionInfo objectIntersection;
+	Math::Vector4 normal;
+	float distance = this->_traceRay<TraceType::Object>({currentOrigin, currentDirection}, geometry, objectIntersection);
+	
+	intersectionPoint = currentOrigin + (distance * currentDirection);
+	
+	if (objectIntersection.mesh != nullptr)
+	{
+		// Calculate normal
+		Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
+		normal = this->_interpolateNormal(intersectionPoint, dataPointer);
+		
+		returnValue = normal * 2.0f - 1.0f;
 	}
 	
 	return returnValue;

@@ -18,27 +18,33 @@ class RenderThread : public QThread
 	Q_OBJECT
 	
 public:
-	RenderThread(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry,
-				 const float fieldOfView, const uint32_t samples, const uint32_t bounces,
-				 QObject *parent = nullptr);
+	RenderThread(QObject *parent = nullptr);
 	virtual ~RenderThread() override;
 	
 	void run() override;
 	
+	void configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry,
+				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const bool normalMap);
+	
 signals:
 	void pixelAvailable(const uint32_t x, const uint32_t y);
 	void dataAvailable();
+	void normalMapFinished();
 	
 public slots:
 	void quit();
 	
+private slots:
+	void _onFinished();
+	
 private:
-	bool _abort;
-	float _fieldOfView;
-	uint32_t _samples;
-	uint32_t _bounces;
-	Rendering::FrameBuffer *_frameBuffer;
-	Rendering::Obj::GeometryContainer *_geometry;
+	bool _abort = false;
+	bool _normalMap = false;
+	float _fieldOfView = 0;
+	uint32_t _samples = 0;
+	uint32_t _bounces = 0;
+	Rendering::FrameBuffer *_frameBuffer = nullptr;
+	Rendering::Obj::GeometryContainer *_geometry = nullptr;
 	Rendering::SimdRenderer _renderer;
 };
 
