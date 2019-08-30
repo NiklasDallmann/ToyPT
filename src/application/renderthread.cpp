@@ -21,9 +21,12 @@ void RenderThread::run()
 	{
 		case ImageType::Color:
 			this->_renderer.render(*this->_frameBuffer, *this->_geometry,
-				[this](){
-					emit this->dataAvailable();
-				},
+//				[this](const uint32_t x, const uint32_t y){
+//					emit this->pixelAvailable(x, y);
+//				},
+			   [this](){
+				   emit this->dataAvailable();
+			   },
 			this->_abort, this->_fieldOfView, this->_samples, this->_bounces, {1.0f, 1.0f, 1.0f});
 			break;
 		case ImageType::Albedo:

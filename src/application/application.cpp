@@ -26,16 +26,16 @@ Application::~Application()
 void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
 {
 //	this->resize(int(width), int(height));
-	this->_progressBar->setRange(0, int(samples));
+	this->_progressBar->setRange(0, int(height));
 	this->_progressBar->setValue(0);
-	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
+//	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
 	
 	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
 	this->_image.fill(Qt::GlobalColor::black);
 	this->_frameBuffer = {width, height};
-	this->_frameBuffer.registerCallBack([this](const uint32_t x, const uint32_t y){
-		emit this->dataAvailable(x, y);
-	});
+//	this->_frameBuffer.registerCallBack([this](const uint32_t x, const uint32_t y){
+//		emit this->dataAvailable(x, y);
+//	});
 	
 	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, RenderThread::ImageType::Color);
 	
@@ -47,7 +47,11 @@ void Application::_updatePixel(const quint32 x, const quint32 y)
 	Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(x, y));
 	this->_image.setPixel(int(x), int(y), qRgb(color.red(), color.green(), color.blue()));
 	
-	this->_imageLabel->setPixmap(QPixmap::fromImage(this->_image));
+	QPixmap pixmap = QPixmap::fromImage(this->_image);
+	int width = this->_imageLabel->width();
+	int height = this->_imageLabel->height();
+	
+	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 }
 
 void Application::_updateImage()
@@ -320,16 +324,16 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
-//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-//	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
+	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
 	lightPlane0.translate({-0.5f, 3.0f, -5.0f}, this->_geometry);
 	
-	Rendering::Obj::Mesh plane = Rendering::Obj::Mesh::plane(50.0f, 9, this->_geometry);
-	plane.translate({0.0f, -1.0f, 0.0f}, this->_geometry);
+//	Rendering::Obj::Mesh plane = Rendering::Obj::Mesh::plane(50.0f, 9, this->_geometry);
+//	plane.translate({0.0f, -1.0f, 0.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
 	worldCube.invert(this->_geometry);
@@ -337,8 +341,9 @@ void Application::_initializeScene()
 	
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
-//	this->_geometry.meshBuffer.push_back(sphere);
+	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(lightPlane0);
+//	this->_geometry.meshBuffer.push_back(plane);
 	this->_geometry.meshBuffer.push_back(worldCube);
 }
 

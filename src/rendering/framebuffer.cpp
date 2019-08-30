@@ -109,8 +109,8 @@ FrameBuffer FrameBuffer::denoise(const FrameBuffer &color, const FrameBuffer &al
 	
 	oidn::FilterRef filter = device.newFilter("RT");
 	filter.setImage("color", colorInput.data(), oidn::Format::Float3, width, height);
-//	filter.setImage("albedo", albedoInput.data(), oidn::Format::Float3, width, height);
-//	filter.setImage("normal", normalInput.data(), oidn::Format::Float3, width, height);
+	filter.setImage("albedo", albedoInput.data(), oidn::Format::Float3, width, height);
+	filter.setImage("normal", normalInput.data(), oidn::Format::Float3, width, height);
 	filter.setImage("output", output.data(), oidn::Format::Float3, width, height);
 	filter.set("hdr", false);
 	filter.set("srgb", false);

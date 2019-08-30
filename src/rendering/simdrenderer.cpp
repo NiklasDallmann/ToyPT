@@ -38,14 +38,50 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	
 	std::random_device device;
 	
-	for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
+//	for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
+//	{
+//#pragma omp parallel for schedule(dynamic, 20) collapse(2)
+//		for (uint32_t h = 0; h < height; h++)
+//		{
+//			for (uint32_t w = 0; w < width; w++)
+//			{
+//				RandomNumberGenerator rng(device());
+//				float offsetX, offsetY;
+//				const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+//				offsetX = rng.get(scalingFactor)  - 0.5f;
+//				offsetY = rng.get(scalingFactor) - 0.5f;
+				
+//				float x = (w + offsetX + 0.5f) - (width / 2.0f);
+//				float y = -(h + offsetY + 0.5f) + (height / 2.0f);
+				
+//				Math::Vector4 direction{x, y, zCoordinate};
+//				direction.normalize();
+				
+//				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
+				
+//				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
+				
+//				frameBuffer.setPixel(w, h, (color / float(sample)));
+//			}
+//		}
+		
+//		callBack();
+//		end = std::chrono::high_resolution_clock::now();
+//		elapsed = end - begin;
+//		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples; " << elapsed.count() << " seconds\r";
+//		std::cout << stream.str() << std::flush;
+//	}
+	
+#pragma omp parallel for schedule(dynamic, 20)
+	for (uint32_t h = 0; h < height; h++)
 	{
-#pragma omp parallel for schedule(dynamic, 20) collapse(2)
-		for (uint32_t h = 0; h < height; h++)
+		for (uint32_t w = 0; w < width; w++)
 		{
-			for (uint32_t w = 0; w < width; w++)
+			RandomNumberGenerator rng(device());
+			Math::Vector4 color;
+			
+			for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
 			{
-				RandomNumberGenerator rng(device());
 				float offsetX, offsetY;
 				const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
 				offsetX = rng.get(scalingFactor)  - 0.5f;
@@ -56,23 +92,17 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 				
 				Math::Vector4 direction{x, y, zCoordinate};
 				direction.normalize();
-				
-				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
-				
+			
 				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
-				
-				frameBuffer.setPixel(w, h, (color / float(sample)));
 			}
+			
+			frameBuffer.setPixel(w, h, (color / float(samples)));
+			
+//			callBack(w, h);
 		}
 		
 		callBack();
-		end = std::chrono::high_resolution_clock::now();
-		elapsed = end - begin;
-		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples; " << elapsed.count() << " seconds\r";
-		std::cout << stream.str() << std::flush;
 	}
-	
-	std::cout << std::endl;
 }
 
 void SimdRenderer::renderAlbedoMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView)

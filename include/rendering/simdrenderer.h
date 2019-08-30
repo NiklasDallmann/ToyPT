@@ -26,6 +26,7 @@ namespace Rendering
 class SimdRenderer
 {	
 public:
+//	using CallBack = std::function<void(const uint32_t, const uint32_t)>;
 	using CallBack = std::function<void()>;
 	
 	SimdRenderer();

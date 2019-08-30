@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 
+#include <QMetaType>
 #include <QObject>
 #include <QThread>
 
@@ -34,7 +35,7 @@ public:
 				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const ImageType imageType);
 	
 signals:
-	void pixelAvailable(const uint32_t x, const uint32_t y);
+	void pixelAvailable(const quint32 x, const quint32 y);
 	void dataAvailable();
 	void colorMapFinished();
 	void albedoMapFinished();
