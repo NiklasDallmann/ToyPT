@@ -42,7 +42,9 @@ signals:
 private slots:
 	void _updatePixel(const quint32 x, const quint32 y);
 	void _updateImage();
-	void _normalMapFinished();
+	void _onDenoise();
+	void _onAlbedoMapFinished();
+	void _onNormalMapFinished();
 	
 private:
 	struct RenderSettings
@@ -56,6 +58,7 @@ private:
 	
 	Rendering::Obj::GeometryContainer _geometry;
 	Rendering::FrameBuffer _frameBuffer;
+	Rendering::FrameBuffer _albedoMap;
 	Rendering::FrameBuffer _normalMap;
 	RenderSettings _settings;
 	

@@ -37,7 +37,7 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 		emit this->dataAvailable(x, y);
 	});
 	
-	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, false);
+	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, RenderThread::ImageType::Color);
 	
 	this->_renderThread.start();
 }
@@ -70,10 +70,38 @@ void Application::_updateImage()
 	this->_progressBar->setValue(this->_progressBar->value() + 1);
 }
 
-void Application::_normalMapFinished()
+void Application::_onDenoise()
 {
-	qDebug() << "finished";
-	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer, this->_normalMap);
+	if (this->_renderThread.isRunning())
+	{
+		this->_renderThread.quit();
+		this->_renderThread.wait();
+	}
+	
+	this->_albedoMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
+	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, RenderThread::ImageType::Albedo);
+	
+	this->_renderThread.start();
+}
+
+void Application::_onAlbedoMapFinished()
+{
+	if (this->_renderThread.isRunning())
+	{
+		this->_renderThread.quit();
+		this->_renderThread.wait();
+	}
+	
+	this->_normalMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
+	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, RenderThread::ImageType::Normal);
+	
+	this->_renderThread.start();
+}
+
+void Application::_onNormalMapFinished()
+{
+	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer, this->_albedoMap, this->_normalMap);
+	this->_updateImage();
 }
 
 void Application::_buildUi()
@@ -244,19 +272,7 @@ void Application::_doConnects()
 		this->_fileDialog->show();
 	});
 	
-	connect(this->_denoiseButton, &QPushButton::clicked, [this]()
-	{
-		if (this->_renderThread.isRunning())
-		{
-			this->_renderThread.quit();
-			this->_renderThread.wait();
-		}
-		
-		this->_normalMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
-		this->_renderThread.configure(&this->_normalMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, true);
-		
-		this->_renderThread.start();
-	});
+	connect(this->_denoiseButton, &QPushButton::clicked, this, &Application::_onDenoise);
 	
 	connect(this->_fileDialog, &QFileDialog::accepted, [this]()
 	{
@@ -271,7 +287,8 @@ void Application::_doConnects()
 	});
 	
 	connect(&this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
-	connect(&this->_renderThread, &RenderThread::normalMapFinished, this, &Application::_normalMapFinished);
+	connect(&this->_renderThread, &RenderThread::albedoMapFinished, this, &Application::_onAlbedoMapFinished);
+	connect(&this->_renderThread, &RenderThread::normalMapFinished, this, &Application::_onNormalMapFinished);
 }
 
 void Application::_initializeScene()

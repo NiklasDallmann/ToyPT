@@ -18,17 +18,26 @@ class RenderThread : public QThread
 	Q_OBJECT
 	
 public:
+	enum class ImageType
+	{
+		Color,
+		Albedo,
+		Normal
+	};
+	
 	RenderThread(QObject *parent = nullptr);
 	virtual ~RenderThread() override;
 	
 	void run() override;
 	
 	void configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry,
-				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const bool normalMap);
+				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const ImageType imageType);
 	
 signals:
 	void pixelAvailable(const uint32_t x, const uint32_t y);
 	void dataAvailable();
+	void colorMapFinished();
+	void albedoMapFinished();
 	void normalMapFinished();
 	
 public slots:
@@ -39,7 +48,7 @@ private slots:
 	
 private:
 	bool _abort = false;
-	bool _normalMap = false;
+	ImageType _imageType = ImageType::Color;
 	float _fieldOfView = 0;
 	uint32_t _samples = 0;
 	uint32_t _bounces = 0;

@@ -17,28 +17,32 @@ void RenderThread::run()
 {
 	this->_abort = false;
 	
-	if (this->_normalMap)
+	switch (this->_imageType)
 	{
-		this->_renderer.renderNormalMap(*this->_frameBuffer, *this->_geometry, this->_fieldOfView);
-	}
-	else
-	{
-		this->_renderer.render(*this->_frameBuffer, *this->_geometry,
-			[this](){
-				emit this->dataAvailable();
-			},
-		this->_abort, this->_fieldOfView, this->_samples, this->_bounces, {1.0f, 1.0f, 1.0f});
+		case ImageType::Color:
+			this->_renderer.render(*this->_frameBuffer, *this->_geometry,
+				[this](){
+					emit this->dataAvailable();
+				},
+			this->_abort, this->_fieldOfView, this->_samples, this->_bounces, {1.0f, 1.0f, 1.0f});
+			break;
+		case ImageType::Albedo:
+			this->_renderer.renderAlbedoMap(*this->_frameBuffer, *this->_geometry, this->_fieldOfView);
+			break;
+		case ImageType::Normal:
+			this->_renderer.renderNormalMap(*this->_frameBuffer, *this->_geometry, this->_fieldOfView);
+			break;
 	}
 }
 
-void RenderThread::configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const bool normalMap)
+void RenderThread::configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const ImageType imageType)
 {
 	this->_frameBuffer = frameBuffer;
 	this->_geometry = geometry;
 	this->_fieldOfView = fieldOfView;
 	this->_samples = samples;
 	this->_bounces = bounces;
-	this->_normalMap = normalMap;
+	this->_imageType = imageType;
 }
 
 void RenderThread::quit()
@@ -48,9 +52,17 @@ void RenderThread::quit()
 
 void RenderThread::_onFinished()
 {
-	if (this->_normalMap)
+	switch (this->_imageType)
 	{
-		emit normalMapFinished();
+		case ImageType::Color:
+			emit colorMapFinished();
+			break;
+		case ImageType::Albedo:
+			emit albedoMapFinished();
+			break;
+		case ImageType::Normal:
+			emit normalMapFinished();
+			break;
 	}
 }
 

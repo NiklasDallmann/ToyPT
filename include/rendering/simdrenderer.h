@@ -32,6 +32,7 @@ public:
 	
 	void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView = 75.0f,
 				const uint32_t samples = 10, const uint32_t bounces = 2, const Math::Vector4 &skyColor = {});
+	void renderAlbedoMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView = 75.0f);
 	void renderNormalMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView = 75.0f);
 	
 private:
@@ -70,6 +71,7 @@ private:
 	template <TraceType T>
 	float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
 	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor);
+	Math::Vector4 _castAlbedoRay(const Ray &ray, const Obj::GeometryContainer &geometry);
 	Math::Vector4 _castNormalRay(const Ray &ray, const Obj::GeometryContainer &geometry);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
