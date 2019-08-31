@@ -23,21 +23,21 @@ Application::~Application()
 	this->_renderThread.wait();
 }
 
-void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces)
+void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize)
 {
-//	this->resize(int(width), int(height));
-	this->_progressBar->setRange(0, int(height));
+	const uint32_t tilesVertical = height / tileSize + ((height % tileSize) > 0);
+	const uint32_t tilesHorizontal = width / tileSize + ((width % tileSize) > 0);
+	
+	this->_progressBar->setRange(0, int(tilesVertical * tilesHorizontal));
 	this->_progressBar->setValue(0);
 //	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
 	
 	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
 	this->_image.fill(Qt::GlobalColor::black);
 	this->_frameBuffer = {width, height};
-//	this->_frameBuffer.registerCallBack([this](const uint32_t x, const uint32_t y){
-//		emit this->dataAvailable(x, y);
-//	});
+	this->_onTileFinished();
 	
-	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, RenderThread::ImageType::Color);
+	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, tileSize, RenderThread::ImageType::Color);
 	
 	this->_renderThread.start();
 }
@@ -54,7 +54,7 @@ void Application::_updatePixel(const quint32 x, const quint32 y)
 	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 }
 
-void Application::_updateImage()
+void Application::_onTileFinished()
 {
 	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
 	{
@@ -83,7 +83,7 @@ void Application::_onDenoise()
 	}
 	
 	this->_albedoMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
-	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, RenderThread::ImageType::Albedo);
+	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize, RenderThread::ImageType::Albedo);
 	
 	this->_renderThread.start();
 }
@@ -97,7 +97,7 @@ void Application::_onAlbedoMapFinished()
 	}
 	
 	this->_normalMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
-	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, RenderThread::ImageType::Normal);
+	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize, RenderThread::ImageType::Normal);
 	
 	this->_renderThread.start();
 }
@@ -105,7 +105,7 @@ void Application::_onAlbedoMapFinished()
 void Application::_onNormalMapFinished()
 {
 	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer, this->_albedoMap, this->_normalMap);
-	this->_updateImage();
+	this->_onTileFinished();
 }
 
 void Application::_buildUi()
@@ -123,6 +123,7 @@ void Application::_buildUi()
 	this->_fovInput = new QLineEdit();
 	this->_samplesInput = new QLineEdit();
 	this->_bouncesInput = new QLineEdit();
+	this->_tileSizeInput = new QLineEdit();
 	
 	this->_startStopLayout = new QHBoxLayout();
 	this->_startRenderButton = new QPushButton(QStringLiteral("Start"));
@@ -153,12 +154,14 @@ void Application::_buildUi()
 	this->_fovInput->setText(QString::number(double(this->_settings.fieldOfView)));
 	this->_samplesInput->setText(QString::number(this->_settings.samples));
 	this->_bouncesInput->setText(QString::number(this->_settings.bounces));
+	this->_tileSizeInput->setText(QString::number(this->_settings.tileSize));
 	
 	this->_renderSettingsLayout->addWidget(this->_widthInput);
 	this->_renderSettingsLayout->addWidget(this->_heightInput);
 	this->_renderSettingsLayout->addWidget(this->_fovInput);
 	this->_renderSettingsLayout->addWidget(this->_samplesInput);
 	this->_renderSettingsLayout->addWidget(this->_bouncesInput);
+	this->_renderSettingsLayout->addWidget(this->_tileSizeInput);
 	this->_renderSettingsLayout->addLayout(this->_startStopLayout);
 	
 	this->_renderSettingsGroupbox->setTitle(QStringLiteral("Render Settings"));
@@ -251,6 +254,21 @@ void Application::_doConnects()
 		}
 	});
 	
+	connect(this->_tileSizeInput, &QLineEdit::textEdited, [this]()
+	{
+		bool success;
+		uint32_t newValue = this->_tileSizeInput->text().toUInt(&success);
+		
+		if (success)
+		{
+			this->_settings.tileSize = newValue;
+		}
+		else
+		{
+			this->_tileSizeInput->setText(QString::number(this->_settings.tileSize));
+		}
+	});
+	
 	connect(this->_startRenderButton, &QPushButton::clicked, [this]()
 	{
 		if (this->_renderThread.isRunning())
@@ -259,7 +277,7 @@ void Application::_doConnects()
 			this->_renderThread.wait();
 		}
 		
-		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces);
+		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize);
 	});
 	
 	connect(this->_stopRenderButton, &QPushButton::clicked, [this]()
@@ -290,7 +308,7 @@ void Application::_doConnects()
 		}
 	});
 	
-	connect(&this->_renderThread, &RenderThread::dataAvailable, this, &Application::_updateImage);
+	connect(&this->_renderThread, &RenderThread::tileFinished, this, &Application::_onTileFinished);
 	connect(&this->_renderThread, &RenderThread::albedoMapFinished, this, &Application::_onAlbedoMapFinished);
 	connect(&this->_renderThread, &RenderThread::normalMapFinished, this, &Application::_onNormalMapFinished);
 }

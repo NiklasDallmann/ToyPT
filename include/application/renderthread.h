@@ -32,11 +32,10 @@ public:
 	void run() override;
 	
 	void configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry,
-				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const ImageType imageType);
+				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize, const ImageType imageType);
 	
 signals:
-	void pixelAvailable(const quint32 x, const quint32 y);
-	void dataAvailable();
+	void tileFinished();
 	void colorMapFinished();
 	void albedoMapFinished();
 	void normalMapFinished();
@@ -53,6 +52,7 @@ private:
 	float _fieldOfView = 0;
 	uint32_t _samples = 0;
 	uint32_t _bounces = 0;
+	uint32_t _tileSize = 0;
 	Rendering::FrameBuffer *_frameBuffer = nullptr;
 	Rendering::Obj::GeometryContainer *_geometry = nullptr;
 	Rendering::SimdRenderer _renderer;

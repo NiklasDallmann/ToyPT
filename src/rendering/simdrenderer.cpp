@@ -23,7 +23,7 @@ SimdRenderer::SimdRenderer()
 }
 
 void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView,
-						  const uint32_t samples, const uint32_t bounces, const Math::Vector4 &skyColor)
+						  const uint32_t samples, const uint32_t bounces, const uint32_t tileSize, const Math::Vector4 &skyColor)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
@@ -37,71 +37,51 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
 	
 	std::random_device device;
+	const uint32_t tilesVertical = height / tileSize + ((height % tileSize) > 0);
+	const uint32_t tilesHorizontal = width / tileSize + ((width % tileSize) > 0);
 	
-//	for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
-//	{
-//#pragma omp parallel for schedule(dynamic, 20) collapse(2)
-//		for (uint32_t h = 0; h < height; h++)
-//		{
-//			for (uint32_t w = 0; w < width; w++)
-//			{
-//				RandomNumberGenerator rng(device());
-//				float offsetX, offsetY;
-//				const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
-//				offsetX = rng.get(scalingFactor)  - 0.5f;
-//				offsetY = rng.get(scalingFactor) - 0.5f;
-				
-//				float x = (w + offsetX + 0.5f) - (width / 2.0f);
-//				float y = -(h + offsetY + 0.5f) + (height / 2.0f);
-				
-//				Math::Vector4 direction{x, y, zCoordinate};
-//				direction.normalize();
-				
-//				Math::Vector4 color = frameBuffer.pixel(w, h) * float(sample - 1);
-				
-//				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
-				
-//				frameBuffer.setPixel(w, h, (color / float(sample)));
-//			}
-//		}
-		
-//		callBack();
-//		end = std::chrono::high_resolution_clock::now();
-//		elapsed = end - begin;
-//		stream << std::setw(3) << std::setfill('0') << sample << "/" << samples << " samples; " << elapsed.count() << " seconds\r";
-//		std::cout << stream.str() << std::flush;
-//	}
-	
-#pragma omp parallel for schedule(dynamic, 20)
-	for (uint32_t h = 0; h < height; h++)
+#pragma omp parallel for schedule(dynamic, 1) collapse(2)
+	for (uint32_t tileVertical = 0; tileVertical < tilesVertical; tileVertical++)
 	{
-		for (uint32_t w = 0; w < width; w++)
+		for (uint32_t tileHorizontal = 0; tileHorizontal < tilesHorizontal; tileHorizontal++)
 		{
-			RandomNumberGenerator rng(device());
-			Math::Vector4 color;
+			uint32_t startVertical = tileSize * tileVertical;
+			uint32_t startHorizontal = tileSize * tileHorizontal;
+			uint32_t endVertical = std::min(startVertical + tileSize, height);
+			uint32_t endHorizontal = std::min(startHorizontal + tileSize, width);
 			
-			for (size_t sample = 1; (sample <= samples) & ~abort; sample++)
+			for (uint32_t h = startVertical; h < endVertical; h++)
 			{
-				float offsetX, offsetY;
-				const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
-				offsetX = rng.get(scalingFactor)  - 0.5f;
-				offsetY = rng.get(scalingFactor) - 0.5f;
-				
-				float x = (w + offsetX + 0.5f) - (width / 2.0f);
-				float y = -(h + offsetY + 0.5f) + (height / 2.0f);
-				
-				Math::Vector4 direction{x, y, zCoordinate};
-				direction.normalize();
-			
-				color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
+				for (uint32_t w = startHorizontal; (w < endHorizontal) & !abort; w++)
+				{
+					RandomNumberGenerator rng(device());
+					Math::Vector4 color;
+					
+					for (size_t sample = 1; sample <= samples; sample++)
+					{
+						float offsetX, offsetY;
+						const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+						offsetX = rng.get(scalingFactor)  - 0.5f;
+						offsetY = rng.get(scalingFactor) - 0.5f;
+						
+						float x = (w + offsetX + 0.5f) - (width / 2.0f);
+						float y = -(h + offsetY + 0.5f) + (height / 2.0f);
+						
+						Math::Vector4 direction{x, y, zCoordinate};
+						direction.normalize();
+					
+						color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
+					}
+					
+					frameBuffer.setPixel(w, h, (color / float(samples)));
+				}
 			}
 			
-			frameBuffer.setPixel(w, h, (color / float(samples)));
-			
-//			callBack(w, h);
+			if (!abort)
+			{
+				callBack();
+			}
 		}
-		
-		callBack();
 	}
 }
 

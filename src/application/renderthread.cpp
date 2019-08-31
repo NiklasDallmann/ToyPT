@@ -21,13 +21,10 @@ void RenderThread::run()
 	{
 		case ImageType::Color:
 			this->_renderer.render(*this->_frameBuffer, *this->_geometry,
-//				[this](const uint32_t x, const uint32_t y){
-//					emit this->pixelAvailable(x, y);
-//				},
 			   [this](){
-				   emit this->dataAvailable();
+				   emit this->tileFinished();
 			   },
-			this->_abort, this->_fieldOfView, this->_samples, this->_bounces, {1.0f, 1.0f, 1.0f});
+			this->_abort, this->_fieldOfView, this->_samples, this->_bounces, this->_tileSize, {1.0f, 1.0f, 1.0f});
 			break;
 		case ImageType::Albedo:
 			this->_renderer.renderAlbedoMap(*this->_frameBuffer, *this->_geometry, this->_fieldOfView);
@@ -38,13 +35,14 @@ void RenderThread::run()
 	}
 }
 
-void RenderThread::configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const ImageType imageType)
+void RenderThread::configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize, const ImageType imageType)
 {
 	this->_frameBuffer = frameBuffer;
 	this->_geometry = geometry;
 	this->_fieldOfView = fieldOfView;
 	this->_samples = samples;
 	this->_bounces = bounces;
+	this->_tileSize = tileSize;
 	this->_imageType = imageType;
 }
 

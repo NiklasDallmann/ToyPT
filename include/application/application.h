@@ -34,14 +34,14 @@ public:
 	Application(QWidget *parent = nullptr);
 	virtual ~Application();
 	
-	void render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces);
+	void render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize);
 	
 signals:
 	void dataAvailable(const quint32 x, const quint32 y);
 	
 private slots:
 	void _updatePixel(const quint32 x, const quint32 y);
-	void _updateImage();
+	void _onTileFinished();
 	void _onDenoise();
 	void _onAlbedoMapFinished();
 	void _onNormalMapFinished();
@@ -54,6 +54,7 @@ private:
 		float fieldOfView = 70.0f;
 		uint32_t samples = 32;
 		uint32_t bounces = 3;
+		uint32_t tileSize = 32;
 	};
 	
 	Rendering::Obj::GeometryContainer _geometry;
@@ -76,6 +77,7 @@ private:
 	QLineEdit *_fovInput = nullptr;
 	QLineEdit *_samplesInput = nullptr;
 	QLineEdit *_bouncesInput = nullptr;
+	QLineEdit *_tileSizeInput = nullptr;
 	
 	QHBoxLayout *_startStopLayout = nullptr;
 	QPushButton *_startRenderButton = nullptr;
