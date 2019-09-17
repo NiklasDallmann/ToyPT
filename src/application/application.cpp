@@ -37,7 +37,7 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	this->_frameBuffer = {width, height};
 	this->_onTileFinished();
 	
-	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, tileSize, RenderThread::ImageType::Color);
+	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, tileSize);
 	
 	this->_renderThread.start();
 }
@@ -82,31 +82,10 @@ void Application::_onDenoise()
 		this->_renderThread.wait();
 	}
 	
-	this->_albedoMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
-	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize, RenderThread::ImageType::Albedo);
-	
-	this->_renderThread.start();
-}
-
-void Application::_onAlbedoMapFinished()
-{
-	if (this->_renderThread.isRunning())
-	{
-		this->_renderThread.quit();
-		this->_renderThread.wait();
-	}
-	
-	this->_normalMap = {this->_frameBuffer.width(), this->_frameBuffer.height()};
-	this->_renderThread.configure(&this->_albedoMap, &this->_geometry, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize, RenderThread::ImageType::Normal);
-	
-	this->_renderThread.start();
-}
-
-void Application::_onNormalMapFinished()
-{
-	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer, this->_albedoMap, this->_normalMap);
+	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer);
 	this->_onTileFinished();
 }
+
 
 void Application::_buildUi()
 {
@@ -309,26 +288,24 @@ void Application::_doConnects()
 	});
 	
 	connect(&this->_renderThread, &RenderThread::tileFinished, this, &Application::_onTileFinished);
-	connect(&this->_renderThread, &RenderThread::albedoMapFinished, this, &Application::_onAlbedoMapFinished);
-	connect(&this->_renderThread, &RenderThread::normalMapFinished, this, &Application::_onNormalMapFinished);
 }
 
 void Application::_initializeScene()
 {
 	Rendering::Material red{{1.0f, 0.0f, 0.0f}};
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
-	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.8f};
+	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
-	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 0.5f};
+	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 1.0f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
 	Rendering::Material black{{0.0f, 0.0f, 0.0f}};
 	Rendering::Material halfWhite{{1.0f, 1.0f, 1.0f}};
 	Rendering::Material white{{1.0f, 1.0f, 1.0f}};
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
 	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.5f};
-	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 5.0f};
+	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 2.0f};
 	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 1.0f};
-	Rendering::Material mirror{{0.0f, .0f, 0.0f}, 0.0f, 0.0f};
+	Rendering::Material mirror{{0.0f, 0.0f, 0.0f}, 0.0f, 0.0f};
 	
 	//									0		1		2		3		4			5		6		7		8			9		10			11			12
 	this->_geometry.materialBuffer = {	red,	green,	blue,	cyan,	magenta,	yellow,	black,	white,	halfGrey,	grey,	whiteLight,	cyanLight,	mirror};
@@ -346,9 +323,9 @@ void Application::_initializeScene()
 	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
 	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
-	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(5.0f, 10, this->_geometry);
+	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(8.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
-	lightPlane0.translate({-0.5f, 3.0f, -5.0f}, this->_geometry);
+	lightPlane0.translate({-0.5f, 3.0f, -4.5f}, this->_geometry);
 	
 //	Rendering::Obj::Mesh plane = Rendering::Obj::Mesh::plane(50.0f, 9, this->_geometry);
 //	plane.translate({0.0f, -1.0f, 0.0f}, this->_geometry);

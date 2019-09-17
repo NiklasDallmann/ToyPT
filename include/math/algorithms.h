@@ -4,6 +4,8 @@
 #include <algorithm>
 #include <immintrin.h>
 
+#include "vector4.h"
+
 namespace Math
 {
 
@@ -43,6 +45,18 @@ inline __m256 lerp(const __m256 a, const __m256 b, const __m256 t)
 	__m256 inverseTVector = _mm256_sub_ps(one, t);
 	
 	return _mm256_add_ps(_mm256_mul_ps(inverseTVector, b), _mm256_mul_ps(t, a));
+}
+
+template<typename T>
+inline T saturate(const T x)
+{
+	return std::min(1.0f, (std::max(0.0f, x)));
+}
+
+template<>
+inline Math::Vector4 saturate<Math::Vector4>(const Math::Vector4 v)
+{
+	return {saturate(v.x()), saturate(v.y()), saturate(v.z())};
 }
 
 

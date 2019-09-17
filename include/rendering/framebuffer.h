@@ -29,7 +29,7 @@ public:
 	void registerCallBack(const CallBack callBack);
 	void runCallBacks(const uint32_t x, const uint32_t y);
 	
-	static FrameBuffer denoise(const FrameBuffer &color, const FrameBuffer &albedo, const FrameBuffer &normal);
+	static FrameBuffer denoise(const FrameBuffer &color);
 	
 private:
 	uint32_t _width = 0;

@@ -82,17 +82,12 @@ void FrameBuffer::runCallBacks(const uint32_t x, const uint32_t y)
 	}
 }
 
-FrameBuffer FrameBuffer::denoise(const FrameBuffer &color, const FrameBuffer &albedo, const FrameBuffer &normal)
+FrameBuffer FrameBuffer::denoise(const FrameBuffer &color)
 {
 	uint32_t width = color.width();
 	uint32_t height = color.height();
 	
 	FrameBuffer returnValue(width, height);
-	
-	if ((normal.width() != width) | (normal.height() != height))
-	{
-		return returnValue;
-	}
 	
 	oidn::DeviceRef device = oidn::newDevice();
 	device.commit();
@@ -104,13 +99,9 @@ FrameBuffer FrameBuffer::denoise(const FrameBuffer &color, const FrameBuffer &al
 	std::vector<float> output(bufferSize);
 	
 	_frameBufferToBuffer(color, colorInput);
-	_frameBufferToBuffer(albedo, albedoInput);
-	_frameBufferToBuffer(normal, normalInput);
 	
 	oidn::FilterRef filter = device.newFilter("RT");
 	filter.setImage("color", colorInput.data(), oidn::Format::Float3, width, height);
-	filter.setImage("albedo", albedoInput.data(), oidn::Format::Float3, width, height);
-	filter.setImage("normal", normalInput.data(), oidn::Format::Float3, width, height);
 	filter.setImage("output", output.data(), oidn::Format::Float3, width, height);
 	filter.set("hdr", false);
 	filter.set("srgb", false);

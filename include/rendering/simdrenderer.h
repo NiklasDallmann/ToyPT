@@ -33,8 +33,6 @@ public:
 	
 	void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView = 75.0f,
 				const uint32_t samples = 10, const uint32_t bounces = 2, const uint32_t tileSize = 32, const Math::Vector4 &skyColor = {});
-	void renderAlbedoMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView = 75.0f);
-	void renderNormalMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView = 75.0f);
 	
 private:
 	enum class TraceType
@@ -69,18 +67,17 @@ private:
 	
 	__m256 _intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
 	
-	template <TraceType T>
 	float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
 	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor);
-	Math::Vector4 _castAlbedoRay(const Ray &ray, const Obj::GeometryContainer &geometry);
-	Math::Vector4 _castNormalRay(const Ray &ray, const Obj::GeometryContainer &geometry);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
 	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
 	Math::Vector4 _randomDirection(const Math::Vector4 &normal, RandomNumberGenerator &rng, float &cosinusTheta);
 	
 	Math::Vector4 _interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data);
-	Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v);
+	float _ggxChi(const float x);
+	float _ggxPartial(const Math::Vector4 &v, const Math::Vector4 &h, const Math::Vector4 &n, const float a_2);
+	Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta);
 };
 
 } // namespace Rendering

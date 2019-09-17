@@ -275,7 +275,7 @@ public:
 	
 	Vector4 operator-() const
 	{
-		return *this * (-1.0);
+		return Vector4{-1.0f, -1.0f, -1.0f} * (*this);
 	}
 	
 	///

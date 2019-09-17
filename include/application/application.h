@@ -43,8 +43,6 @@ private slots:
 	void _updatePixel(const quint32 x, const quint32 y);
 	void _onTileFinished();
 	void _onDenoise();
-	void _onAlbedoMapFinished();
-	void _onNormalMapFinished();
 	
 private:
 	struct RenderSettings

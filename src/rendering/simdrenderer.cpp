@@ -85,62 +85,6 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	}
 }
 
-void SimdRenderer::renderAlbedoMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView)
-{
-	const uint32_t width = frameBuffer.width();
-	const uint32_t height = frameBuffer.height();
-	float fovRadians = fieldOfView / 180.0f * float(M_PI);
-	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
-	
-	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
-	
-#pragma omp parallel for schedule(dynamic, 20) collapse(2)
-	for (uint32_t h = 0; h < height; h++)
-	{
-		for (uint32_t w = 0; w < width; w++)
-		{
-			
-			float x = (w + 0.5f) - (width / 2.0f);
-			float y = -(h + 0.5f) + (height / 2.0f);
-			
-			Math::Vector4 direction{x, y, zCoordinate};
-			direction.normalize();
-			
-			Math::Vector4 color = this->_castAlbedoRay({{0, 0, 0}, direction}, geometry);
-			
-			frameBuffer.setPixel(w, h, color);
-		}
-	}
-}
-
-void SimdRenderer::renderNormalMap(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const float fieldOfView)
-{
-	const uint32_t width = frameBuffer.width();
-	const uint32_t height = frameBuffer.height();
-	float fovRadians = fieldOfView / 180.0f * float(M_PI);
-	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
-	
-	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
-	
-#pragma omp parallel for schedule(dynamic, 20) collapse(2)
-	for (uint32_t h = 0; h < height; h++)
-	{
-		for (uint32_t w = 0; w < width; w++)
-		{
-			
-			float x = (w + 0.5f) - (width / 2.0f);
-			float y = -(h + 0.5f) + (height / 2.0f);
-			
-			Math::Vector4 direction{x, y, zCoordinate};
-			direction.normalize();
-			
-			Math::Vector4 color = this->_castNormalRay({{0, 0, 0}, direction}, geometry);
-			
-			frameBuffer.setPixel(w, h, color);
-		}
-	}
-}
-
 void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
 {
 	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
@@ -237,7 +181,6 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePoi
 	return returnValue;
 }
 
-template <SimdRenderer::TraceType T>
 float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
@@ -271,41 +214,22 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 				intersectionFound = true;
 				distance = newDistance;
 				nearestTriangle = triangleIndex + index;
-				
-				if constexpr (T == TraceType::Light)
-				{
-					for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
-					{
-						Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
-						
-						if ((nearestTriangle >= mesh.triangleOffset) &
-							(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)) &
-							(geometry.materialBuffer[mesh.materialOffset].emittance() > 0.0f))
-						{
-							nearestMesh = &mesh;
-							break;
-						}
-					}
-				}
 			}
 		}
 	}
 	
 	// Find corresponding mesh
-	if constexpr (T == TraceType::Object)
+	if (intersectionFound)
 	{
-		if (intersectionFound)
+		for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
 		{
-			for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+			Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+			
+			if ((nearestTriangle >= mesh.triangleOffset) &
+				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
 			{
-				Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
-				
-				if ((nearestTriangle >= mesh.triangleOffset) &
-					(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
-				{
-					nearestMesh = &mesh;
-					break;
-				}
+				nearestMesh = &mesh;
+				break;
 			}
 		}
 	}
@@ -322,15 +246,11 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
-	
-	// Multiply colors
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
 	
 	Math::Vector4 currentDirection = ray.direction;
 	Math::Vector4 currentOrigin = ray.origin;
 	
-	// FIXME This won't stay constant
-//	float pdf = 2.0f * float(M_PI);
 	float cosinusTheta;
 	
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
@@ -338,7 +258,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 		Math::Vector4 intersectionPoint;
 		IntersectionInfo objectIntersection;
 		Math::Vector4 normal;
-		float distance = this->_traceRay<TraceType::Object>({currentOrigin, currentDirection}, geometry, objectIntersection);
+		float distance = this->_traceRay({currentOrigin, currentDirection}, geometry, objectIntersection);
 		
 		intersectionPoint = currentOrigin + (distance * currentDirection);
 		
@@ -355,22 +275,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			currentOrigin = intersectionPoint + (_epsilon * normal);
 			
 			// Direct illumination
-			Math::Vector4 newDirection, reflectedDirection, diffuseDirection, directIllumination;
-			IntersectionInfo lightIntersection;
-			
-			if (objectMaterial.roughness() > 0.0f)
-			{
-				diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
-				this->_traceRay<TraceType::Light>({currentOrigin, diffuseDirection}, geometry, lightIntersection);
-				
-				if (lightIntersection.mesh != nullptr)
-				{
-					const Material &lightMaterial = geometry.materialBuffer[lightIntersection.mesh->materialOffset];
-					const Math::Vector4 &lightColor = lightMaterial.color();
-					
-					directIllumination = objectColor * lightColor * lightMaterial.emittance();
-				}
-			}
+			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
 			
 			// Global illumination
 			Math::Vector4 diffuse, specular;
@@ -379,78 +284,27 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
 			
 			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
+//			newDirection = diffuseDirection;
 			
-			diffuse = 2.0f * objectColor;
-//			specular = this->_brdf(material, normal, newDirection, currentDirection);
+			// Cook-Torrance
+//			specular = this->_brdf(objectMaterial, normal, newDirection, -currentDirection, cosinusTheta);
+			// Lambert
+			const float pdf = 2.0f;
+			specular = Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness());
+			diffuse = Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
 			
 			currentDirection = newDirection;
 			
-//			returnValue += objectColor * objectMaterial.emittance() * mask;
-			returnValue += directIllumination;
-			mask *= (diffuse) * cosinusTheta;
+			returnValue += objectMaterial.emittance() * mask;
+//			mask *= (objectColor * diffuse + specular) * cosinusTheta;
+			mask *= (objectColor * diffuse + specular) * cosinusTheta;
+//			returnValue = specular;
 		}
 		else
 		{
 			returnValue += skyColor * mask;
 			break;
 		}
-	}
-	
-	return returnValue;
-}
-
-Math::Vector4 SimdRenderer::_castAlbedoRay(const Ray &ray, const Obj::GeometryContainer &geometry)
-{
-	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
-	
-	// Multiply colors
-	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
-	
-	Math::Vector4 currentDirection = ray.direction;
-	Math::Vector4 currentOrigin = ray.origin;
-	
-	Math::Vector4 intersectionPoint;
-	IntersectionInfo objectIntersection;
-	Math::Vector4 normal;
-	float distance = this->_traceRay<TraceType::Object>({currentOrigin, currentDirection}, geometry, objectIntersection);
-	
-	intersectionPoint = currentOrigin + (distance * currentDirection);
-	
-	if (objectIntersection.mesh != nullptr)
-	{
-		const Material &objectMaterial = geometry.materialBuffer[objectIntersection.mesh->materialOffset];
-		const Math::Vector4 &objectColor = objectMaterial.color();
-		
-		returnValue = objectColor;
-	}
-	
-	return returnValue;
-}
-
-Math::Vector4 SimdRenderer::_castNormalRay(const Ray &ray, const Obj::GeometryContainer &geometry)
-{
-	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
-	
-	// Multiply colors
-	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
-	
-	Math::Vector4 currentDirection = ray.direction;
-	Math::Vector4 currentOrigin = ray.origin;
-	
-	Math::Vector4 intersectionPoint;
-	IntersectionInfo objectIntersection;
-	Math::Vector4 normal;
-	float distance = this->_traceRay<TraceType::Object>({currentOrigin, currentDirection}, geometry, objectIntersection);
-	
-	intersectionPoint = currentOrigin + (distance * currentDirection);
-	
-	if (objectIntersection.mesh != nullptr)
-	{
-		// Calculate normal
-		Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
-		normal = this->_interpolateNormal(intersectionPoint, dataPointer);
-		
-		returnValue = normal;
 	}
 	
 	return returnValue;
@@ -538,7 +392,24 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	return returnValue;
 }
 
-Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v)
+float SimdRenderer::_ggxChi(const float x)
+{
+	return x > 0 ? 1.0f : 0.0f;
+}
+
+float SimdRenderer::_ggxPartial(const Math::Vector4 &v, const Math::Vector4 &h, const Math::Vector4 &n, const float a_2)
+{
+	const float vDotH = Math::saturate(v.dotProduct(h));
+	const float vDotN = Math::saturate(v.dotProduct(n));
+	const float chi_f = this->_ggxChi(vDotH / vDotN);
+	const float vDotH_2 = vDotH * vDotH;
+	const float temporary = (1.0f - vDotH_2) / vDotH_2;
+	const float returnValue = (chi_f * 2.0f) / (1.0f + std::sqrt(1.0f + a_2 * temporary));
+	
+	return returnValue;
+}
+
+Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta)
 {
 	Math::Vector4 returnValue;
 	
@@ -549,29 +420,49 @@ Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 
 	const Math::Vector4 h = (l + v).normalized();
 	
 	// a (alpha) = roughness^2
-	const float a = std::pow(material.roughness(), 2.0f);
-	const float a_2 = std::pow(material.roughness(), 4.0f);
+	const float a = material.roughness() * material.roughness();
+	const float a_2 = a * a;
 	
 	// D term (GGX - Trowbridge-Reitz)
-	const float d = a_2 /
-			(float(M_PI) * std::pow((std::pow(n.dotProduct(h), 2.0f) * (a_2 - 1.0f) + 1.0f), 2.0f));
+	const float nDotH = n.dotProduct(h);
+	const float nDotH_2 = nDotH * nDotH;
+//	const float chi_d = this->_ggxChi(nDotH);
+//	const float denominator = nDotH_2 * a_2 + (1.0f - nDotH_2);
+//	const float denominator = (a_2 - 1.0f) * nDotH_2 + 1.0f;
+//	const float d = a_2 / (float(M_PI) * denominator * denominator);
+	const float acos = std::acos(nDotH);
+	const float eTerm = std::pow(float(M_E), (-1.0f * std::pow(std::tan(acos) / a, 2.0f)));
+	const float d = (eTerm) / (a_2 * std::pow(a, 4.0f));
 	
 	// F (fresnel) term (Schlick approximation)
-	const Math::Vector4 f = c_spec + ((1.0f - c_spec) * std::pow((1.0f - l.dotProduct(h)), 5.0f));
+	// FIXME Dialectric materials only
+	const Math::Vector4 f01 = {0.0f, 0.0f, 0.0f};
+	const Math::Vector4 f0 = Math::lerp(material.color(), f01, Math::saturate(material.metallic()));
+	const Math::Vector4 f = f0 + (Math::Vector4{1.0f, 1.0f, 1.0f} - f0) * std::pow(1.0f - cosinusTheta, 5.0f);
 	
 	// G term (Schlick-GGX)
-	const float k = a / 2.0f;
-	const float g = n.dotProduct(v) / (n.dotProduct(v) * (1.0f - k) + k);
+	const float g = this->_ggxPartial(v, h, n, a_2) * this->_ggxPartial(l, h, n, a_2);
+//	const float vDotH = Math::saturate(v.dotProduct(h));
+//	const float vDotN = Math::saturate(v.dotProduct(n));
+//	const float temp = (2.0f * n.dotProduct(h)) / v.dotProduct(h);
+//	const float g0 = 1.0f;
+//	const float g1 = temp * n.dotProduct(v);
+//	const float g2 = temp * n.dotProduct(l);
+//	const float g = std::min(g0, std::min(g1, g2));
 	
-	returnValue = (d * f * g) / (4.0f * (n.dotProduct(l)) * (n.dotProduct(v)));
+	returnValue = Math::saturate((d * f * g) / (4 * n.dotProduct(l) * n.dotProduct(v)));
 	
-	// [0, 1] |-> [1, MAX]
-//	float alpha = (512.0f * std::pow(1.953125E-3f, material.roughness()));
-//	float alpha = 15.0f;
-//	float alpha = material.roughness();
-//	Math::Vector4 reflected = v - 2.0f * v.dotProduct(n) * n;
-	
-//	returnValue = c_spec * (alpha + 2.0f) * std::pow(v.dotProduct(reflected), alpha);
+//	if (returnValue != Math::Vector4{0.0f, 0.0f, 0.0f})
+//	{
+//		std::stringstream stream;
+//		stream << "a^2 " << a_2 << "\n";
+//		stream << "d " << d << "\n";
+////		stream << "d1 " << d1 << "\n";
+////		stream << "g " << g << "\n";
+////		stream << "f " << f << "\n";
+//		stream << returnValue << "\n\n";
+//		std::cout << stream.str();
+//	}
 	
 	return returnValue;
 }
