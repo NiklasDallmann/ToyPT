@@ -2,6 +2,7 @@
 #include <QString>
 
 #include <color.h>
+#include <debugstream.h>
 
 #include "application.h"
 
@@ -35,7 +36,7 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
 	this->_image.fill(Qt::GlobalColor::black);
 	this->_frameBuffer = {width, height};
-	this->_onTileFinished();
+	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
 	
 	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, tileSize);
 	
@@ -54,22 +55,18 @@ void Application::_updatePixel(const quint32 x, const quint32 y)
 	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 }
 
-void Application::_onTileFinished()
+void Application::_onTileFinished(const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1)
 {
-	for (uint32_t h = 0; h < this->_frameBuffer.height(); h++)
+	for (uint32_t h = y0; h < y1; h++)
 	{
-		for (uint32_t w = 0; w < this->_frameBuffer.width(); w++)
+		for (uint32_t w = x0; w < x1; w++)
 		{
 			Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(w, h));
 			this->_image.setPixel(int(w), int(h), qRgb(color.red(), color.green(), color.blue()));
 		}
 	}
 	
-	QPixmap pixmap = QPixmap::fromImage(this->_image);
-	int width = this->_imageLabel->width();
-	int height = this->_imageLabel->height();
-	
-	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
+	this->_updateImageLabel();
 	
 	this->_progressBar->setValue(this->_progressBar->value() + 1);
 }
@@ -83,7 +80,22 @@ void Application::_onDenoise()
 	}
 	
 	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer);
-	this->_onTileFinished();
+	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
+}
+
+void Application::resizeEvent(QResizeEvent *event)
+{
+	Q_UNUSED(event)
+	this->_updateImageLabel();
+}
+
+void Application::_updateImageLabel()
+{
+	QPixmap pixmap = QPixmap::fromImage(this->_image);
+	int width = this->_imageLabel->width();
+	int height = this->_imageLabel->height();
+	
+	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 }
 
 
@@ -294,7 +306,7 @@ void Application::_initializeScene()
 {
 	Rendering::Material red{{1.0f, 0.0f, 0.0f}};
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
-	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.0f};
+	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.3f};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
 	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 1.0f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
@@ -303,7 +315,7 @@ void Application::_initializeScene()
 	Rendering::Material white{{1.0f, 1.0f, 1.0f}};
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
 	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.5f};
-	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 2.0f};
+	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 1.0f};
 	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 1.0f};
 	Rendering::Material mirror{{0.0f, 0.0f, 0.0f}, 0.0f, 0.0f};
 	
@@ -319,9 +331,9 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
-	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
+//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
+//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+//	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(8.0f, 10, this->_geometry);
 	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
@@ -336,7 +348,7 @@ void Application::_initializeScene()
 	
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
-	this->_geometry.meshBuffer.push_back(sphere);
+//	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(lightPlane0);
 //	this->_geometry.meshBuffer.push_back(plane);
 	this->_geometry.meshBuffer.push_back(worldCube);

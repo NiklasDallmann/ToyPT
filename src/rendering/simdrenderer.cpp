@@ -13,12 +13,14 @@
 #include <iostream>
 #include <sstream>
 
+#include "debugstream.h"
 #include "simdrenderer.h"
 
 namespace Rendering
 {
 
-SimdRenderer::SimdRenderer()
+SimdRenderer::SimdRenderer() :
+	AbstractRenderer()
 {
 }
 
@@ -30,9 +32,6 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	float fovRadians = fieldOfView / 180.0f * float(M_PI);
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	std::stringstream stream;
-	std::chrono::time_point<std::chrono::high_resolution_clock> begin = std::chrono::high_resolution_clock::now();
-	std::chrono::time_point<std::chrono::high_resolution_clock> end = begin;
-	std::chrono::duration<float> elapsed;
 	
 	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
 	
@@ -79,53 +78,27 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 			
 			if (!abort)
 			{
-				callBack();
+				callBack(startHorizontal, startVertical, endHorizontal, endVertical);
 			}
 		}
 	}
 }
 
-void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Simd::PreComputedTriangleBuffer &triangleBuffer, Simd::MeshBuffer &meshBuffer)
+void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer)
 {
-	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
-	{
-		const Obj::Mesh &objMesh = geometry.meshBuffer[meshIndex];
-		Simd::Mesh mesh;
-		mesh.triangleOffset = triangleBuffer.size();
-		mesh.triangleCount = objMesh.triangleCount;
-		mesh.materialOffset = objMesh.materialOffset;
-		
-		for (uint32_t triangleIndex = 0; triangleIndex < objMesh.triangleCount; triangleIndex++)
-		{
-			const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset + triangleIndex];
-			
-			Simd::Vertex v0, v1, v2;
-			Simd::Normal n0, n1, n2;
-			
-			v0 = geometry.vertexBuffer[triangle.vertices[0]];
-			v1 = geometry.vertexBuffer[triangle.vertices[1]];
-			v2 = geometry.vertexBuffer[triangle.vertices[2]];
-			
-			n0 = geometry.normalBuffer[triangle.normals[0]];
-			n1 = geometry.normalBuffer[triangle.normals[1]];
-			n2 = geometry.normalBuffer[triangle.normals[2]];
-			
-			triangleBuffer.append(v0, v1, v2, n0, n1, n2, Simd::maskTrue);
-		}
-		
-		meshBuffer.push_back(mesh);
-	}
+	Storage::geometryToBuffer(geometry, triangleBuffer, meshBuffer);
 	
+	// Apply padding to a multiple of the used vector size
 	const uint32_t triangleBufferSize = uint32_t(triangleBuffer.size());
-	const uint32_t paddingTriangles = Simd::avx2FloatCount - (triangleBufferSize % Simd::avx2FloatCount);
+	const uint32_t paddingTriangles = Storage::avx2FloatCount - (triangleBufferSize % Storage::avx2FloatCount);
 	
 	for (uint32_t i = 0; i < paddingTriangles; i++)
 	{
-		triangleBuffer.append({}, {}, {}, {}, {}, {}, Simd::maskFalse);
+		triangleBuffer.append({}, {}, {}, {}, {}, {}, Storage::maskFalse);
 	}
 }
 
-__m256 SimdRenderer::_intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
+__m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
 {
 	__m256 returnValue;
 	__m256 determinant, inverseDeterminant, epsilon;
@@ -150,7 +123,7 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Simd::PrecomputedTrianglePoi
 	e01.loadUnaligned(data.e01.x, data.e01.y, data.e01.z);
 	e02.loadUnaligned(data.e02.x, data.e02.y, data.e02.z);
 	
-	data += Simd::avx2FloatCount;
+	data += Storage::avx2FloatCount;
 	
 	// Sub
 	v0o = origin - v0;
@@ -187,7 +160,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	
 	uint32_t triangleCount = this->_triangleBuffer.size();
 	bool intersectionFound = false;
-	Simd::Mesh *nearestMesh = nullptr;
+	Storage::Mesh *nearestMesh = nullptr;
 	uint32_t nearestTriangle = 0xFFFFFFFF;
 	float newDistance = 0.0f;
 	float distance = std::numeric_limits<float>::max();
@@ -196,17 +169,17 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	newDistance = distance;
 	
 	// Intersect triangles
-	Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
+	Storage::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
 	
 	uint32_t triangleIndex = 0;
-	uint32_t avx2Loops = triangleCount - (triangleCount % Simd::avx2FloatCount);
+	uint32_t avx2Loops = triangleCount - (triangleCount % Storage::avx2FloatCount);
 	
-	for (; triangleIndex < avx2Loops; triangleIndex += Simd::avx2FloatCount)
+	for (; triangleIndex < avx2Loops; triangleIndex += Storage::avx2FloatCount)
 	{
 		__m256 ts, us, vs;
 		__m256 intersected = this->_intersectSimd(ray, dataPointer, ts, us, vs);
 		
-		for (uint32_t index = 0; index < Simd::avx2FloatCount; index++)
+		for (uint32_t index = 0; index < Storage::avx2FloatCount; index++)
 		{
 			newDistance = ts[index];
 			if ((newDistance < distance) & bool(intersected[index]))
@@ -223,7 +196,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	{
 		for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
 		{
-			Simd::Mesh &mesh = this->_meshBuffer[meshIndex];
+			Storage::Mesh &mesh = this->_meshBuffer[meshIndex];
 			
 			if ((nearestTriangle >= mesh.triangleOffset) &
 				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
@@ -268,7 +241,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			const Math::Vector4 &objectColor = objectMaterial.color();
 			
 			// Calculate normal
-			Simd::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
+			Storage::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
 			normal = this->_interpolateNormal(intersectionPoint, dataPointer);
 			
 			// Calculate new origin and offset
@@ -283,21 +256,22 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
 			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
 			
-			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
-//			newDirection = diffuseDirection;
+//			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
+			newDirection = diffuseDirection;
 			
 			// Cook-Torrance
 //			specular = this->_brdf(objectMaterial, normal, newDirection, -currentDirection, cosinusTheta);
 			// Lambert
-			const float pdf = 2.0f;
-			specular = Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness());
-			diffuse = Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
+//			const float pdf = 2.0f;
+//			specular = Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness());
+//			diffuse = Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
 			
 			currentDirection = newDirection;
 			
 			returnValue += objectMaterial.emittance() * mask;
 //			mask *= (objectColor * diffuse + specular) * cosinusTheta;
-			mask *= (objectColor * diffuse + specular) * cosinusTheta;
+//			mask *= (objectColor * diffuse * float(M_PI) + specular) * cosinusTheta;
+			mask *= 2.0f * objectColor * cosinusTheta;
 //			returnValue = specular;
 		}
 		else
@@ -341,7 +315,7 @@ Math::Vector4 SimdRenderer::_randomDirection(const Math::Vector4 &normal, Random
 	
 	// Generate hemisphere
 	constexpr float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
-	cosinusTheta = rng.get(scalingFactor);
+	cosinusTheta = std::pow(rng.get(scalingFactor), 0.5f);
 	ratio = rng.get(scalingFactor);
 	
 	Math::Vector4 sample = this->_createUniformHemisphere(cosinusTheta, ratio);
@@ -355,7 +329,7 @@ Math::Vector4 SimdRenderer::_randomDirection(const Math::Vector4 &normal, Random
 	return (localToWorldMatrix * sample).normalize();
 }
 
-Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Simd::PrecomputedTrianglePointer &data)
+Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersectionPoint, Storage::PrecomputedTrianglePointer &data)
 {
 	Math::Vector4 returnValue, p, n0, n1, n2, n01, n02, v0, v1, v2, e01, e02, v12, v0p, v1p, v2p, vab, v2ab;
 	

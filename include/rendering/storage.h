@@ -1,5 +1,5 @@
-#ifndef SIMDTYPES_H
-#define SIMDTYPES_H
+#ifndef STORAGE_H
+#define STORAGE_H
 
 #include <immintrin.h>
 #include <stddef.h>
@@ -8,7 +8,9 @@
 
 #include <vector4.h>
 
-namespace Rendering::Simd
+namespace Obj{ class GeometryContainer; }
+
+namespace Rendering::Storage
 {
 
 struct CoordinateBufferPointer
@@ -104,11 +106,13 @@ struct Mesh
 
 using MeshBuffer = std::vector<Mesh>;
 
+void geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer);
+
 static constexpr uint32_t triangleVertexCount = 3;
 static constexpr uint32_t maskTrue = 0xFFFFFFFF;
 static constexpr uint32_t maskFalse = 0x00000000;
 static constexpr uint32_t avx2FloatCount = sizeof (__m256) / sizeof (float);
 
-} // namespace Rendering::Simd
+} // namespace Rendering::Storage
 
-#endif // SIMDTYPES_H
+#endif // STORAGE_H

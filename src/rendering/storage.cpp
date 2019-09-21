@@ -1,6 +1,8 @@
-#include "simdtypes.h"
+#include "geometrycontainer.h"
+#include "mesh.h"
+#include "storage.h"
 
-namespace Rendering::Simd
+namespace Rendering::Storage
 {
 
 uint32_t CoordinateBuffer::size() const
@@ -127,6 +129,38 @@ PrecomputedTrianglePointer operator+(const PrecomputedTrianglePointer &pointer, 
 	returnValue += offset;
 	
 	return returnValue;
+}
+
+void geometryToBuffer(const Obj::GeometryContainer &geometry, PreComputedTriangleBuffer &triangleBuffer, MeshBuffer &meshBuffer)
+{
+	for (uint32_t meshIndex = 0; meshIndex < geometry.meshBuffer.size(); meshIndex++)
+	{
+		const Obj::Mesh &objMesh = geometry.meshBuffer[meshIndex];
+		Storage::Mesh mesh;
+		mesh.triangleOffset = triangleBuffer.size();
+		mesh.triangleCount = objMesh.triangleCount;
+		mesh.materialOffset = objMesh.materialOffset;
+		
+		for (uint32_t triangleIndex = 0; triangleIndex < objMesh.triangleCount; triangleIndex++)
+		{
+			const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset + triangleIndex];
+			
+			Storage::Vertex v0, v1, v2;
+			Storage::Normal n0, n1, n2;
+			
+			v0 = geometry.vertexBuffer[triangle.vertices[0]];
+			v1 = geometry.vertexBuffer[triangle.vertices[1]];
+			v2 = geometry.vertexBuffer[triangle.vertices[2]];
+			
+			n0 = geometry.normalBuffer[triangle.normals[0]];
+			n1 = geometry.normalBuffer[triangle.normals[1]];
+			n2 = geometry.normalBuffer[triangle.normals[2]];
+			
+			triangleBuffer.append(v0, v1, v2, n0, n1, n2, Storage::maskTrue);
+		}
+		
+		meshBuffer.push_back(mesh);
+	}
 }
 
 }

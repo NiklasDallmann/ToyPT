@@ -43,6 +43,16 @@ void FrameBuffer::setPixel(const uint32_t x, const uint32_t y, const Math::Vecto
 	this->runCallBacks(x, y);
 }
 
+Math::Vector4 *FrameBuffer::data()
+{
+	return this->_buffer.data();
+}
+
+const Math::Vector4 *FrameBuffer::data() const
+{
+	return this->_buffer.data();
+}
+
 bool FrameBuffer::save(const std::string &fileName)
 {
 	std::ofstream stream;

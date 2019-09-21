@@ -25,6 +25,10 @@ public:
 	Math::Vector4 &pixel(const uint32_t x, const uint32_t y);
 	const Math::Vector4 &pixel(const uint32_t x, const uint32_t y) const;
 	void setPixel(const uint32_t x, const uint32_t y, const Math::Vector4 &color);
+	
+	Math::Vector4 *data();
+	const Math::Vector4 *data() const;
+	
 	bool save(const std::string &fileName);
 	void registerCallBack(const CallBack callBack);
 	void runCallBacks(const uint32_t x, const uint32_t y);

@@ -12,6 +12,7 @@
 #include <QObject>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QString>
 #include <QToolBar>
@@ -32,7 +33,7 @@ class Application : public QMainWindow
 	
 public:
 	Application(QWidget *parent = nullptr);
-	virtual ~Application();
+	virtual ~Application() override;
 	
 	void render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize);
 	
@@ -41,8 +42,11 @@ signals:
 	
 private slots:
 	void _updatePixel(const quint32 x, const quint32 y);
-	void _onTileFinished();
+	void _onTileFinished(const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1);
 	void _onDenoise();
+	
+protected:
+	virtual void resizeEvent(QResizeEvent *event) override;
 	
 private:
 	struct RenderSettings
@@ -89,6 +93,7 @@ private:
 	
 	RenderThread _renderThread;
 	
+	void _updateImageLabel();
 	void _buildUi();
 	void _doConnects();
 	void _initializeScene();

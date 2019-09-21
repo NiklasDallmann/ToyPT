@@ -2,13 +2,16 @@
 #define RENDERTHREAD_H
 
 #include <stddef.h>
+#include <memory>
 
 #include <QMetaType>
 #include <QObject>
 #include <QThread>
 
+#include <abstractrenderer.h>
 #include <framebuffer.h>
 #include <geometrycontainer.h>
+#include <openclrenderer.h>
 #include <simdrenderer.h>
 
 namespace PathTracer
@@ -28,7 +31,7 @@ public:
 				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize);
 	
 signals:
-	void tileFinished();
+	void tileFinished(const quint32 x0, const quint32 y0, const quint32 x1, const quint32 y1);
 	void renderingFinished();
 	
 public slots:
@@ -45,7 +48,7 @@ private:
 	uint32_t _tileSize = 0;
 	Rendering::FrameBuffer *_frameBuffer = nullptr;
 	Rendering::Obj::GeometryContainer *_geometry = nullptr;
-	Rendering::SimdRenderer _renderer;
+	std::unique_ptr<Rendering::AbstractRenderer> _renderer;
 };
 
 } // namespace PathTracer
