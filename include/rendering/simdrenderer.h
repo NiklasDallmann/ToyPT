@@ -28,8 +28,9 @@ class SimdRenderer : public AbstractRenderer
 public:
 	SimdRenderer();
 	
-	virtual void render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView = 75.0f,
-				const uint32_t samples = 10, const uint32_t bounces = 2, const uint32_t tileSize = 32, const Math::Vector4 &skyColor = {}) override;
+	virtual void render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, const CallBack &callBack,
+						const bool &abort, const float fieldOfView = 75.0f, const uint32_t samples = 10, const uint32_t bounces = 2,
+						const uint32_t tileSize = 32, const Math::Vector4 &skyColor = {}) override;
 	
 private:
 	struct IntersectionInfo
@@ -40,8 +41,11 @@ private:
 		float v = 0.0f;
 	};
 	
-	Storage::PreComputedTriangleBuffer _triangleBuffer;
-	Storage::MeshBuffer _meshBuffer;
+	Storage::PreComputedTriangleBuffer _objectTriangleBuffer;
+	Storage::MeshBuffer _objectMeshBuffer;
+	
+	Storage::PreComputedTriangleBuffer _lightTriangleBuffer;
+	Storage::MeshBuffer _lightMeshBuffer;
 	
 	static constexpr float _epsilon = 1.0E-7f;
 	
@@ -50,7 +54,8 @@ private:
 	__m256 _intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &v);
 	
 	float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor);
+	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng,
+						   const size_t maxBounces, const Math::Vector4 &skyColor);
 	
 	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
 	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);

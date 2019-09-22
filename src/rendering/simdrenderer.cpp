@@ -24,8 +24,9 @@ SimdRenderer::SimdRenderer() :
 {
 }
 
-void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const CallBack &callBack, const bool &abort, const float fieldOfView,
-						  const uint32_t samples, const uint32_t bounces, const uint32_t tileSize, const Math::Vector4 &skyColor)
+void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, const CallBack &callBack,
+						  const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize,
+						  const Math::Vector4 &skyColor)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
@@ -33,7 +34,7 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	std::stringstream stream;
 	
-	this->_geometryToBuffer(geometry, this->_triangleBuffer, this->_meshBuffer);
+	this->_geometryToBuffer(geometry, this->_objectTriangleBuffer, this->_objectMeshBuffer);
 	
 	std::random_device device;
 	const uint32_t tilesVertical = height / tileSize + ((height % tileSize) > 0);
@@ -69,7 +70,7 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geom
 						Math::Vector4 direction{x, y, zCoordinate};
 						direction.normalize();
 					
-						color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, bounces, skyColor);
+						color += this->_castRay({{0, 0, 0}, direction}, geometry, lights, rng, bounces, skyColor);
 					}
 					
 					frameBuffer.setPixel(w, h, (color / float(samples)));
@@ -158,7 +159,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 {
 	float returnValue = 0.0f;
 	
-	uint32_t triangleCount = this->_triangleBuffer.size();
+	uint32_t triangleCount = this->_objectTriangleBuffer.size();
 	bool intersectionFound = false;
 	Storage::Mesh *nearestMesh = nullptr;
 	uint32_t nearestTriangle = 0xFFFFFFFF;
@@ -169,7 +170,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	newDistance = distance;
 	
 	// Intersect triangles
-	Storage::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data();
+	Storage::PrecomputedTrianglePointer dataPointer = this->_objectTriangleBuffer.data();
 	
 	uint32_t triangleIndex = 0;
 	uint32_t avx2Loops = triangleCount - (triangleCount % Storage::avx2FloatCount);
@@ -194,9 +195,9 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	// Find corresponding mesh
 	if (intersectionFound)
 	{
-		for (uint32_t meshIndex = 0; meshIndex < this->_meshBuffer.size(); meshIndex++)
+		for (uint32_t meshIndex = 0; meshIndex < this->_objectMeshBuffer.size(); meshIndex++)
 		{
-			Storage::Mesh &mesh = this->_meshBuffer[meshIndex];
+			Storage::Mesh &mesh = this->_objectMeshBuffer[meshIndex];
 			
 			if ((nearestTriangle >= mesh.triangleOffset) &
 				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
@@ -216,7 +217,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	return returnValue;
 }
 
-Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
+Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
@@ -229,35 +230,50 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
 		Math::Vector4 intersectionPoint;
-		IntersectionInfo objectIntersection;
+		IntersectionInfo objectIntersection, lightIntersection;
 		Math::Vector4 normal;
-		float distance = this->_traceRay({currentOrigin, currentDirection}, geometry, objectIntersection);
+		float objectDistance = this->_traceRay({currentOrigin, currentDirection}, geometry, objectIntersection);
 		
-		intersectionPoint = currentOrigin + (distance * currentDirection);
+		intersectionPoint = currentOrigin + (objectDistance * currentDirection);
 		
 		if (objectIntersection.mesh != nullptr)
 		{
-			const Material &objectMaterial = geometry.materialBuffer[objectIntersection.mesh->materialOffset];
-			const Math::Vector4 &objectColor = objectMaterial.color();
+			Material objectMaterial = geometry.materialBuffer[objectIntersection.mesh->materialOffset];
+			Math::Vector4 objectColor = objectMaterial.color();
+//			Material lightMaterial;
+//			Math::Vector4 lightColor;
+//			Math::Vector4 directLight;
+//			float lightEmittance = 0.0f;
 			
 			// Calculate normal
-			Storage::PrecomputedTrianglePointer dataPointer = this->_triangleBuffer.data() + objectIntersection.triangleOffset;
+			Storage::PrecomputedTrianglePointer dataPointer = this->_objectTriangleBuffer.data() + objectIntersection.triangleOffset;
 			normal = this->_interpolateNormal(intersectionPoint, dataPointer);
 			
 			// Calculate new origin and offset
 			currentOrigin = intersectionPoint + (_epsilon * normal);
 			
 			// Direct illumination
-			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
+//			float lightCosinusTheta;
+//			Math::Vector4 lightDirection = this->_randomDirection(normal, rng, lightCosinusTheta);
+//			float lightDistance = this->_traceRay({currentOrigin, lightDirection}, lights, lightIntersection);
+			
+//			if (lightIntersection.mesh != nullptr)
+//			{
+//				lightMaterial = geometry.materialBuffer[lightIntersection.mesh->materialOffset];
+//				lightColor = lightMaterial.color();
+//				lightEmittance = lightMaterial.emittance();
+//				directLight = lightColor * lightEmittance;
+//			}
 			
 			// Global illumination
+			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
 			Math::Vector4 diffuse, specular;
 			
 			diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
 			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
 			
-//			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
-			newDirection = diffuseDirection;
+			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness());
+//			newDirection = diffuseDirection;
 			
 			// Cook-Torrance
 //			specular = this->_brdf(objectMaterial, normal, newDirection, -currentDirection, cosinusTheta);
@@ -269,6 +285,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			currentDirection = newDirection;
 			
 			returnValue += objectMaterial.emittance() * mask;
+//			returnValue += directLight * mask;
 //			mask *= (objectColor * diffuse + specular) * cosinusTheta;
 //			mask *= (objectColor * diffuse * float(M_PI) + specular) * cosinusTheta;
 			mask *= 2.0f * objectColor * cosinusTheta;

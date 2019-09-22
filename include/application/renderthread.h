@@ -27,7 +27,7 @@ public:
 	
 	void run() override;
 	
-	void configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry,
+	void configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, Rendering::Obj::GeometryContainer *lights,
 				   const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize);
 	
 signals:
@@ -48,6 +48,7 @@ private:
 	uint32_t _tileSize = 0;
 	Rendering::FrameBuffer *_frameBuffer = nullptr;
 	Rendering::Obj::GeometryContainer *_geometry = nullptr;
+	Rendering::Obj::GeometryContainer *_lights = nullptr;
 	std::unique_ptr<Rendering::AbstractRenderer> _renderer;
 };
 

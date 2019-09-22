@@ -17,8 +17,9 @@ OpenCLRenderer::OpenCLRenderer() :
 	this->_buildKernel();
 }
 
-void OpenCLRenderer::render(FrameBuffer &frameBuffer, Obj::GeometryContainer &geometry, const OpenCLRenderer::CallBack &callBack, const bool &abort,
-					  const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize, const Math::Vector4 &skyColor)
+void OpenCLRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights,
+							const OpenCLRenderer::CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples,
+							const uint32_t bounces, const uint32_t tileSize, const Math::Vector4 &skyColor)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();

@@ -38,21 +38,12 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	this->_frameBuffer = {width, height};
 	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
 	
-	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, fieldOfView, samples, bounces, tileSize);
+	connect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
+	this->_renderTime.start();
+	this->_timeUpdateTimer.start(15);
 	
+	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, &this->_lights, fieldOfView, samples, bounces, tileSize);
 	this->_renderThread.start();
-}
-
-void Application::_updatePixel(const quint32 x, const quint32 y)
-{
-	Rendering::Color color = Rendering::Color::fromVector4(this->_frameBuffer.pixel(x, y));
-	this->_image.setPixel(int(x), int(y), qRgb(color.red(), color.green(), color.blue()));
-	
-	QPixmap pixmap = QPixmap::fromImage(this->_image);
-	int width = this->_imageLabel->width();
-	int height = this->_imageLabel->height();
-	
-	this->_imageLabel->setPixmap(pixmap.scaled(width, height, Qt::KeepAspectRatio));
 }
 
 void Application::_onTileFinished(const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1)
@@ -71,6 +62,11 @@ void Application::_onTileFinished(const uint32_t x0, const uint32_t y0, const ui
 	this->_progressBar->setValue(this->_progressBar->value() + 1);
 }
 
+void Application::_onRenderFinished()
+{
+	disconnect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
+}
+
 void Application::_onDenoise()
 {
 	if (this->_renderThread.isRunning())
@@ -81,6 +77,17 @@ void Application::_onDenoise()
 	
 	this->_frameBuffer = Rendering::FrameBuffer::denoise(this->_frameBuffer);
 	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
+}
+
+void Application::_onTimeUpdate()
+{
+	int elapsed = this->_renderTime.elapsed();
+	int msecs = elapsed % 1000;
+	int secs = (elapsed / 1000) % 60;
+	int mins = (elapsed / 60000) % 60;
+	int hours = (elapsed / 3600000) % 60;
+	QTime time(hours, mins, secs, msecs);
+	this->_statusLabel->setText(time.toString(QStringLiteral("HH:mm:ss:zzz")));
 }
 
 void Application::resizeEvent(QResizeEvent *event)
@@ -123,6 +130,7 @@ void Application::_buildUi()
 	this->_saveButton = new QPushButton(QStringLiteral("Save"));
 	this->_denoiseButton = new QPushButton(QStringLiteral("Denoise"));
 	this->_progressBar = new QProgressBar();
+	this->_statusLabel = new QLabel();
 	
 	this->_fileDialog = new QFileDialog(this);
 	
@@ -162,6 +170,7 @@ void Application::_buildUi()
 	this->_toolBar->addWidget(this->_saveButton);
 	this->_toolBar->addWidget(this->_denoiseButton);
 	this->_toolBar->addWidget(this->_progressBar);
+	this->_toolBar->addWidget(this->_statusLabel);
 	
 	this->addToolBar(Qt::ToolBarArea::RightToolBarArea, this->_toolBar);
 	
@@ -170,96 +179,6 @@ void Application::_buildUi()
 
 void Application::_doConnects()
 {
-	connect(this->_widthInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		uint32_t newValue = this->_widthInput->text().toUInt(&success);
-		
-		if (success)
-		{
-			this->_settings.width = newValue;
-		}
-		else
-		{
-			this->_widthInput->setText(QString::number(this->_settings.width));
-		}
-	});
-	
-	connect(this->_heightInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		uint32_t newValue = this->_heightInput->text().toUInt(&success);
-		
-		if (success)
-		{
-			this->_settings.height = newValue;
-		}
-		else
-		{
-			this->_heightInput->setText(QString::number(this->_settings.height));
-		}
-	});
-	
-	connect(this->_fovInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		float newValue = this->_fovInput->text().toFloat(&success);
-		
-		if (success)
-		{
-			this->_settings.fieldOfView = newValue;
-		}
-		else
-		{
-			this->_fovInput->setText(QString::number(double(this->_settings.fieldOfView)));
-		}
-	});
-	
-	connect(this->_samplesInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		uint32_t newValue = this->_samplesInput->text().toUInt(&success);
-		
-		if (success)
-		{
-			this->_settings.samples = newValue;
-		}
-		else
-		{
-			this->_samplesInput->setText(QString::number(this->_settings.samples));
-		}
-	});
-	
-	connect(this->_bouncesInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		uint32_t newValue = this->_bouncesInput->text().toUInt(&success);
-		
-		if (success)
-		{
-			this->_settings.bounces = newValue;
-		}
-		else
-		{
-			this->_bouncesInput->setText(QString::number(this->_settings.bounces));
-		}
-	});
-	
-	connect(this->_tileSizeInput, &QLineEdit::textEdited, [this]()
-	{
-		bool success;
-		uint32_t newValue = this->_tileSizeInput->text().toUInt(&success);
-		
-		if (success)
-		{
-			this->_settings.tileSize = newValue;
-		}
-		else
-		{
-			this->_tileSizeInput->setText(QString::number(this->_settings.tileSize));
-		}
-	});
-	
 	connect(this->_startRenderButton, &QPushButton::clicked, [this]()
 	{
 		if (this->_renderThread.isRunning())
@@ -268,7 +187,14 @@ void Application::_doConnects()
 			this->_renderThread.wait();
 		}
 		
-		this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize);
+		if (this->_applyrenderSettings())
+		{
+			this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize);
+		}
+		else
+		{
+			this->_statusLabel->setText(QStringLiteral("Invalid parameters supplied!"));
+		}
 	});
 	
 	connect(this->_stopRenderButton, &QPushButton::clicked, [this]()
@@ -300,13 +226,14 @@ void Application::_doConnects()
 	});
 	
 	connect(&this->_renderThread, &RenderThread::tileFinished, this, &Application::_onTileFinished);
+	connect(&this->_renderThread, &RenderThread::finished, this, &Application::_onRenderFinished);
 }
 
 void Application::_initializeScene()
 {
 	Rendering::Material red{{1.0f, 0.0f, 0.0f}};
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
-	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.3f};
+	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.1f};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
 	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 1.0f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
@@ -322,6 +249,7 @@ void Application::_initializeScene()
 	//									0		1		2		3		4			5		6		7		8			9		10			11			12
 	this->_geometry.materialBuffer = {	red,	green,	blue,	cyan,	magenta,	yellow,	black,	white,	halfGrey,	grey,	whiteLight,	cyanLight,	mirror};
 	
+	// Objects
 	Rendering::Obj::Mesh cube0 = Rendering::Obj::Mesh::cube(1, 3, this->_geometry);
 	cube0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
 	cube0.translate({-1.5f, -0.5f, -4.0f}, this->_geometry);
@@ -335,23 +263,96 @@ void Application::_initializeScene()
 //	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
 //	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
-	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(8.0f, 10, this->_geometry);
-	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
-	lightPlane0.translate({-0.5f, 3.0f, -4.5f}, this->_geometry);
-	
-//	Rendering::Obj::Mesh plane = Rendering::Obj::Mesh::plane(50.0f, 9, this->_geometry);
-//	plane.translate({0.0f, -1.0f, 0.0f}, this->_geometry);
-	
 	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
 	worldCube.invert(this->_geometry);
 	worldCube.translate({-2.0f, 9.0f, -2.0f}, this->_geometry);
 	
+	// Lights
+	Rendering::Obj::Mesh lightPlane0 = Rendering::Obj::Mesh::plane(8.0f, 10, this->_geometry);
+	lightPlane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
+	lightPlane0.translate({-0.5f, 3.0f, -4.5f}, this->_geometry);
+	
+	// Object buffer
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
 //	this->_geometry.meshBuffer.push_back(sphere);
-	this->_geometry.meshBuffer.push_back(lightPlane0);
-//	this->_geometry.meshBuffer.push_back(plane);
 	this->_geometry.meshBuffer.push_back(worldCube);
+	
+	// Light buffer
+	this->_geometry.meshBuffer.push_back(lightPlane0);
+}
+
+bool Application::_applyrenderSettings()
+{
+	bool success;
+	
+	uint32_t integerValue;
+	float floatValue;
+	
+	integerValue = this->_widthInput->text().toUInt(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.width = integerValue;
+	}
+	
+	integerValue = this->_heightInput->text().toUInt(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.height = integerValue;
+	}
+	
+	floatValue = this->_fovInput->text().toFloat(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.fieldOfView = floatValue;
+	}
+	
+	integerValue = this->_samplesInput->text().toUInt(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.samples = integerValue;
+	}
+	
+	integerValue = this->_bouncesInput->text().toUInt(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.bounces = integerValue;
+	}
+	
+	integerValue = this->_tileSizeInput->text().toUInt(&success);
+	if (!success)
+	{
+		goto error;
+	}
+	else
+	{
+		this->_settings.tileSize = integerValue;
+	}
+	
+	return true;
+	
+	error:
+	return false;
 }
 
 }

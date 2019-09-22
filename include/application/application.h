@@ -15,6 +15,8 @@
 #include <QResizeEvent>
 #include <QScrollArea>
 #include <QString>
+#include <QTime>
+#include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
 
@@ -41,9 +43,10 @@ signals:
 	void dataAvailable(const quint32 x, const quint32 y);
 	
 private slots:
-	void _updatePixel(const quint32 x, const quint32 y);
 	void _onTileFinished(const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1);
+	void _onRenderFinished();
 	void _onDenoise();
+	void _onTimeUpdate();
 	
 protected:
 	virtual void resizeEvent(QResizeEvent *event) override;
@@ -55,15 +58,19 @@ private:
 		uint32_t height = 200;
 		float fieldOfView = 70.0f;
 		uint32_t samples = 32;
-		uint32_t bounces = 3;
+		uint32_t bounces = 4;
 		uint32_t tileSize = 32;
 	};
 	
 	Rendering::Obj::GeometryContainer _geometry;
+	Rendering::Obj::GeometryContainer _lights;
 	Rendering::FrameBuffer _frameBuffer;
 	Rendering::FrameBuffer _albedoMap;
 	Rendering::FrameBuffer _normalMap;
 	RenderSettings _settings;
+	
+	QTime _renderTime;
+	QTimer _timeUpdateTimer;
 	
 	QImage _image;
 	QLabel *_imageLabel = nullptr;
@@ -88,6 +95,7 @@ private:
 	QPushButton *_denoiseButton = nullptr;
 	
 	QProgressBar *_progressBar = nullptr;
+	QLabel *_statusLabel = nullptr;
 	
 	QFileDialog *_fileDialog;
 	
@@ -97,6 +105,7 @@ private:
 	void _buildUi();
 	void _doConnects();
 	void _initializeScene();
+	bool _applyrenderSettings();
 };
 
 } // namespace PathTracer
