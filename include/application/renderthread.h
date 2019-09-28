@@ -9,10 +9,10 @@
 #include <QThread>
 
 #include <abstractrenderer.h>
+#include <cuda/cudarenderer.h>
 #include <framebuffer.h>
 #include <geometrycontainer.h>
-#include <openclrenderer.h>
-#include <simdrenderer.h>
+#include <simd/simdrenderer.h>
 
 namespace PathTracer
 {

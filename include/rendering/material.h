@@ -1,7 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
-#include <vector4.h>
+#include <math/vector4.h>
 
 namespace Rendering
 {
@@ -10,20 +10,20 @@ class Material
 {
 public:
 	Material(const Math::Vector4 &color = {}, const float emittance = 0.0f, const float roughness = 1.0f, const float metallic = 0.0f,
-			 const float cavity = 0.04f);
+			 const float cavity = 0.04f) :
+		color(color),
+		emittance(emittance),
+		roughness(roughness),
+		metallic(metallic),
+		cavity(cavity)
+	{
+	}
 	
-	const Math::Vector4 &color() const;
-	float emittance() const;
-	float roughness() const;
-	float metallic() const;
-	float cavity() const;
-	
-private:
-	Math::Vector4 _color;
-	float _emittance;
-	float _roughness;
-	float _metallic;
-	float _cavity;
+	Math::Vector4 color;
+	float emittance;
+	float roughness;
+	float metallic;
+	float cavity;
 };
 
 } // namespace Rendering

@@ -2,6 +2,7 @@
 #define RANDOMNUMBERGENERATOR_H
 
 #include <stdint.h>
+#include <utility/globals.h>
 
 namespace Rendering
 {
@@ -9,12 +10,12 @@ namespace Rendering
 class RandomNumberGenerator
 {
 public:
-	RandomNumberGenerator(const uint32_t seed) :
+	HOST_DEVICE RandomNumberGenerator(const uint32_t seed) :
 		_state(seed)
 	{
 	}
 	
-	uint32_t get()
+	HOST_DEVICE uint32_t get()
 	{
 		uint32_t x = this->_state;
 		
@@ -33,7 +34,7 @@ public:
 		return x;
 	}
 	
-	float get(const float scale)
+	HOST_DEVICE float get(const float scale)
 	{
 		return float(this->get()) * scale;
 	}

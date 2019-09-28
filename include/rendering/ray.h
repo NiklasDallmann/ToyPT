@@ -1,7 +1,7 @@
 #ifndef RAY_H
 #define RAY_H
 
-#include <vector4.h>
+#include <math/vector4.h>
 
 namespace Rendering
 {

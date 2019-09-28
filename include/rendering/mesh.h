@@ -1,7 +1,7 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <matrix4x4.h>
+#include <math/matrix4x4.h>
 #include <vector>
 
 #include "material.h"

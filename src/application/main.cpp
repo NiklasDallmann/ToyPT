@@ -3,12 +3,11 @@
 #include <algorithm>
 #include <framebuffer.h>
 #include <math.h>
-#include <matrix4x4.h>
+#include <math/matrix4x4.h>
 #include <mesh.h>
-#include <simdrenderer.h>
 #include <triangle.h>
 #include <vector>
-#include <vector4.h>
+#include <math/vector4.h>
 
 #include <QApplication>
 

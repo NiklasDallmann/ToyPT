@@ -1,11 +1,10 @@
 #ifndef MATRIX4X4_H
 #define MATRIX4X4_H
 
-#include <array>
 #include <cmath>
 #include <sstream>
 #include <stddef.h>
-#include <utility>
+#include <utility/globals.h>
 
 #include "algorithms.h"
 #include "vector4.h"
@@ -16,26 +15,34 @@ namespace Math
 class Matrix4x4
 {
 public:
+#ifndef __NVCC__
 	friend std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix);
+#endif
 	
-	Matrix4x4(const Vector4 &a = {}, const Vector4 &b = {}, const Vector4 &c = {}, const Vector4 &d = {}) :
-		_vectors({a, b, c, d})
+	HOST_DEVICE Matrix4x4(const Vector4 &a = {}, const Vector4 &b = {}, const Vector4 &c = {}, const Vector4 &d = {})
 	{
+		this->_vectors[0] = a;
+		this->_vectors[1] = b;
+		this->_vectors[2] = c;
+		this->_vectors[3] = d;
 	}
 	
-	Matrix4x4 &transpose()
+	HOST_DEVICE Matrix4x4 &transpose()
 	{
 		for (size_t i = 0; i < (_dimension - 1); i++)
 		{
 			for (size_t j = i + 1; j < _dimension; j++)
 			{
-				std::swap((*this)[i][j], (*this)[j][i]);
+				float temporary = (*this)[i][j];
+				(*this)[i][j] = (*this)[j][i];
+				(*this)[j][i] = temporary;
 			}
 		}
 		
 		return *this;
 	}
-	Matrix4x4 transposed() const
+	
+	HOST_DEVICE Matrix4x4 transposed() const
 	{
 		Matrix4x4 returnValue = *this;
 		
@@ -134,7 +141,7 @@ exit:
 		return returnValue;
 	}
 	
-	static Matrix4x4 identityMatrix()
+	HOST_DEVICE static Matrix4x4 identityMatrix()
 	{
 		return Matrix4x4{
 			{1, 0, 0, 0},
@@ -143,10 +150,15 @@ exit:
 			{0, 0, 0, 1}
 		};
 	}
-	static Matrix4x4 rotationMatrixX(const float angle)
+	HOST_DEVICE static Matrix4x4 rotationMatrixX(const float angle)
 	{
+#ifndef __NVCC__
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
+#else
+		float cos = cosf(angle);
+		float sin = sinf(angle);
+#endif
 		
 		Matrix4x4 returnValue{
 			{1,		0,		0},
@@ -156,10 +168,16 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix4x4 rotationMatrixY(const float angle)
+	
+	HOST_DEVICE static Matrix4x4 rotationMatrixY(const float angle)
 	{
+#ifndef __NVCC__
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
+#else
+		float cos = cosf(angle);
+		float sin = sinf(angle);
+#endif
 		
 		Matrix4x4 returnValue{
 			{cos,		0,		sin},
@@ -169,10 +187,16 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix4x4 rotationMatrixZ(const float angle)
+	
+	HOST_DEVICE static Matrix4x4 rotationMatrixZ(const float angle)
 	{
+#ifndef __NVCC__
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
+#else
+		float cos = cosf(angle);
+		float sin = sinf(angle);
+#endif
 		
 		Matrix4x4 returnValue{
 			{cos,		-sin,		0},
@@ -183,7 +207,7 @@ exit:
 		return returnValue;
 	}
 	
-	static Matrix4x4 transposedAdd(const Matrix4x4 &left, const Matrix4x4 &right)
+	HOST_DEVICE static Matrix4x4 transposedAdd(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
 		Matrix4x4 returnValue;
 		
@@ -194,7 +218,8 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix4x4 transposedSubtract(const Matrix4x4 &left, const Matrix4x4 &right)
+	
+	HOST_DEVICE static Matrix4x4 transposedSubtract(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
 		Matrix4x4 returnValue;
 		
@@ -205,7 +230,8 @@ exit:
 		
 		return returnValue;
 	}
-	static Matrix4x4 transposedMultiply(const Matrix4x4 &left, const Matrix4x4 &right)
+	
+	HOST_DEVICE static Matrix4x4 transposedMultiply(const Matrix4x4 &left, const Matrix4x4 &right)
 	{
 		Matrix4x4 returnValue;
 		
@@ -220,7 +246,7 @@ exit:
 		return returnValue;
 	}
 	
-	Matrix4x4 &operator+=(const Matrix4x4 &other)
+	HOST_DEVICE Matrix4x4 &operator+=(const Matrix4x4 &other)
 	{
 		Matrix4x4 transposedOther = other.transposed();
 		
@@ -229,7 +255,7 @@ exit:
 		return *this;
 	}
 	
-	Matrix4x4 &operator-=(const Matrix4x4 &other)
+	HOST_DEVICE Matrix4x4 &operator-=(const Matrix4x4 &other)
 	{
 		Matrix4x4 transposedOther = other.transposed();
 		
@@ -238,7 +264,7 @@ exit:
 		return *this;
 	}
 	
-	Matrix4x4 &operator*=(const Matrix4x4 &other)
+	HOST_DEVICE Matrix4x4 &operator*=(const Matrix4x4 &other)
 	{
 		Matrix4x4 transposedOther = other.transposed();
 		
@@ -247,7 +273,7 @@ exit:
 		return *this;
 	}
 	
-	Matrix4x4 &operator*=(const float scalar)
+	HOST_DEVICE Matrix4x4 &operator*=(const float scalar)
 	{
 		for (Vector4 &vector : this->_vectors)
 		{
@@ -257,22 +283,22 @@ exit:
 		return *this;
 	}
 	
-	Vector4 &operator[](const size_t index)
+	HOST_DEVICE Vector4 &operator[](const size_t index)
 	{
 		return this->_vectors[index];
 	}
 	
-	const Vector4 &operator[](const size_t index) const
+	HOST_DEVICE const Vector4 &operator[](const size_t index) const
 	{
 		return this->_vectors[index];
 	}
 	
 private:
 	static constexpr size_t _dimension = 4;
-	alignas (Vector4) std::array<Vector4, _dimension> _vectors;
+	alignas (sizeof (Vector4) * _dimension) Vector4 _vectors[_dimension];
 };
 
-inline Matrix4x4 operator+(const Matrix4x4 &left, const Matrix4x4 &right)
+HOST_DEVICE inline Matrix4x4 operator+(const Matrix4x4 &left, const Matrix4x4 &right)
 {
 	Matrix4x4 returnValue = left;
 	
@@ -281,7 +307,7 @@ inline Matrix4x4 operator+(const Matrix4x4 &left, const Matrix4x4 &right)
 	return returnValue;
 }
 
-inline Matrix4x4 operator-(const Matrix4x4 &left, const Matrix4x4 &right)
+HOST_DEVICE inline Matrix4x4 operator-(const Matrix4x4 &left, const Matrix4x4 &right)
 {
 	Matrix4x4 returnValue = left;
 	
@@ -290,7 +316,7 @@ inline Matrix4x4 operator-(const Matrix4x4 &left, const Matrix4x4 &right)
 	return returnValue;
 }
 
-inline Matrix4x4 operator*(const Matrix4x4 &left, const Matrix4x4 &right)
+HOST_DEVICE inline Matrix4x4 operator*(const Matrix4x4 &left, const Matrix4x4 &right)
 {
 	Matrix4x4 returnValue = left;
 	
@@ -299,7 +325,7 @@ inline Matrix4x4 operator*(const Matrix4x4 &left, const Matrix4x4 &right)
 	return returnValue;
 }
 
-inline Matrix4x4 operator*(const Matrix4x4 &left, const float right)
+HOST_DEVICE inline Matrix4x4 operator*(const Matrix4x4 &left, const float right)
 {
 	Matrix4x4 returnValue = left;
 	returnValue *= right;
@@ -307,12 +333,12 @@ inline Matrix4x4 operator*(const Matrix4x4 &left, const float right)
 	return returnValue;
 }
 
-inline Matrix4x4 operator*(const float left, const Matrix4x4 &right)
+HOST_DEVICE inline Matrix4x4 operator*(const float left, const Matrix4x4 &right)
 {
 	return right * left;
 }
 
-inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right)
+HOST_DEVICE inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right)
 {
 	Vector4 returnValue;
 	
@@ -324,6 +350,7 @@ inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right)
 	return returnValue;
 }
 
+#ifndef __NVCC__
 inline std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix)
 {
 	std::stringstream stringStream;
@@ -334,6 +361,7 @@ inline std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix)
 	
 	return stream;
 }
+#endif
 
 } // namespace Math
 

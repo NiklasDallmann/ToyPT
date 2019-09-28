@@ -7,6 +7,7 @@
 #include <ostream>
 #include <sstream>
 #include <stddef.h>
+#include <utility/globals.h>
 
 ///
 /// Contains mathematical primitives.
@@ -24,17 +25,26 @@ namespace Math
 class Vector4
 {
 public:
-	friend Vector4 operator*(const Vector4 &left, const Vector4 &right);
+	friend HOST_DEVICE Vector4 operator*(const Vector4 &left, const Vector4 &right);
+#ifndef __NVCC__
 	friend std::ostream &operator<<(std::ostream &stream, const Vector4 &vector);
+#endif
 	
 	///
 	/// Constructs a vector with its coordinates \a x, \a y and \a z.
 	/// 
 	/// \since	1.0
 	///
-	Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 0)
+	HOST_DEVICE Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 0)
 	{
+#ifdef __AVX__
 		this->_coordinates = __m128{x, y, z, w};
+#else
+		this->_coordinates[0] = x;
+		this->_coordinates[1] = y;
+		this->_coordinates[2] = z;
+		this->_coordinates[3] = w;
+#endif
 	}
 	
 	///
@@ -44,7 +54,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float x() const
+	HOST_DEVICE float x() const
 	{
 		return this->_coordinates[0];
 	}
@@ -56,7 +66,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setX(const float x)
+	HOST_DEVICE void setX(const float x)
 	{
 		this->_coordinates[0] = x;
 	}
@@ -68,7 +78,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float y() const
+	HOST_DEVICE float y() const
 	{
 		return this->_coordinates[1];
 	}
@@ -80,7 +90,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setY(const float y)
+	HOST_DEVICE void setY(const float y)
 	{
 		this->_coordinates[1] = y;
 	}
@@ -92,7 +102,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float z() const
+	HOST_DEVICE float z() const
 	{
 		return this->_coordinates[2];
 	}
@@ -104,7 +114,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setZ(const float z)
+	HOST_DEVICE void setZ(const float z)
 	{
 		this->_coordinates[2] = z;
 	}
@@ -116,7 +126,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float w() const
+	HOST_DEVICE float w() const
 	{
 		return this->_coordinates[3];
 	}
@@ -128,7 +138,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	void setW(const float w)
+	HOST_DEVICE void setW(const float w)
 	{
 		this->_coordinates[3] = w;
 	}
@@ -138,9 +148,13 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float magnitude() const
+	HOST_DEVICE float magnitude() const
 	{
+#ifndef __NVCC__
 		return std::pow((std::pow(this->_coordinates[0], 2.0f) + std::pow(this->_coordinates[1], 2.0f) + std::pow(this->_coordinates[2], 2.0f)), 0.5f);
+#else
+		return powf((powf(this->_coordinates[0], 2.0f) + powf(this->_coordinates[1], 2.0f) + powf(this->_coordinates[2], 2.0f)), 0.5f);
+#endif
 	}
 	
 	///
@@ -150,10 +164,15 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 &normalize()
+	HOST_DEVICE Vector4 &normalize()
 	{
+#ifdef __AVX__
 		__m128 magnitude = _mm_set1_ps(this->magnitude());
 		this->_coordinates = _mm_div_ps(this->_coordinates, magnitude);
+#else
+		float magnitude = this->magnitude();
+		(*this) /= magnitude;
+#endif
 		
 		return *this;
 	}
@@ -165,7 +184,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 normalized() const
+	HOST_DEVICE Vector4 normalized() const
 	{
 		Vector4 returnValue = *this;
 		
@@ -179,7 +198,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 crossProduct(const Vector4 &other) const
+	HOST_DEVICE Vector4 crossProduct(const Vector4 &other) const
 	{
 		Vector4 returnValue;
 		
@@ -190,12 +209,17 @@ public:
 		return returnValue;
 	}
 	
-	float dotProduct(const Vector4 &other) const
+	HOST_DEVICE float dotProduct(const Vector4 &other) const
 	{
 		float returnValue = 0;
 		
+#ifdef __AVX__
 		__m128 temporary = _mm_mul_ps(this->_coordinates, other._coordinates);
 		returnValue = temporary[0] + temporary[1] + temporary[2];
+#else
+		Vector4 temporary = (*this) * other;
+		returnValue = temporary[0] + temporary[1] + temporary[2];
+#endif
 		
 		return returnValue;
 	}
@@ -205,7 +229,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float cos(const Vector4 &left, const Vector4 &right)
+	HOST_DEVICE float cos(const Vector4 &left, const Vector4 &right)
 	{
 		float returnValue = 0;
 		
@@ -219,9 +243,16 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 &operator+=(const Vector4 &other)
+	HOST_DEVICE Vector4 &operator+=(const Vector4 &other)
 	{
+#ifdef __AVX__
 		this->_coordinates = _mm_add_ps(this->_coordinates, other._coordinates);
+#else
+		this->_coordinates[0] += other._coordinates[0];
+		this->_coordinates[1] += other._coordinates[1];
+		this->_coordinates[2] += other._coordinates[2];
+		this->_coordinates[3] += other._coordinates[3];
+#endif
 		
 		return *this;
 	}
@@ -231,16 +262,30 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 &operator-=(const Vector4 &other)
+	HOST_DEVICE Vector4 &operator-=(const Vector4 &other)
 	{
+#ifdef __AVX__
 		this->_coordinates = _mm_sub_ps(this->_coordinates, other._coordinates);
+#else
+		this->_coordinates[0] -= other._coordinates[0];
+		this->_coordinates[1] -= other._coordinates[1];
+		this->_coordinates[2] -= other._coordinates[2];
+		this->_coordinates[3] -= other._coordinates[3];
+#endif
 		
 		return *this;
 	}
 	
-	Vector4 &operator*=(const Vector4 &other)
+	HOST_DEVICE Vector4 &operator*=(const Vector4 &other)
 	{
+#ifdef __AVX__
 		this->_coordinates = _mm_mul_ps(this->_coordinates, other._coordinates);
+#else
+		this->_coordinates[0] *= other._coordinates[0];
+		this->_coordinates[1] *= other._coordinates[1];
+		this->_coordinates[2] *= other._coordinates[2];
+		this->_coordinates[3] *= other._coordinates[3];
+#endif
 		
 		return *this;
 	}
@@ -250,11 +295,17 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 &operator*=(const float scalar)
+	HOST_DEVICE Vector4 &operator*=(const float scalar)
 	{
+#ifdef __AVX__
 		__m128 scalarVector = _mm_set1_ps(scalar);
-		
 		this->_coordinates = _mm_mul_ps(this->_coordinates, scalarVector);
+#else
+		this->_coordinates[0] += scalar;
+		this->_coordinates[1] += scalar;
+		this->_coordinates[2] += scalar;
+		this->_coordinates[3] += scalar;
+#endif
 		
 		return *this;
 	}
@@ -264,16 +315,22 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	Vector4 &operator/=(const float scalar)
+	HOST_DEVICE Vector4 &operator/=(const float scalar)
 	{
+#ifdef __AVX__
 		__m128 scalarVector = _mm_set1_ps(scalar);
-		
 		this->_coordinates = _mm_div_ps(this->_coordinates, scalarVector);
+#else
+		this->_coordinates[0] /= scalar;
+		this->_coordinates[1] /= scalar;
+		this->_coordinates[2] /= scalar;
+		this->_coordinates[3] /= scalar;
+#endif
 		
 		return *this;
 	}
 	
-	Vector4 operator-() const
+	HOST_DEVICE Vector4 operator-() const
 	{
 		return Vector4{-1.0f, -1.0f, -1.0f} * (*this);
 	}
@@ -283,7 +340,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float &operator[](const size_t index)
+	HOST_DEVICE float &operator[](const size_t index)
 	{
 		return this->_coordinates[index];
 	}
@@ -293,29 +350,42 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	float operator[](const size_t index) const
+	HOST_DEVICE float operator[](const size_t index) const
 	{
 		return this->_coordinates[index];
 	}
 	
-	bool operator==(const Vector4 &other)
+	HOST_DEVICE bool operator==(const Vector4 &other)
 	{
 		bool returnValue = true;
 		
+#ifdef __AVX__
 		__m128 resultVector = _mm_cmpeq_ps(this->_coordinates, other._coordinates);
 		returnValue = bool(resultVector[0]);
+#else
+		returnValue =
+				((*this)[0] == other[0]) &
+				((*this)[1] == other[1]) &
+				((*this)[2] == other[2]) &
+				((*this)[3] == other[3]);
+#endif
 		
 		return returnValue;
 	}
 	
-	bool operator!=(const Vector4 &other)
+	HOST_DEVICE bool operator!=(const Vector4 &other)
 	{
 		return !(*this == other);
 	}
 	
 private:
 	static constexpr size_t _dimension = 4;
+	
+#ifdef __AVX__
 	__m128 _coordinates;
+#else
+	alignas (sizeof (float) * _dimension) float _coordinates[_dimension];
+#endif
 };
 
 ///
@@ -323,7 +393,7 @@ private:
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator+(const Vector4 &left, const Vector4 &right)
+HOST_DEVICE inline Vector4 operator+(const Vector4 &left, const Vector4 &right)
 {
 	Vector4 returnValue = left;
 	
@@ -337,7 +407,7 @@ inline Vector4 operator+(const Vector4 &left, const Vector4 &right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
+HOST_DEVICE inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
 {
 	Vector4 returnValue = left;
 	
@@ -351,7 +421,7 @@ inline Vector4 operator-(const Vector4 &left, const Vector4 &right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator*(const Vector4 &left, const Vector4 &right)
+HOST_DEVICE inline Vector4 operator*(const Vector4 &left, const Vector4 &right)
 {
 	Vector4 returnValue = left;
 	
@@ -365,7 +435,7 @@ inline Vector4 operator*(const Vector4 &left, const Vector4 &right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator*(const Vector4 &left, const float right)
+HOST_DEVICE inline Vector4 operator*(const Vector4 &left, const float right)
 {
 	Vector4 returnValue = left;
 	
@@ -379,7 +449,7 @@ inline Vector4 operator*(const Vector4 &left, const float right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator*(const float left, const Vector4 right)
+HOST_DEVICE inline Vector4 operator*(const float left, const Vector4 right)
 {
 	return right * left;
 }
@@ -389,7 +459,7 @@ inline Vector4 operator*(const float left, const Vector4 right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator/(const Vector4 &left, const float right)
+HOST_DEVICE inline Vector4 operator/(const Vector4 &left, const float right)
 {
 	Vector4 returnValue = left;
 	
@@ -403,11 +473,12 @@ inline Vector4 operator/(const Vector4 &left, const float right)
 /// 
 /// \since	1.0
 ///
-inline Vector4 operator/(const float left, const Vector4 right)
+HOST_DEVICE inline Vector4 operator/(const float left, const Vector4 right)
 {
 	return right / left;
 }
 
+#ifndef __NVCC__
 ///
 /// Writes a JSON representation of \a vector to \a stream.
 /// 
@@ -423,6 +494,7 @@ inline std::ostream &operator<<(std::ostream &stream, const Vector4 &vector)
 	
 	return stream;
 }
+#endif
 
 } // namespace Math
 

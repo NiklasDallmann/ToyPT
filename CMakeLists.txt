@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
-project(pathtracer)
+project(pathtracer LANGUAGES CXX CUDA)
 
 find_package(OpenMP)
 find_package(OpenCL)
@@ -17,22 +17,21 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 add_definitions(-DKERNEL_LOCATION="${CMAKE_CURRENT_SOURCE_DIR}/src/rendering/kernels/kernel.cl")
 
-add_library(utility STATIC
+add_library(utility SHARED
 	"src/utility/debugstream.cpp"
-	"include/utility/debugstream.h")
+	"include/utility/debugstream.h"
+	"include/utility/globals.h")
 target_include_directories(utility
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/utility>
 )
 
-add_library(rendering STATIC
+add_library(rendering SHARED
 	"src/rendering/framebuffer.cpp"
 	"include/rendering/framebuffer.h"
 	"src/rendering/color.cpp"
 	"include/rendering/color.h"
-	"src/rendering/simdrenderer.cpp"
-	"include/rendering/simdrenderer.h"
 	"src/rendering/triangle.cpp"
 	"include/rendering/triangle.h"
 	"src/rendering/material.cpp"
@@ -49,18 +48,25 @@ add_library(rendering STATIC
 	"include/rendering/storage.h"
 	"src/rendering/randomnumbergenerator.cpp"
 	"include/rendering/randomnumbergenerator.h"
-	"src/rendering/openclrenderer.cpp"
-	"include/rendering/openclrenderer.h"
-	"src/rendering/kernels/kernel.cl"
-	"src/rendering/abstractrenderer.cpp"
-	"include/rendering/abstractrenderer.h")
+	"include/rendering/abstractrenderer.h"
+	"src/rendering/simd/simdrenderer.cpp"
+	"include/rendering/simd/simdrenderer.h"
+	"src/rendering/cuda/cudarenderer.cpp"
+	"include/rendering/cuda/cudarenderer.h"
+	"src/rendering/cuda/cudaarrayprivate.cu"
+	"include/rendering/cuda/cudaarrayprivate.h"
+	"include/rendering/cuda/cudaarray.h"
+	"src/rendering/cuda/kernelwrapper.cpp"
+	"include/rendering/cuda/kernelwrapper.h"
+	"src/rendering/cuda/kernel.cu"
+	"include/rendering/cuda/cudatypes.h")
 target_include_directories(rendering
 	PUBLIC
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
+		$<BUILD_INTERFACE:/opt/cuda/include>
 )
-target_link_libraries(rendering utility OpenMP::OpenMP_CXX OpenCL OpenImageDenoise)
+target_link_libraries(rendering utility OpenMP::OpenMP_CXX OpenImageDenoise)
 
 add_executable(${PROJECT_NAME}
 	"src/application/main.cpp"

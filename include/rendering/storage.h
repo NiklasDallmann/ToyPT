@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <vector>
 
-#include <vector4.h>
+#include <math/vector4.h>
 
 namespace Obj{ class GeometryContainer; }
 

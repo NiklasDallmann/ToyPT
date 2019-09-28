@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <vector>
 
-#include <vector4.h>
+#include <math/vector4.h>
 
 #include "framebuffer.h"
 #include "geometrycontainer.h"

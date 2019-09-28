@@ -22,7 +22,6 @@
 
 #include <framebuffer.h>
 #include <geometrycontainer.h>
-#include <simdrenderer.h>
 
 #include <renderthread.h>
 
@@ -105,7 +104,7 @@ private:
 	void _buildUi();
 	void _doConnects();
 	void _initializeScene();
-	bool _applyrenderSettings();
+	bool _applyRenderSettings();
 };
 
 } // namespace PathTracer

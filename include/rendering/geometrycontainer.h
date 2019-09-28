@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include <vector4.h>
+#include <math/vector4.h>
 
 #include "material.h"
 #include "mesh.h"
@@ -21,8 +21,6 @@ public:
 	std::vector<Triangle> triangleBuffer;
 	std::vector<Material> materialBuffer;
 	std::vector<Mesh> meshBuffer;
-	
-	GeometryContainer();
 };
 
 } // namespace Rendering::Obj

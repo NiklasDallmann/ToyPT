@@ -3,9 +3,4 @@
 namespace Rendering::Obj
 {
 
-GeometryContainer::GeometryContainer()
-{
-	
-}
-
 }

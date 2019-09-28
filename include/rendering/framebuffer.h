@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "vector4.h"
+#include "math/vector4.h"
 
 namespace Rendering
 {

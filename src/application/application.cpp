@@ -39,8 +39,9 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
 	
 	connect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
+	this->_renderTime = {};
 	this->_renderTime.start();
-	this->_timeUpdateTimer.start(15);
+	this->_timeUpdateTimer.start(30);
 	
 	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, &this->_lights, fieldOfView, samples, bounces, tileSize);
 	this->_renderThread.start();
@@ -183,17 +184,19 @@ void Application::_doConnects()
 	{
 		if (this->_renderThread.isRunning())
 		{
+			disconnect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
+			this->_timeUpdateTimer.stop();
 			this->_renderThread.quit();
 			this->_renderThread.wait();
 		}
 		
-		if (this->_applyrenderSettings())
+		if (this->_applyRenderSettings())
 		{
 			this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize);
 		}
 		else
 		{
-			this->_statusLabel->setText(QStringLiteral("Invalid parameters supplied!"));
+			this->_statusLabel->setText(QStringLiteral("Invalid parameters!"));
 		}
 	});
 	
@@ -201,6 +204,8 @@ void Application::_doConnects()
 	{
 		if (this->_renderThread.isRunning())
 		{
+			disconnect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
+			this->_timeUpdateTimer.stop();
 			this->_renderThread.quit();
 			this->_renderThread.wait();
 		}
@@ -233,7 +238,7 @@ void Application::_initializeScene()
 {
 	Rendering::Material red{{1.0f, 0.0f, 0.0f}};
 	Rendering::Material green{{0.0f, 1.0f, 0.0f}};
-	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.1f};
+	Rendering::Material blue{{0.0f, 0.0f, 1.0f}, 0.0f, 0.5f};
 	Rendering::Material cyan{{0.0f, 0.7f, 0.7f}};
 	Rendering::Material magenta{{1.0f, 0.0f, 1.0f}, 0.0f, 1.0f};
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
@@ -259,9 +264,9 @@ void Application::_initializeScene()
 	cube1.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
 	cube1.translate({2.5f, 0.2f, -5.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 2, this->_geometry);
-//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-//	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(1.0f, 16, 8, 12, this->_geometry);
+	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+	sphere.translate({0.0f, 0.0f, -5.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
 	worldCube.invert(this->_geometry);
@@ -275,14 +280,14 @@ void Application::_initializeScene()
 	// Object buffer
 	this->_geometry.meshBuffer.push_back(cube0);
 	this->_geometry.meshBuffer.push_back(cube1);
-//	this->_geometry.meshBuffer.push_back(sphere);
+	this->_geometry.meshBuffer.push_back(sphere);
 	this->_geometry.meshBuffer.push_back(worldCube);
 	
 	// Light buffer
 	this->_geometry.meshBuffer.push_back(lightPlane0);
 }
 
-bool Application::_applyrenderSettings()
+bool Application::_applyRenderSettings()
 {
 	bool success;
 	

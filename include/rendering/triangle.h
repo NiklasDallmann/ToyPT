@@ -4,7 +4,7 @@
 #include <array>
 #include <iostream>
 #include <stddef.h>
-#include <vector4.h>
+#include <math/vector4.h>
 
 namespace Rendering::Obj
 {
