@@ -1,10 +1,11 @@
 #include "cuda/cudaarray.h"
 #include "cuda/cudatypes.h"
+#include "rendering/framebuffer.h"
 #include "math/algorithms.h"
 #include "math/matrix4x4.h"
 #include "math/vector4.h"
-#include "ray.h"
-#include "randomnumbergenerator.h"
+#include "rendering/ray.h"
+#include "rendering/randomnumbergenerator.h"
 
 namespace Rendering
 {
@@ -56,8 +57,8 @@ __device__ float traceRay(const Rendering::Ray &ray, const Cuda::Types::Scene &s
 	uint32_t nearestTriangle = 0xFFFFFFFF;
 	float newDistance = 0.0f;
 	float distance = 1E7f;
-	float u = 0;
-	float v = 0;
+//	float u = 0;
+//	float v = 0;
 	newDistance = distance;
 	
 	// Intersect triangles
@@ -149,11 +150,11 @@ __device__ Math::Vector4 interpolateNormal(const Math::Vector4 &intersectionPoin
 	v1p = p - v1;
 	v2p = p - v2;
 	
-	float a, b, denominator;
+	float a, denominator;
 	
 	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + Math::epsilon;
 	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
+//	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
 	
 	vab = v0 + a * e01;
 	
@@ -165,10 +166,42 @@ __device__ Math::Vector4 interpolateNormal(const Math::Vector4 &intersectionPoin
 	return returnValue;
 }
 
-__global__ void castRay(const Rendering::Ray &ray, const Cuda::Types::Scene &scene, const size_t maxBounces,
-						const Math::Vector4 &skyColor)
+__device__ Ray createCameraRay(const uint pixelX, const uint pixelY, const uint width, const uint height, const float fieldOfView, RandomNumberGenerator &rng)
 {
-	Rendering::RandomNumberGenerator rng;
+	float fovRadians = fieldOfView / 180.0f * float(M_PI);
+	float zCoordinate = -(width/(2.0f * tanf(fovRadians / 2.0f)));
+	
+	float offsetX, offsetY;
+	constexpr float scalingFactor = 1.0f / float(0xFFFFFFFF);
+	offsetX = rng.get(scalingFactor)  - 0.5f;
+	offsetY = rng.get(scalingFactor) - 0.5f;
+	
+	float x = (pixelX + offsetX + 0.5f) - (width / 2.0f);
+	float y = -(pixelY + offsetY + 0.5f) + (height / 2.0f);
+	
+	Math::Vector4 direction{x, y, zCoordinate};
+	direction.normalize();
+	
+	return Ray{Math::Vector4{}, direction};
+}
+
+__global__ void castRay(const Cuda::Types::Tile tile, RandomNumberGenerator *rngs, const uint32_t width, const uint32_t height, const float fieldOfView,
+						const Cuda::Types::Scene scene, const size_t maxBounces, const Math::Vector4 skyColor, Math::Vector4 *pixels)
+{
+	uint pixelX = threadIdx.x * blockIdx.x * blockDim.x;
+	uint pixelY = threadIdx.y * blockIdx.y * blockDim.y;
+	
+	// Return early if pixel is outside tile
+	if ((pixelX > tile.x1) | (pixelY > tile.y1))
+	{
+		return;
+	}
+	
+	uint pixelIndex = pixelX + pixelY * width;
+	
+	RandomNumberGenerator &rng = rngs[pixelIndex];
+	Ray ray = createCameraRay(pixelX, pixelY, width, height, fieldOfView, rng);
+	
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
 	
@@ -222,7 +255,51 @@ __global__ void castRay(const Rendering::Ray &ray, const Cuda::Types::Scene &sce
 		}
 	}
 	
-//	return returnValue;
+//	pixels[pixelIndex] = returnValue;
+	Math::Vector4 &pixel = pixels[pixelIndex];
+	atomicAdd(&pixel.data()[0], returnValue.data()[0]);
+	atomicAdd(&pixel.data()[1], returnValue.data()[1]);
+	atomicAdd(&pixel.data()[2], returnValue.data()[2]);
+}
+
+__host__ void render(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
+					 const CudaArray<Types::Triangle> &triangleBuffer,
+					 const CudaArray<Types::Mesh> &meshBuffer,
+					 const CudaArray<Material> &materialBuffer,
+					 const uint32_t samples,
+					 const uint32_t maxBounces,
+					 const float fieldOfView,
+					 const Math::Vector4 &skyColor)
+{
+	const uint32_t pixelCount = frameBuffer.width() * frameBuffer.height();
+	
+	Types::Scene scene{
+		triangleBuffer.data(),
+		triangleBuffer.size(),
+		meshBuffer.data(),
+		meshBuffer.size(),
+		materialBuffer.data(),
+		materialBuffer.size()
+	};
+	
+	dim3 gridSize(samples);
+	dim3 blockSize(frameBuffer.width(), frameBuffer.height());
+	
+	CudaArray<RandomNumberGenerator> rngs(pixelCount);
+	
+	for (uint32_t i = 0; i < rngs.size(); i++)
+	{
+		rngs[i] = rng.get();
+	}
+	
+	CudaArray<Math::Vector4> gpuFrameBuffer(pixelCount);
+	
+	castRay<<<gridSize, blockSize>>>(Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()}, rngs.data(), frameBuffer.width(), frameBuffer.height(), fieldOfView, scene, maxBounces,
+									 skyColor, gpuFrameBuffer.data());
+	cudaDeviceSynchronize();
+	
+	// Copy frame buffer back
+	frameBuffer = FrameBuffer::fromRawData(gpuFrameBuffer.data(), frameBuffer.width(), frameBuffer.height());
 }
 
 }

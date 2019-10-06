@@ -12,7 +12,6 @@
 #include <cuda/cudarenderer.h>
 #include <framebuffer.h>
 #include <geometrycontainer.h>
-#include <simd/simdrenderer.h>
 
 namespace PathTracer
 {

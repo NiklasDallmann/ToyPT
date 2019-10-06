@@ -1,5 +1,6 @@
 #include "framebuffer.h"
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 
@@ -125,6 +126,16 @@ FrameBuffer FrameBuffer::denoise(const FrameBuffer &color)
 	{
 		std::cout << "Error: " << errorMessage << std::endl;
 	}
+	
+	return returnValue;
+}
+
+FrameBuffer FrameBuffer::fromRawData(const Math::Vector4 *data, const uint32_t width, const uint32_t height)
+{
+	const uint32_t pixelCount = width * height;
+	FrameBuffer returnValue(width, height);
+	
+	std::memcpy(returnValue.data(), data, pixelCount);
 	
 	return returnValue;
 }

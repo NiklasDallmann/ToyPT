@@ -371,7 +371,7 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	
 	denominator = (e01.x() * v2p.y() - v2p.x() * e01.y()) + Math::epsilon;
 	a = (-(v0.x() * v2p.y() - v2p.x() * v0.y() + v2p.x() * v2.y() - v2.x() * v2p.y())) / denominator;
-	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
+//	b = (e01.x() * v0.y() - e01.x() * v2.y() - v0.x() * e01.y() + v2.x() * e01.y()) / denominator;
 	
 	vab = v0 + a * e01;
 	

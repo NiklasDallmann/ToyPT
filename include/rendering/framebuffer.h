@@ -35,6 +35,8 @@ public:
 	
 	static FrameBuffer denoise(const FrameBuffer &color);
 	
+	static FrameBuffer fromRawData(const Math::Vector4 *data, const uint32_t width, const uint32_t height);
+	
 private:
 	uint32_t _width = 0;
 	uint32_t _height = 0;

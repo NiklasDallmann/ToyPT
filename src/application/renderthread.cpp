@@ -1,4 +1,6 @@
 #include <stddef.h>
+#include <simd/simdrenderer.h>
+#include <cuda/cudarenderer.h>
 
 #include "renderthread.h"
 
@@ -9,6 +11,7 @@ RenderThread::RenderThread(QObject *parent) :
 	QThread(parent)
 {
 	this->_renderer = std::make_unique<Rendering::SimdRenderer>();
+//	this->_renderer = std::make_unique<Rendering::CudaRenderer>();
 	connect(this, &RenderThread::finished, this, &RenderThread::_onFinished);
 }
 

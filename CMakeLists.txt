@@ -12,7 +12,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-mavx2 -mfma")
-set(CMAKE_CXX_FLAGS_RELEASE "-o3 -flto -march=native -mtune=native")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -flto -march=native -mtune=native")
 set(CMAKE_CXX_FLAGS_DEBUG "-g")
 
 add_definitions(-DKERNEL_LOCATION="${CMAKE_CURRENT_SOURCE_DIR}/src/rendering/kernels/kernel.cl")

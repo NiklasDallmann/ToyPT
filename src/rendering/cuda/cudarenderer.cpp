@@ -7,11 +7,21 @@
 #include <utility/debugstream.h>
 
 #include "cuda/cudarenderer.h"
+#include "cuda/cudatypes.h"
 #include "randomnumbergenerator.h"
 #include "geometrycontainer.h"
 
 namespace Rendering
 {
+
+extern void render(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
+					 const CudaArray<Cuda::Types::Triangle> &triangleBuffer,
+					 const CudaArray<Cuda::Types::Mesh> &meshBuffer,
+					 const CudaArray<Material> &materialBuffer,
+					 const uint32_t samples,
+					 const uint32_t maxBounces,
+					 const float fieldOfView,
+					 const Math::Vector4 &skyColor);
 
 void CudaRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights,
 						  const AbstractRenderer::CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples,

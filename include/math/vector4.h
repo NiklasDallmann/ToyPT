@@ -355,6 +355,13 @@ public:
 		return this->_coordinates[index];
 	}
 	
+#ifdef __NVCC__
+	HOST_DEVICE float *data()
+	{
+		return &this->_coordinates[0];
+	}
+#endif
+	
 	HOST_DEVICE bool operator==(const Vector4 &other)
 	{
 		bool returnValue = true;
