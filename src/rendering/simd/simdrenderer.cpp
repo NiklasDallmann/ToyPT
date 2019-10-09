@@ -16,7 +16,7 @@
 #include "debugstream.h"
 #include "simd/simdrenderer.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 SimdRenderer::SimdRenderer() :

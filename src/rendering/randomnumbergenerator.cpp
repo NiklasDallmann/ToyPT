@@ -1,6 +1,6 @@
 #include "randomnumbergenerator.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 

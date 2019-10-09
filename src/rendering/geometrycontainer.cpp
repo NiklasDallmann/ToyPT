@@ -1,6 +1,6 @@
 #include "geometrycontainer.h"
 
-namespace Rendering::Obj
+namespace ToyPT::Rendering::Obj
 {
 
 }

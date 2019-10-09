@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 Color::Color(const uint8_t red, const uint8_t green, const uint8_t blue) :

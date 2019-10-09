@@ -8,9 +8,9 @@
 
 #include <math/vector4.h>
 
-namespace Obj{ class GeometryContainer; }
+namespace ToyPT::Rendering::Obj{ class GeometryContainer; }
 
-namespace Rendering::Storage
+namespace ToyPT::Rendering::Storage
 {
 
 struct CoordinateBufferPointer
@@ -113,6 +113,6 @@ static constexpr uint32_t maskTrue = 0xFFFFFFFF;
 static constexpr uint32_t maskFalse = 0x00000000;
 static constexpr uint32_t avx2FloatCount = sizeof (__m256) / sizeof (float);
 
-} // namespace Rendering::Storage
+} // namespace ToyPT::Rendering::Storage
 
 #endif // STORAGE_H

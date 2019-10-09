@@ -7,9 +7,10 @@
 #include "rendering/ray.h"
 #include "rendering/randomnumbergenerator.h"
 
+namespace ToyPT
+{
 namespace Rendering
 {
-
 namespace Cuda
 {
 
@@ -302,5 +303,6 @@ __host__ void render(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
 	frameBuffer = FrameBuffer::fromRawData(gpuFrameBuffer.data(), frameBuffer.width(), frameBuffer.height());
 }
 
+}
 }
 }

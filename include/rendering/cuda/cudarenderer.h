@@ -13,7 +13,7 @@
 #include "material.h"
 #include "storage.h"
 
-namespace Rendering
+namespace ToyPT::Rendering::Cuda
 {
 
 class CudaRenderer : public AbstractRenderer
@@ -30,6 +30,6 @@ private:
 						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
 };
 
-} // namespace Rendering
+} // namespace ToyPT::Rendering::Cuda
 
 #endif // OPENCLRENDERER_H

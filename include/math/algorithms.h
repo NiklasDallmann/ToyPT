@@ -5,11 +5,12 @@
 #include <immintrin.h>
 #endif
 
-#include <utility/globals.h>
+#include <cxxutility/definitions.h>
+
 #include "vector4.h"
 
-
-
+namespace ToyPT
+{
 namespace Math
 {
 
@@ -75,5 +76,6 @@ HOST_DEVICE inline Math::Vector4 saturate<Math::Vector4>(const Math::Vector4 v)
 
 
 } // namespace Math
+} // namespace ToyPT
 
 #endif // ALGORITHMS_H

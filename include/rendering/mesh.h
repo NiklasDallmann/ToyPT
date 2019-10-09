@@ -7,7 +7,7 @@
 #include "material.h"
 #include "triangle.h"
 
-namespace Rendering::Obj
+namespace ToyPT::Rendering::Obj
 {
 
 // Forward declare to avoid ring include
@@ -46,6 +46,6 @@ public:
 	
 };
 
-} // namespace Rendering::Obj
+} // namespace ToyPT::Rendering::Obj
 
 #endif // MESH_H

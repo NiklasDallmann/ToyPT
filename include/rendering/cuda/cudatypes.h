@@ -5,6 +5,8 @@
 #include <material.h>
 #include <math/vector4.h>
 
+namespace ToyPT
+{
 namespace Rendering
 {
 namespace Cuda
@@ -60,5 +62,6 @@ struct Tile
 } // namespace Types
 } // namespace Cuda
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // CUDATYPES_H

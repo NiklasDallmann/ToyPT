@@ -2,7 +2,7 @@
 #include "mesh.h"
 #include "storage.h"
 
-namespace Rendering::Storage
+namespace ToyPT::Rendering::Storage
 {
 
 uint32_t CoordinateBuffer::size() const

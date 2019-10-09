@@ -7,13 +7,15 @@
 #include <ostream>
 #include <sstream>
 #include <stddef.h>
-#include <utility/globals.h>
+#include <cxxutility/definitions.h>
 
 ///
 /// Contains mathematical primitives.
 /// 
 /// \since	1.0
 ///
+namespace ToyPT
+{
 namespace Math
 {
 
@@ -504,5 +506,6 @@ inline std::ostream &operator<<(std::ostream &stream, const Vector4 &vector)
 #endif
 
 } // namespace Math
+} // namespace ToyPT
 
 #endif // VECTOR4_H

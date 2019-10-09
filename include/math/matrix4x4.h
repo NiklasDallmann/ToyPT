@@ -4,11 +4,13 @@
 #include <cmath>
 #include <sstream>
 #include <stddef.h>
-#include <utility/globals.h>
+#include <cxxutility/definitions.h>
 
 #include "algorithms.h"
 #include "vector4.h"
 
+namespace ToyPT
+{
 namespace Math
 {
 
@@ -364,5 +366,6 @@ inline std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix)
 #endif
 
 } // namespace Math
+} // namespace ToyPT
 
 #endif // MATRIX4X4_H

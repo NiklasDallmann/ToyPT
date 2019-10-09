@@ -4,14 +4,14 @@
 #include <random>
 #include <vector>
 
-#include <utility/debugstream.h>
+#include <cxxutility/debugstream.h>
 
 #include "cuda/cudarenderer.h"
 #include "cuda/cudatypes.h"
 #include "randomnumbergenerator.h"
 #include "geometrycontainer.h"
 
-namespace Rendering
+namespace ToyPT::Rendering::Cuda
 {
 
 extern void render(FrameBuffer &frameBuffer, RandomNumberGenerator rng,

@@ -9,7 +9,7 @@
 #include "mesh.h"
 #include "triangle.h"
 
-namespace Rendering::Obj
+namespace ToyPT::Rendering::Obj
 {
 
 class GeometryContainer
@@ -23,6 +23,6 @@ public:
 	std::vector<Mesh> meshBuffer;
 };
 
-} // namespace Rendering::Obj
+} // namespace ToyPT::Rendering::Obj
 
 #endif // GEOMETRYCONTAINER_H

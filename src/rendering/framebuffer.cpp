@@ -8,7 +8,7 @@
 
 #include "color.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 FrameBuffer::FrameBuffer(const uint32_t width, const uint32_t height) :

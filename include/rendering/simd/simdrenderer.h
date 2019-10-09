@@ -20,7 +20,7 @@
 #include "storage.h"
 #include "triangle.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 class SimdRenderer : public AbstractRenderer
@@ -65,6 +65,6 @@ private:
 	Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta);
 };
 
-} // namespace Rendering
+} // namespace ToyPT::Rendering
 
 #endif // SIMDRENDERER_H

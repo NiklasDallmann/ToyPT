@@ -7,6 +7,13 @@
 
 #include "cudaarrayprivate.h"
 
+namespace ToyPT
+{
+namespace Rendering
+{
+namespace Cuda
+{
+
 ///
 /// Manages an array in the CUDA unified memory.
 ///
@@ -80,5 +87,9 @@ private:
 	size_type _size = 0;
 	pointer _data = nullptr;
 };
+
+} // namespace Cuda
+} // namespace Rendering
+} // namespace ToyPT
 
 #endif // CUDAARRAY_H

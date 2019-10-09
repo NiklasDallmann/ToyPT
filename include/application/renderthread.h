@@ -13,7 +13,7 @@
 #include <framebuffer.h>
 #include <geometrycontainer.h>
 
-namespace PathTracer
+namespace ToyPT
 {
 
 class RenderThread : public QThread
@@ -51,6 +51,6 @@ private:
 	std::unique_ptr<Rendering::AbstractRenderer> _renderer;
 };
 
-} // namespace PathTracer
+} // namespace ToyPT
 
 #endif // RENDERTHREAD_H

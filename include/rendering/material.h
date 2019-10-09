@@ -3,6 +3,8 @@
 
 #include <math/vector4.h>
 
+namespace ToyPT
+{
 namespace Rendering
 {
 
@@ -27,5 +29,6 @@ public:
 };
 
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // MATERIAL_H

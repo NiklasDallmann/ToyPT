@@ -3,6 +3,8 @@
 
 #include <immintrin.h>
 
+namespace ToyPT
+{
 namespace Math
 {
 
@@ -136,5 +138,6 @@ inline SimdVector3Pack operator/(const SimdVector3Pack &left, const SimdVector3P
 }
 
 } // namespace Math
+} // namespace ToyPT
 
 #endif // SIMDVECTOR3PACK_H

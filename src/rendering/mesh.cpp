@@ -4,7 +4,7 @@
 #include "geometrycontainer.h"
 #include "mesh.h"
 
-namespace Rendering::Obj
+namespace ToyPT::Rendering::Obj
 {
 
 Mesh::Mesh(const uint32_t triangleOffset, const uint32_t triangleCount, const uint32_t materialOffset, const uint32_t vertexOffset, const uint32_t vertexCount,

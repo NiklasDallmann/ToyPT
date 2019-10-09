@@ -4,7 +4,7 @@
 
 #include "renderthread.h"
 
-namespace PathTracer
+namespace ToyPT
 {
 
 RenderThread::RenderThread(QObject *parent) :

@@ -10,7 +10,7 @@
 #include "geometrycontainer.h"
 #include "storage.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 class OpenCLRenderer : public AbstractRenderer

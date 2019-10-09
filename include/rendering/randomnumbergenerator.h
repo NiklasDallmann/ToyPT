@@ -2,8 +2,10 @@
 #define RANDOMNUMBERGENERATOR_H
 
 #include <stdint.h>
-#include <utility/globals.h>
+#include <cxxutility/definitions.h>
 
+namespace ToyPT
+{
 namespace Rendering
 {
 
@@ -44,5 +46,6 @@ private:
 };
 
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // RANDOMNUMBERGENERATOR_H

@@ -6,7 +6,7 @@
 
 #include "application.h"
 
-namespace PathTracer
+namespace ToyPT
 {
 
 Application::Application(QWidget *parent) : QMainWindow(parent)

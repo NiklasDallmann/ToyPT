@@ -17,6 +17,8 @@
 #include "storage.h"
 #include "triangle.h"
 
+namespace ToyPT
+{
 namespace Rendering
 {
 
@@ -44,5 +46,6 @@ protected:
 };
 
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // ABSTRACTRENDERER_H

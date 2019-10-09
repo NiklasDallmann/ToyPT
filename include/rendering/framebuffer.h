@@ -9,6 +9,8 @@
 
 #include "math/vector4.h"
 
+namespace ToyPT
+{
 namespace Rendering
 {
 
@@ -48,5 +50,6 @@ private:
 };
 
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // FRAMEBUFFER_H

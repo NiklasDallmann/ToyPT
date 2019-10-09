@@ -1,6 +1,6 @@
 #include "pointlight.h"
 
-namespace Rendering
+namespace ToyPT::Rendering
 {
 
 PointLight::PointLight(const Math::Vector4 &position, const Math::Vector4 &color) :

@@ -25,7 +25,7 @@
 
 #include <renderthread.h>
 
-namespace PathTracer
+namespace ToyPT
 {
 
 class Application : public QMainWindow
@@ -107,7 +107,7 @@ private:
 	bool _applyRenderSettings();
 };
 
-} // namespace PathTracer
+} // namespace ToyPT
 
 Q_DECLARE_METATYPE(uint32_t);
 

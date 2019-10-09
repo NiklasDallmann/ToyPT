@@ -3,6 +3,8 @@
 
 #include <math/vector4.h>
 
+namespace ToyPT
+{
 namespace Rendering
 {
 
@@ -13,5 +15,6 @@ struct Ray
 };
 
 } // namespace Rendering
+} // namespace ToyPT
 
 #endif // RAY_H
