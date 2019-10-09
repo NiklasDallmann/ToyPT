@@ -35,19 +35,26 @@ set(CMAKE_INSTALL_RPATH							${CMAKE_INSTALL_PREFIX}/lib/toypt)
 add_definitions(-DKERNEL_LOCATION="${CMAKE_CURRENT_SOURCE_DIR}/src/rendering/kernels/kernel.cl")
 
 # Targets
-# Utility library
-#add_library(utility SHARED
-#	"src/utility/debugstream.cpp")
-#set_target_properties(utility PROPERTIES PRIVATE_HEADER
-#	"include/utility/debugstream.h;include/utility/globals.h")
-#target_include_directories(utility
-#	PUBLIC
-#		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-#		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/utility>
-#)
+set(RENDERING_PUBLIC_HEADERS
+	"include/rendering/abstractrenderer.h"
+	"include/rendering/color.h"
+	"include/rendering/cuda/cudaarray.h"
+	"include/rendering/cuda/cudaarrayprivate.h"
+	"include/rendering/cuda/cudarenderer.h"
+	"include/rendering/cuda/cudatypes.h"
+	"include/rendering/cuda/kernelwrapper.h"
+	"include/rendering/framebuffer.h"
+	"include/rendering/geometrycontainer.h"
+	"include/rendering/material.h"
+	"include/rendering/mesh.h"
+	"include/rendering/pointlight.h"
+	"include/rendering/randomnumbergenerator.h"
+	"include/rendering/ray.h"
+	"include/rendering/simd/simdrenderer.h"
+	"include/rendering/storage.h"
+	"include/rendering/triangle.h")
 
-# Rendering library
-add_library(rendering SHARED
+set(RENDERING_SOURCES
 	"src/rendering/color.cpp"
 	"src/rendering/cuda/cudaarrayprivate.cu"
 	"src/rendering/cuda/cudarenderer.cpp"
@@ -63,58 +70,56 @@ add_library(rendering SHARED
 	"src/rendering/simd/simdrenderer.cpp"
 	"src/rendering/storage.cpp"
 	"src/rendering/triangle.cpp")
+
+# Rendering library
+add_library(rendering SHARED					${RENDERING_SOURCES})
+
 target_include_directories(rendering
-	PUBLIC
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
-		$<BUILD_INTERFACE:/opt/cuda/include>
-)
+	PUBLIC										$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+												$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
+												$<BUILD_INTERFACE:/opt/cuda/include>)
+
 set_target_properties(rendering PROPERTIES
-	PRIVATE_HEADER "include/rendering/abstractrenderer.h"
-	PRIVATE_HEADER "include/rendering/color.h"
-	PRIVATE_HEADER "include/rendering/cuda/cudaarray.h"
-	PRIVATE_HEADER "include/rendering/cuda/cudaarrayprivate.h"
-	PRIVATE_HEADER "include/rendering/cuda/cudarenderer.h"
-	PRIVATE_HEADER "include/rendering/cuda/cudatypes.h"
-	PRIVATE_HEADER "include/rendering/cuda/kernelwrapper.h"
-	PRIVATE_HEADER "include/rendering/framebuffer.h"
-	PRIVATE_HEADER "include/rendering/geometrycontainer.h"
-	PRIVATE_HEADER "include/rendering/material.h"
-	PRIVATE_HEADER "include/rendering/mesh.h"
-	PRIVATE_HEADER "include/rendering/pointlight.h"
-	PRIVATE_HEADER "include/rendering/randomnumbergenerator.h"
-	PRIVATE_HEADER "include/rendering/ray.h"
-	PRIVATE_HEADER "include/rendering/simd/simdrenderer.h"
-	PRIVATE_HEADER "include/rendering/storage.h"
-	PRIVATE_HEADER "include/rendering/triangle.h")
-target_link_libraries(rendering PUBLIC cxxutility PRIVATE OpenMP::OpenMP_CXX OpenImageDenoise)
+	PRIVATE_HEADER								"${RENDERING_PRIVATE_HEADERS}")
+
+target_link_libraries(rendering
+	PUBLIC										cxxutility PRIVATE OpenMP::OpenMP_CXX OpenImageDenoise)
 
 # Application target
 set(APP_HEADERS
 	"include/application/application.h"
 	"include/application/renderthread.h")
 
-add_executable(${PROJECT_NAME}
+set(APP_SOUCRES
 	"src/application/main.cpp"
 	"src/application/application.cpp"
-	"src/application/renderthread.cpp"
-	"${APP_HEADERS}")
+	"src/application/renderthread.cpp")
+
+# Note: This seems not to work with Qt's MOC.
+#add_executable(${PROJECT_NAME}					${APP_SOURCES}
+#												${APP_HEADERS})
+
+add_executable(${PROJECT_NAME}
+	"include/application/application.h"
+	"include/application/renderthread.h"
+	"src/application/main.cpp"
+	"src/application/application.cpp"
+	"src/application/renderthread.cpp")
+
 target_include_directories(${PROJECT_NAME}
-	PUBLIC
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
-		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/application>
-)
-target_link_libraries(${PROJECT_NAME} PRIVATE rendering Qt5::Widgets)
-target_link_directories(${PROJECT_NAME} PRIVATE "${CMAKE_INSTALL_LIBDIR}/toypt")
+	PUBLIC										$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/math>
+												$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/rendering>
+												$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/application>)
+
+target_link_libraries(${PROJECT_NAME}
+	PRIVATE										rendering Qt5::Widgets)
 
 # Installation
-install(FILES
-					${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/toypt
-		PERMISSIONS	OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-		DESTINATION	${CMAKE_INSTALL_PREFIX}/bin/)
-install(FILES
-					${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/librendering.so
-					${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libutility.so
-		PERMISSIONS	OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-		DESTINATION	${CMAKE_INSTALL_PREFIX}/lib/toypt/)
+install(FILES									${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/toypt
+		PERMISSIONS								OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+		DESTINATION								${CMAKE_INSTALL_PREFIX}/bin/)
+
+install(FILES									${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/librendering.so
+												${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libutility.so
+		PERMISSIONS								OWNER_EXECUTE OWNER_READ OWNER_WRITE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+		DESTINATION								${CMAKE_INSTALL_PREFIX}/lib/toypt/)
