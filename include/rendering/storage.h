@@ -19,11 +19,33 @@ struct CoordinateBufferPointer
 	float *y;
 	float *z;
 	
-	CoordinateBufferPointer &operator++(int);
-	CoordinateBufferPointer &operator+=(const uint32_t offset);
+	inline CoordinateBufferPointer &operator++(int)
+	{
+		this->x++;
+		this->y++;
+		this->z++;
+		
+		return *this;
+	}
+	
+	inline CoordinateBufferPointer &operator+=(const uint32_t offset)
+	{
+		this->x += offset;
+		this->y += offset;
+		this->z += offset;
+		
+		return *this;
+	}
 };
 
-CoordinateBufferPointer operator+(const CoordinateBufferPointer &pointer, const uint32_t offset);
+inline CoordinateBufferPointer operator+(const CoordinateBufferPointer &pointer, const uint32_t offset)
+{
+	CoordinateBufferPointer returnValue = pointer;
+	
+	returnValue += offset;
+	
+	return returnValue;
+}
 
 struct CoordinateBuffer
 {
@@ -33,7 +55,11 @@ struct CoordinateBuffer
 	
 	uint32_t size() const;
 	void append(const Math::Vector4 &vector);
-	CoordinateBufferPointer data();
+	
+	inline CoordinateBufferPointer data()
+	{
+		return {this->x.data(), this->y.data(), this->z.data()};
+	}
 };
 
 using Vertex = Math::Vector4;
@@ -71,11 +97,45 @@ struct PrecomputedTrianglePointer
 	NormalPointer n2;
 	MaskPointer m;
 	
-	PrecomputedTrianglePointer &operator++(int);
-	PrecomputedTrianglePointer &operator+=(const uint32_t offset);
+	inline PrecomputedTrianglePointer &operator++(int)
+	{
+		this->v0++;
+		this->v1++;
+		this->v2++;
+		this->e01++;
+		this->e02++;
+		this->n0++;
+		this->n1++;
+		this->n2++;
+		this->m++;
+		
+		return *this;
+	}
+	
+	inline PrecomputedTrianglePointer &operator+=(const uint32_t offset)
+	{
+		this->v0 += offset;
+		this->v1 += offset;
+		this->v2 += offset;
+		this->e01 += offset;
+		this->e02 += offset;
+		this->n0 += offset;
+		this->n1 += offset;
+		this->n2 += offset;
+		this->m += offset;
+		
+		return *this;
+	}
 };
 
-PrecomputedTrianglePointer operator+(const PrecomputedTrianglePointer &pointer, const uint32_t offset);
+inline PrecomputedTrianglePointer operator+(const PrecomputedTrianglePointer &pointer, const uint32_t offset)
+{
+	PrecomputedTrianglePointer returnValue = pointer;
+	
+	returnValue += offset;
+	
+	return returnValue;
+}
 
 struct PreComputedTriangleBuffer
 {
@@ -93,7 +153,15 @@ struct PreComputedTriangleBuffer
 	void append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2,
 				const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2,
 				const uint32_t m);
-	PrecomputedTrianglePointer data();
+	
+	inline PrecomputedTrianglePointer data()
+	{
+		return {this->v0.data(), this->v1.data(), this->v2.data(),
+				this->e01.data(), this->e02.data(),
+				this->n0.data(), this->n1.data(), this->n2.data(),
+				this->m.data()};
+	}
+	
 	PrecomputedTriangle operator[](const uint32_t index);
 };
 
