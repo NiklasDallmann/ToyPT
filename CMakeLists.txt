@@ -32,9 +32,6 @@ set(CMAKE_BUILD_WITH_INSTALL_RPATH				TRUE)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH			TRUE)
 set(CMAKE_INSTALL_RPATH							${CMAKE_INSTALL_PREFIX}/lib/toypt)
 
-# Definitions
-add_definitions(-DKERNEL_LOCATION="${CMAKE_CURRENT_SOURCE_DIR}/src/rendering/kernels/kernel.cl")
-
 # Subdirectories
 add_subdirectory("src/application")
 add_subdirectory("src/rendering")
