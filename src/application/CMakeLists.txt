@@ -1,5 +1,10 @@
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
+# Qt MOC
+set(CMAKE_AUTOMOC								ON)
+set(CMAKE_AUTORCC								ON)
+set(CMAKE_AUTOUIC								ON)
+
 set(APP_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/application/application.h"
 	"${TOYPT_PROJECT_DIR}/include/application/renderthread.h")

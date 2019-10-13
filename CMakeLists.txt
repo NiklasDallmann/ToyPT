@@ -7,11 +7,6 @@ project(toypt
 # Find packages
 find_package(cxxutility REQUIRED)
 
-# Qt MOC
-set(CMAKE_AUTOMOC								ON)
-set(CMAKE_AUTORCC								ON)
-set(CMAKE_AUTOUIC								ON)
-
 # Project settings
 set(TOYPT_PROJECT_DIR							"${CMAKE_CURRENT_SOURCE_DIR}")
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY				"${CMAKE_CURRENT_SOURCE_DIR}/lib")
@@ -33,8 +28,8 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH			TRUE)
 set(CMAKE_INSTALL_RPATH							${CMAKE_INSTALL_PREFIX}/lib/toypt)
 
 # Subdirectories
-add_subdirectory("src/application")
 add_subdirectory("src/rendering")
+add_subdirectory("src/application")
 
 # Installation
 install(FILES									${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/toypt
