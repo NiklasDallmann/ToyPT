@@ -34,6 +34,8 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	std::stringstream stream;
 	
+	this->_objectTriangleBuffer = {};
+	this->_objectMeshBuffer = {};
 	this->_geometryToBuffer(geometry, this->_objectTriangleBuffer, this->_objectMeshBuffer);
 	
 	std::random_device device;
