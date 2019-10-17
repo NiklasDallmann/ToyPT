@@ -17,7 +17,7 @@ namespace Math
 class Matrix4x4
 {
 public:
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 	friend std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix);
 #endif
 	
@@ -154,7 +154,7 @@ exit:
 	}
 	HOST_DEVICE static Matrix4x4 rotationMatrixX(const float angle)
 	{
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 #else
@@ -173,7 +173,7 @@ exit:
 	
 	HOST_DEVICE static Matrix4x4 rotationMatrixY(const float angle)
 	{
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 #else
@@ -192,7 +192,7 @@ exit:
 	
 	HOST_DEVICE static Matrix4x4 rotationMatrixZ(const float angle)
 	{
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 		float cos = std::cos(angle);
 		float sin = std::sin(angle);
 #else
@@ -352,7 +352,7 @@ HOST_DEVICE inline Vector4 operator*(const Matrix4x4 &left, const Vector4 &right
 	return returnValue;
 }
 
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 inline std::ostream &operator<<(std::ostream &stream, const Matrix4x4 &matrix)
 {
 	std::stringstream stringStream;

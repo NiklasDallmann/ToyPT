@@ -28,7 +28,7 @@ class Vector4
 {
 public:
 	friend HOST_DEVICE Vector4 operator*(const Vector4 &left, const Vector4 &right);
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 	friend std::ostream &operator<<(std::ostream &stream, const Vector4 &vector);
 #endif
 	
@@ -39,7 +39,7 @@ public:
 	///
 	HOST_DEVICE Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 0)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		this->_coordinates = __m128{x, y, z, w};
 #else
 		this->_coordinates[0] = x;
@@ -152,7 +152,7 @@ public:
 	///
 	HOST_DEVICE float magnitude() const
 	{
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 		return std::pow((std::pow(this->_coordinates[0], 2.0f) + std::pow(this->_coordinates[1], 2.0f) + std::pow(this->_coordinates[2], 2.0f)), 0.5f);
 #else
 		return powf((powf(this->_coordinates[0], 2.0f) + powf(this->_coordinates[1], 2.0f) + powf(this->_coordinates[2], 2.0f)), 0.5f);
@@ -168,7 +168,7 @@ public:
 	///
 	HOST_DEVICE Vector4 &normalize()
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		__m128 magnitude = _mm_set1_ps(this->magnitude());
 		this->_coordinates = _mm_div_ps(this->_coordinates, magnitude);
 #else
@@ -215,7 +215,7 @@ public:
 	{
 		float returnValue = 0;
 		
-#ifdef __AVX__
+#ifdef CXX_SSE
 		__m128 temporary = _mm_mul_ps(this->_coordinates, other._coordinates);
 		returnValue = temporary[0] + temporary[1] + temporary[2];
 #else
@@ -247,7 +247,7 @@ public:
 	///
 	HOST_DEVICE Vector4 &operator+=(const Vector4 &other)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		this->_coordinates = _mm_add_ps(this->_coordinates, other._coordinates);
 #else
 		this->_coordinates[0] += other._coordinates[0];
@@ -266,7 +266,7 @@ public:
 	///
 	HOST_DEVICE Vector4 &operator-=(const Vector4 &other)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		this->_coordinates = _mm_sub_ps(this->_coordinates, other._coordinates);
 #else
 		this->_coordinates[0] -= other._coordinates[0];
@@ -280,7 +280,7 @@ public:
 	
 	HOST_DEVICE Vector4 &operator*=(const Vector4 &other)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		this->_coordinates = _mm_mul_ps(this->_coordinates, other._coordinates);
 #else
 		this->_coordinates[0] *= other._coordinates[0];
@@ -299,14 +299,14 @@ public:
 	///
 	HOST_DEVICE Vector4 &operator*=(const float scalar)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		__m128 scalarVector = _mm_set1_ps(scalar);
 		this->_coordinates = _mm_mul_ps(this->_coordinates, scalarVector);
 #else
-		this->_coordinates[0] += scalar;
-		this->_coordinates[1] += scalar;
-		this->_coordinates[2] += scalar;
-		this->_coordinates[3] += scalar;
+		this->_coordinates[0] *= scalar;
+		this->_coordinates[1] *= scalar;
+		this->_coordinates[2] *= scalar;
+		this->_coordinates[3] *= scalar;
 #endif
 		
 		return *this;
@@ -319,7 +319,7 @@ public:
 	///
 	HOST_DEVICE Vector4 &operator/=(const float scalar)
 	{
-#ifdef __AVX__
+#ifdef CXX_SSE
 		__m128 scalarVector = _mm_set1_ps(scalar);
 		this->_coordinates = _mm_div_ps(this->_coordinates, scalarVector);
 #else
@@ -357,7 +357,7 @@ public:
 		return this->_coordinates[index];
 	}
 	
-#ifdef __NVCC__
+#ifdef CXX_NVCC
 	HOST_DEVICE float *data()
 	{
 		return &this->_coordinates[0];
@@ -368,7 +368,7 @@ public:
 	{
 		bool returnValue = true;
 		
-#ifdef __AVX__
+#ifdef CXX_SSE
 		__m128 resultVector = _mm_cmpeq_ps(this->_coordinates, other._coordinates);
 		returnValue = bool(resultVector[0]);
 #else
@@ -390,7 +390,7 @@ public:
 private:
 	static constexpr size_t _dimension = 4;
 	
-#ifdef __AVX__
+#ifdef CXX_SSE
 	__m128 _coordinates;
 #else
 	alignas (sizeof (float) * _dimension) float _coordinates[_dimension];
@@ -487,7 +487,7 @@ HOST_DEVICE inline Vector4 operator/(const float left, const Vector4 right)
 	return right / left;
 }
 
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 ///
 /// Writes a JSON representation of \a vector to \a stream.
 /// 
