@@ -49,20 +49,20 @@ private:
 	
 	void _geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer);
 	
-	__m256 _intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs);
+	inline __m256 _intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs);
 	
-	float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
-	Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng,
+	inline float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
+	inline Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng,
 						   const size_t maxBounces, const Math::Vector4 &skyColor);
 	
-	void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
-	Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
-	Math::Vector4 _randomDirection(const Math::Vector4 &normal, RandomNumberGenerator &rng, float &cosinusTheta);
+	inline void _createCoordinateSystem(const Math::Vector4 &normal, Math::Vector4 &tangentNormal, Math::Vector4 &binormal);
+	inline Math::Vector4 _createUniformHemisphere(const float r1, const float r2);
+	inline Math::Vector4 _randomDirection(const Math::Vector4 &normal, RandomNumberGenerator &rng, float &cosinusTheta);
 	
-	Math::Vector4 _interpolateNormal(const Math::Vector4 &intersectionPoint, Storage::PrecomputedTrianglePointer &data);
-	float _ggxChi(const float x);
-	float _ggxPartial(const Math::Vector4 &v, const Math::Vector4 &h, const Math::Vector4 &n, const float a_2);
-	Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta);
+	inline Math::Vector4 _interpolateNormal(const Math::Vector4 &intersectionPoint, Storage::PrecomputedTrianglePointer &data);
+	inline float _ggxChi(const float x);
+	inline float _ggxPartial(const Math::Vector4 &v, const Math::Vector4 &h, const Math::Vector4 &n, const float a_2);
+	inline Math::Vector4 _brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta);
 };
 
 } // namespace ToyPT::Rendering
