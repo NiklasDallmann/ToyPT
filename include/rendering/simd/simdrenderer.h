@@ -49,7 +49,7 @@ private:
 	
 	void _geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer);
 	
-	inline __m256 _intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs);
+	inline __m256 _intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs, __m256i &meshOffsets);
 	
 	inline float _traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection);
 	inline Math::Vector4 _castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng,

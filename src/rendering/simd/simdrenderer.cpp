@@ -3,7 +3,7 @@
 #include <cmath>
 #include <map>
 #include <math/matrix4x4.h>
-#include <math/simdvector3pack.h>
+#include <math/simd/vector3pack.h>
 #include <limits>
 #include <random>
 #include <utility>
@@ -97,16 +97,16 @@ void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Sto
 	
 	for (uint32_t i = 0; i < paddingTriangles; i++)
 	{
-		triangleBuffer.append({}, {}, {}, {}, {}, {}, Storage::maskFalse);
+		triangleBuffer.append({}, {}, {}, {}, {}, {}, Storage::maskFalse, 0);
 	}
 }
 
-__m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs)
+__m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs, __m256i &meshOffsets)
 {
 	__m256 returnValue;
 	__m256 determinant, inverseDeterminant, epsilon;
 	
-	Math::SimdVector3Pack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
+	Math::Simd::Vector3Pack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
 	
 	// Duplicate ray data
 	origin.x = _mm256_set1_ps(ray.origin.x());
@@ -120,11 +120,17 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTriangle
 	epsilon = _mm256_set1_ps(Math::epsilon);
 	
 	// Load vertex coordinates
-	v0.loadUnaligned(data.v0.x, data.v0.y, data.v0.z);
-	v1.loadUnaligned(data.v1.x, data.v1.y, data.v1.z);
-	v2.loadUnaligned(data.v2.x, data.v2.y, data.v2.z);
-	e01.loadUnaligned(data.e01.x, data.e01.y, data.e01.z);
-	e02.loadUnaligned(data.e02.x, data.e02.y, data.e02.z);
+	v0.loadUnaligned(data.v0);
+	v1.loadUnaligned(data.v1);
+	v2.loadUnaligned(data.v2);
+	e01.loadUnaligned(data.e01);
+	e02.loadUnaligned(data.e02);
+	
+	// Load mesh indices
+	for (uint32_t i = 0; i < (sizeof(__m256i) / sizeof(uint32_t)); i++)
+	{
+		meshOffsets[i] = data.mesh[i];
+	}
 	
 	data += Storage::avx2FloatCount;
 	
@@ -151,6 +157,7 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTriangle
 	__m256 c5 = _mm256_cmp_ps(ts, epsilon, _CMP_GT_OQ);
 	__m256 c = _mm256_or_ps(c0, _mm256_or_ps(c1, _mm256_or_ps(c2, _mm256_or_ps(c3, c4))));
 	
+	// FIXME Mask?
 	// Convert to integer vector of values of either 0x00 or 0x01
 	returnValue = _mm256_and_ps(_mm256_andnot_ps(c, _mm256_set1_ps(0x01)), c5);
 	
@@ -180,7 +187,8 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	for (; triangleIndex < avx2Loops; triangleIndex += Storage::avx2FloatCount)
 	{
 		__m256 ts, us, vs;
-		__m256 intersected = this->_intersectSimd(ray, dataPointer, ts, us, vs);
+		__m256i meshOffsets;
+		__m256 intersected = this->_intersectSimd(ray, dataPointer, ts, us, vs, meshOffsets);
 		
 		for (uint32_t index = 0; index < Storage::avx2FloatCount; index++)
 		{
@@ -190,22 +198,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 				intersectionFound = true;
 				distance = newDistance;
 				nearestTriangle = triangleIndex + index;
-			}
-		}
-	}
-	
-	// Find corresponding mesh
-	if (intersectionFound)
-	{
-		for (uint32_t meshIndex = 0; meshIndex < this->_objectMeshBuffer.size(); meshIndex++)
-		{
-			Storage::Mesh &mesh = this->_objectMeshBuffer[meshIndex];
-			
-			if ((nearestTriangle >= mesh.triangleOffset) &
-				(nearestTriangle < (mesh.triangleOffset + mesh.triangleCount)))
-			{
-				nearestMesh = &mesh;
-				break;
+				nearestMesh = &this->_objectMeshBuffer[size_t(meshOffsets[index])];
 			}
 		}
 	}

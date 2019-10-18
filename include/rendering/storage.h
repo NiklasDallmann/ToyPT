@@ -62,40 +62,54 @@ struct CoordinateBuffer
 	}
 };
 
-using Vertex = Math::Vector4;
-using Normal = Math::Vector4;
-using Mask = uint32_t;
-using VertexPointer = CoordinateBufferPointer;
-using NormalPointer = CoordinateBufferPointer;
-using MaskPointer = Mask *;
-using VertexBuffer = CoordinateBuffer;
-using NormalBuffer = CoordinateBuffer;
-using MaskBuffer = std::vector<Mask>;
+struct alignas(4 * sizeof(uint32_t)) Mesh
+{
+	uint32_t triangleOffset;
+	uint32_t triangleCount;
+	uint32_t materialOffset;
+};
+
+using MeshBuffer			= std::vector<Mesh>;
+
+using Vertex				= Math::Vector4;
+using Normal				= Math::Vector4;
+using Mask					= uint32_t;
+using MeshOffset			= uint32_t;
+using VertexPointer			= CoordinateBufferPointer;
+using NormalPointer			= CoordinateBufferPointer;
+using MaskPointer			= Mask *;
+using MeshOffsetPointer		= MeshOffset *;
+using VertexBuffer			= CoordinateBuffer;
+using NormalBuffer			= CoordinateBuffer;
+using MaskBuffer			= std::vector<Mask>;
+using MeshOffsetBuffer		= std::vector<MeshOffset>;
 
 struct PrecomputedTriangle
 {
-	Vertex v0;
-	Vertex v1;
-	Vertex v2;
-	Vertex e01;
-	Vertex e02;
-	Normal n0;
-	Normal n1;
-	Normal n2;
-	Mask m;
+	Vertex		v0;
+	Vertex		v1;
+	Vertex		v2;
+	Vertex		e01;
+	Vertex		e02;
+	Normal		n0;
+	Normal		n1;
+	Normal		n2;
+	Mask		mask;
+	MeshOffset	mesh;
 };
 
 struct PrecomputedTrianglePointer
 {
-	VertexPointer v0;
-	VertexPointer v1;
-	VertexPointer v2;
-	VertexPointer e01;
-	VertexPointer e02;
-	NormalPointer n0;
-	NormalPointer n1;
-	NormalPointer n2;
-	MaskPointer m;
+	VertexPointer		v0;
+	VertexPointer		v1;
+	VertexPointer		v2;
+	VertexPointer		e01;
+	VertexPointer		e02;
+	NormalPointer		n0;
+	NormalPointer		n1;
+	NormalPointer		n2;
+	MaskPointer			mask;
+	MeshOffsetPointer	mesh;
 	
 	inline PrecomputedTrianglePointer &operator++(int)
 	{
@@ -107,22 +121,24 @@ struct PrecomputedTrianglePointer
 		this->n0++;
 		this->n1++;
 		this->n2++;
-		this->m++;
+		this->mask++;
+		this->mesh++;
 		
 		return *this;
 	}
 	
 	inline PrecomputedTrianglePointer &operator+=(const uint32_t offset)
 	{
-		this->v0 += offset;
-		this->v1 += offset;
-		this->v2 += offset;
-		this->e01 += offset;
-		this->e02 += offset;
-		this->n0 += offset;
-		this->n1 += offset;
-		this->n2 += offset;
-		this->m += offset;
+		this->v0		+= offset;
+		this->v1		+= offset;
+		this->v2		+= offset;
+		this->e01		+= offset;
+		this->e02		+= offset;
+		this->n0		+= offset;
+		this->n1		+= offset;
+		this->n2		+= offset;
+		this->mask		+= offset;
+		this->mesh		+= offset;
 		
 		return *this;
 	}
@@ -139,40 +155,32 @@ inline PrecomputedTrianglePointer operator+(const PrecomputedTrianglePointer &po
 
 struct PreComputedTriangleBuffer
 {
-	VertexBuffer v0;
-	VertexBuffer v1;
-	VertexBuffer v2;
-	VertexBuffer e01;
-	VertexBuffer e02;
-	NormalBuffer n0;
-	NormalBuffer n1;
-	NormalBuffer n2;
-	MaskBuffer m;
+	VertexBuffer		v0;
+	VertexBuffer		v1;
+	VertexBuffer		v2;
+	VertexBuffer		e01;
+	VertexBuffer		e02;
+	NormalBuffer		n0;
+	NormalBuffer		n1;
+	NormalBuffer		n2;
+	MaskBuffer			mask;
+	MeshOffsetBuffer	mesh;
 	
 	uint32_t size() const;
 	void append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2,
 				const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2,
-				const uint32_t m);
+				const Mask mask, const MeshOffset mesh);
 	
 	inline PrecomputedTrianglePointer data()
 	{
 		return {this->v0.data(), this->v1.data(), this->v2.data(),
 				this->e01.data(), this->e02.data(),
 				this->n0.data(), this->n1.data(), this->n2.data(),
-				this->m.data()};
+				this->mask.data(), this->mesh.data()};
 	}
 	
 	PrecomputedTriangle operator[](const uint32_t index);
 };
-
-struct Mesh
-{
-	uint32_t triangleOffset;
-	uint32_t triangleCount;
-	uint32_t materialOffset;
-};
-
-using MeshBuffer = std::vector<Mesh>;
 
 void geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer);
 
