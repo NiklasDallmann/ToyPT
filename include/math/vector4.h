@@ -37,7 +37,7 @@ public:
 	/// 
 	/// \since	1.0
 	///
-	HOST_DEVICE Vector4(const float x = 0, const float y = 0, const float z = 0, const float w = 0)
+	HOST_DEVICE Vector4(const float x, const float y, const float z, const float w = 0.0f)
 	{
 #ifdef CXX_SSE
 		this->_coordinates = __m128{x, y, z, w};
@@ -47,6 +47,11 @@ public:
 		this->_coordinates[2] = z;
 		this->_coordinates[3] = w;
 #endif
+	}
+	
+	HOST_DEVICE Vector4(const float x = 0.0f)
+	{
+		*this = Vector4(x, x, x, x);
 	}
 	
 	///

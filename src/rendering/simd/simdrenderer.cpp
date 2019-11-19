@@ -104,7 +104,7 @@ void SimdRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Sto
 __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTrianglePointer &data, __m256 &ts, __m256 &us, __m256 &vs, __m256i &meshOffsets)
 {
 	__m256 returnValue;
-	__m256 determinant, inverseDeterminant, epsilon;
+	__m256 determinant, inverseDeterminant, epsilon, mask;
 	
 	Math::Simd::Vector3Pack origin, direction, v0, v1, v2, e01, e02, v0o, pVector, qVector;
 	
@@ -131,6 +131,9 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTriangle
 	{
 		meshOffsets[i] = data.mesh[i];
 	}
+	
+	// Load mask
+	mask = _mm256_loadu_ps(reinterpret_cast<float *>(data.mask));
 	
 	data += Storage::avx2FloatCount;
 	
@@ -159,7 +162,7 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTriangle
 	
 	// FIXME Mask?
 	// Convert to integer vector of values of either 0x00 or 0x01
-	returnValue = _mm256_and_ps(_mm256_andnot_ps(c, _mm256_set1_ps(0x01)), c5);
+	returnValue = _mm256_and_ps(_mm256_and_ps(_mm256_andnot_ps(c, _mm256_set1_ps(0x01)), c5), mask);
 	
 	return returnValue;
 }
@@ -235,10 +238,6 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 		{
 			Material objectMaterial = geometry.materialBuffer[objectIntersection.mesh->materialOffset];
 			Math::Vector4 objectColor = objectMaterial.color;
-//			Material lightMaterial;
-//			Math::Vector4 lightColor;
-//			Math::Vector4 directLight;
-//			float lightEmittance = 0.0f;
 			
 			// Calculate normal
 			Storage::PrecomputedTrianglePointer dataPointer = this->_objectTriangleBuffer.data() + objectIntersection.triangleOffset;
@@ -247,19 +246,6 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			// Calculate new origin and offset
 			currentOrigin = intersectionPoint + (Math::epsilon * normal);
 			
-			// Direct illumination
-//			float lightCosinusTheta;
-//			Math::Vector4 lightDirection = this->_randomDirection(normal, rng, lightCosinusTheta);
-//			float lightDistance = this->_traceRay({currentOrigin, lightDirection}, lights, lightIntersection);
-			
-//			if (lightIntersection.mesh != nullptr)
-//			{
-//				lightMaterial = geometry.materialBuffer[lightIntersection.mesh->materialOffset];
-//				lightColor = lightMaterial.color();
-//				lightEmittance = lightMaterial.emittance();
-//				directLight = lightColor * lightEmittance;
-//			}
-			
 			// Global illumination
 			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
 			Math::Vector4 diffuse, specular;
@@ -267,24 +253,22 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 			diffuseDirection = this->_randomDirection(normal, rng, cosinusTheta);
 			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
 			
-			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness);
-//			newDirection = diffuseDirection;
+			constexpr float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
+			float random = rng.get(scalingFactor);
 			
-			// Cook-Torrance
-//			specular = this->_brdf(objectMaterial, normal, newDirection, -currentDirection, cosinusTheta);
-			// Lambert
-//			const float pdf = 2.0f;
-			specular = Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness);
-			diffuse = Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
+			if (random > objectMaterial.roughness)
+			{
+				newDirection = reflectedDirection;
+			}
+			else
+			{
+				newDirection = diffuseDirection;
+			}
 			
 			currentDirection = newDirection;
 			
-			returnValue += objectMaterial.emittance * mask;
-//			returnValue += directLight * mask;
-//			mask *= (objectColor * diffuse + specular) * cosinusTheta;
-			mask *= (2.0f * objectColor * diffuse + specular) * cosinusTheta;
-//			mask *= 2.0f * objectColor * cosinusTheta;
-//			returnValue = specular;
+			returnValue += objectMaterial.emittance * objectColor * mask;
+			mask *= 2.0f * objectColor * cosinusTheta;
 		}
 		else
 		{

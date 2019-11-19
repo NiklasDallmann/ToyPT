@@ -36,6 +36,18 @@ struct CoordinateBufferPointer
 		
 		return *this;
 	}
+	
+	inline bool operator==(const CoordinateBufferPointer &other) const
+	{
+		return ((this->x == other.x) &
+				(this->y == other.y) &
+				(this->z == other.z));
+	}
+	
+	inline bool operator!=(const CoordinateBufferPointer &other) const
+	{
+		return !(*this == other);
+	}
 };
 
 inline CoordinateBufferPointer operator+(const CoordinateBufferPointer &pointer, const uint32_t offset)
@@ -142,6 +154,43 @@ struct PrecomputedTrianglePointer
 		
 		return *this;
 	}
+	
+	inline bool operator==(const PrecomputedTrianglePointer &other) const
+	{
+		return ((this->v0	== other.v0) &
+				(this->v1	== other.v1) &
+				(this->v2	== other.v2) &
+				(this->e01	== other.e01) &
+				(this->e02	== other.e02) &
+				(this->n0	== other.n0) &
+				(this->n1	== other.n1) &
+				(this->n2	== other.n2) &
+				(this->mask	== other.mask) &
+				(this->mesh	== other.mesh));
+	}
+	
+	inline bool operator!=(const PrecomputedTrianglePointer &other) const
+	{
+		return !(*this == other);
+	}
+	
+	inline PrecomputedTriangle operator->() const
+	{
+		PrecomputedTriangle returnValue;
+		
+		returnValue.v0		= {	*this->v0.x,	*this->v0.y,	*this->v0.z	};
+		returnValue.v1		= {	*this->v1.x,	*this->v1.y,	*this->v1.z	};
+		returnValue.v2		= {	*this->v2.x,	*this->v2.y,	*this->v2.z	};
+		returnValue.e01		= {	*this->e01.x,	*this->e01.y,	*this->e01.z};
+		returnValue.e02		= {	*this->e02.x,	*this->e02.y,	*this->e02.z};
+		returnValue.n0		= {	*this->n0.x,	*this->n0.y,	*this->n0.z	};
+		returnValue.n1		= {	*this->n1.x,	*this->n1.y,	*this->n1.z	};
+		returnValue.n2		= {	*this->n2.x,	*this->n2.y,	*this->n2.z	};
+		returnValue.mask	=	*this->mask;
+		returnValue.mesh	=	*this->mesh;
+		
+		return returnValue;
+	}
 };
 
 inline PrecomputedTrianglePointer operator+(const PrecomputedTrianglePointer &pointer, const uint32_t offset)
@@ -167,6 +216,7 @@ struct PreComputedTriangleBuffer
 	MeshOffsetBuffer	mesh;
 	
 	uint32_t size() const;
+	
 	void append(const Math::Vector4 &v0, const Math::Vector4 &v1, const Math::Vector4 &v2,
 				const Math::Vector4 &n0, const Math::Vector4 &n1, const Math::Vector4 &n2,
 				const Mask mask, const MeshOffset mesh);
@@ -179,7 +229,10 @@ struct PreComputedTriangleBuffer
 				this->mask.data(), this->mesh.data()};
 	}
 	
-	PrecomputedTriangle operator[](const uint32_t index);
+	PrecomputedTrianglePointer begin();
+	PrecomputedTrianglePointer end();
+	
+	PrecomputedTriangle operator[](const uint32_t index) const;
 };
 
 void geometryToBuffer(const Obj::GeometryContainer &geometry, Storage::PreComputedTriangleBuffer &triangleBuffer, Storage::MeshBuffer &meshBuffer);

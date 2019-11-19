@@ -40,7 +40,17 @@ void PreComputedTriangleBuffer::append(const Math::Vector4 &v0, const Math::Vect
 	this->mesh.push_back(mesh);
 }
 
-PrecomputedTriangle PreComputedTriangleBuffer::operator[](const uint32_t index)
+PrecomputedTrianglePointer PreComputedTriangleBuffer::begin()
+{
+	return this->data();
+}
+
+PrecomputedTrianglePointer PreComputedTriangleBuffer::end()
+{
+	return this->begin() + this->size();
+}
+
+PrecomputedTriangle PreComputedTriangleBuffer::operator[](const uint32_t index) const
 {
 	PrecomputedTriangle returnValue;
 	

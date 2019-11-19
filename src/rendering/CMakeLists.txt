@@ -21,7 +21,8 @@ set(RENDERING_PUBLIC_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/rendering/simd/simdrenderer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/storage.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/triangle.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/simd/kdtree.h")
+	"${TOYPT_PROJECT_DIR}/include/rendering/simd/kdtree.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/shader.h")
 
 set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/color.cpp"
@@ -39,7 +40,8 @@ set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/simd/simdrenderer.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/storage.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/triangle.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/simd/kdtree.cpp")
+	"${TOYPT_PROJECT_DIR}/src/rendering/simd/kdtree.cpp"
+	"${TOYPT_PROJECT_DIR}/src/rendering/shader.cpp")
 
 # Rendering library
 add_library(rendering SHARED					${RENDERING_SOURCES})

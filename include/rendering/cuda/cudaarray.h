@@ -1,9 +1,12 @@
 #ifndef CUDAARRAY_H
 #define CUDAARRAY_H
 
-#include <vector>
+#include <exception>
+#include <math/algorithms.h>
+#include <stdexcept>
 #include <stdint.h>
 #include <type_traits>
+#include <vector>
 
 #include "cudaarrayprivate.h"
 
@@ -47,7 +50,15 @@ public:
 	CudaArray(const size_type size) :
 		_size(size)
 	{
-		allocateManagedCudaMemory(reinterpret_cast<void **>(&this->_data), size * sizeof (T));
+		if (!allocateManagedCudaMemory(reinterpret_cast<void **>(&this->_data), size * sizeof (T)))
+		{
+			throw std::runtime_error("Failed to allocate device memory!");
+		}
+	}
+	
+	CudaArray(CudaArray &&other)
+	{
+		*this = other;
 	}
 	
 	///
@@ -81,6 +92,14 @@ public:
 	const_reference operator[](const size_type index) const
 	{
 		return this->_data[index];
+	}
+	
+	CudaArray &operator=(CudaArray &&other)
+	{
+		this->_size = other._size;
+		Math::swap(this->_data, other._data);
+		
+		return *this;
 	}
 	
 private:

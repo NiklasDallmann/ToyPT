@@ -31,7 +31,11 @@ void CudaRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 	CudaArray<Cuda::Types::Mesh> meshBuffer;
 	CudaArray<Material> materialBuffer;
 	
+	cxxtrace << "starting render";
+	
 	this->_geometryToBuffer(geometry, triangleBuffer, meshBuffer, materialBuffer);
+	
+	cxxtrace << "finished render";
 }
 
 void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
@@ -73,21 +77,30 @@ void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Cud
 	
 	triangleBuffer = CudaArray<Cuda::Types::Triangle>(CudaArray<Cuda::Types::Triangle>::size_type(triangles.size()));
 	meshBuffer = CudaArray<Cuda::Types::Mesh>(CudaArray<Cuda::Types::Mesh>::size_type(meshes.size()));
+	materialBuffer = CudaArray<Material>(CudaArray<Material>::size_type(geometry.materialBuffer.size()));
+	
+	cxxtrace << "after buffer allocations";
 	
 	for (CudaArray<Cuda::Types::Triangle>::size_type i = 0; i < triangles.size(); i++)
 	{
 		triangleBuffer[i] = triangles[i];
 	}
 	
+	cxxtrace << "after triangles";
+	
 	for (CudaArray<Cuda::Types::Mesh>::size_type i = 0; i < meshes.size(); i++)
 	{
 		meshBuffer[i] = meshes[i];
 	}
 	
+	cxxtrace << "after meshes";
+	
 	for (CudaArray<Material>::size_type i = 0; i < geometry.materialBuffer.size(); i++)
 	{
 		materialBuffer[i] = geometry.materialBuffer[i];
 	}
+	
+	cxxtrace << "after buffer creations";
 }
 
 }

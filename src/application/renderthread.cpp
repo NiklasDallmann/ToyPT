@@ -11,7 +11,7 @@ RenderThread::RenderThread(QObject *parent) :
 	QThread(parent)
 {
 	this->_renderer = std::make_unique<Rendering::SimdRenderer>();
-//	this->_renderer = std::make_unique<Rendering::CudaRenderer>();
+//	this->_renderer = std::make_unique<Rendering::Cuda::CudaRenderer>();
 	connect(this, &RenderThread::finished, this, &RenderThread::_onFinished);
 }
 

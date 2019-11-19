@@ -74,6 +74,13 @@ HOST_DEVICE inline Math::Vector4 saturate<Math::Vector4>(const Math::Vector4 v)
 	return {saturate(v.x()), saturate(v.y()), saturate(v.z())};
 }
 
+template <typename T>
+HOST_DEVICE inline void swap(T &left, T &right)
+{
+	T temporary = left;
+	left = right;
+	right = temporary;
+}
 
 } // namespace Math
 } // namespace ToyPT
