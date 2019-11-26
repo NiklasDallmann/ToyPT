@@ -252,12 +252,13 @@ __global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const u
 			
 			newDirection				= randomDirection(normal, rng, cosinusTheta);
 			
-			Math::Vector4 brdf			= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal);
+			Math::Vector4 diffuse		= Shader::diffuseLambert();
+			Math::Vector4 specular		= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal);
 			
 			currentDirection			= newDirection;
 			
 			returnValue					+= objectMaterial.emittance * objectColor * mask;
-			mask						*= 2.0f * objectColor * brdf * cosinusTheta;
+			mask						*= objectColor * (diffuse + specular) * cosinusTheta;
 		}
 		else
 		{

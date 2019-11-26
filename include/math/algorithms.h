@@ -24,7 +24,7 @@ HOST_DEVICE inline bool fuzzyCompareEqual<float>(const float left, const float r
 {
 	bool returnValue = false;
 	
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 	returnValue = std::abs(std::abs(left) - std::abs(right)) < epsilon;
 #else
 	returnValue = fabsf(fabsf(left) - fabsf(right)) < epsilon;
@@ -61,7 +61,7 @@ inline __m256 lerp(const __m256 a, const __m256 b, const __m256 t)
 template<typename T>
 HOST_DEVICE inline T saturate(const T x)
 {
-#ifndef __NVCC__
+#ifndef CXX_NVCC
 	return std::min(1.0f, (std::max(0.0f, x)));
 #else
 	return fminf(1.0f, (fmaxf(0.0f, x)));
@@ -80,6 +80,33 @@ HOST_DEVICE inline void swap(T &left, T &right)
 	T temporary = left;
 	left = right;
 	right = temporary;
+}
+
+HOST_DEVICE inline float pow(const float base, const float exponent)
+{
+#ifndef CXX_NVCC
+	return std::pow(base, exponent);
+#else
+	return powf(base, exponent);
+#endif
+}
+
+HOST_DEVICE inline float abs(const float x)
+{
+#ifndef CXX_NVCC
+	return std::abs(x);
+#else
+	return fabsf(x);
+#endif
+}
+
+HOST_DEVICE inline float sqrt(const float x)
+{
+#ifndef CXX_NVCC
+	return std::sqrt(x);
+#else
+	return sqrtf(x);
+#endif
 }
 
 } // namespace Math

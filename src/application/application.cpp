@@ -244,9 +244,9 @@ void Application::_initializeScene()
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
 	Rendering::Material black{{0.0f, 0.0f, 0.0f}};
 	Rendering::Material halfWhite{{1.0f, 1.0f, 1.0f}};
-	Rendering::Material white{{1.0f, 1.0f, 1.0f}, 0.0f, 0.1f, 0.0f, 0.0f, 1.0f};
+	Rendering::Material white{{1.0f, 1.0f, 1.0f}, 0.0f, 0.2f, 0.0f, 0.0f, 1.0f};
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
-	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.8f};
+	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.2f};
 	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 5.0f};
 	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 4.0f};
 	Rendering::Material magentaLight{{1.0f, 0.0f, 1.0f}, 4.0f};

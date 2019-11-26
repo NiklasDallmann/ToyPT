@@ -9,7 +9,6 @@
 #include "cudatypes.h"
 #include "framebuffer.h"
 #include "geometrycontainer.h"
-#include "kernelwrapper.h"
 #include "material.h"
 #include "storage.h"
 
