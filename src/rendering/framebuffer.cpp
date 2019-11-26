@@ -135,7 +135,7 @@ FrameBuffer FrameBuffer::fromRawData(const Math::Vector4 *data, const uint32_t w
 	const uint32_t pixelCount = width * height;
 	FrameBuffer returnValue(width, height);
 	
-	std::memcpy(returnValue.data(), data, pixelCount);
+	std::memcpy(returnValue.data(), data, pixelCount * sizeof(Math::Vector4));
 	
 	return returnValue;
 }

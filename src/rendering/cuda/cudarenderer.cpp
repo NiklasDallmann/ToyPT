@@ -14,7 +14,7 @@
 namespace ToyPT::Rendering::Cuda
 {
 
-extern void render(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
+extern void cudaRender(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
 					 const CudaArray<Cuda::Types::Triangle> &triangleBuffer,
 					 const CudaArray<Cuda::Types::Mesh> &meshBuffer,
 					 const CudaArray<Material> &materialBuffer,
@@ -31,9 +31,11 @@ void CudaRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 	CudaArray<Cuda::Types::Mesh> meshBuffer;
 	CudaArray<Material> materialBuffer;
 	
+	this->_geometryToBuffer(geometry, triangleBuffer, meshBuffer, materialBuffer);
+	
 	cxxtrace << "starting render";
 	
-	this->_geometryToBuffer(geometry, triangleBuffer, meshBuffer, materialBuffer);
+	cudaRender(frameBuffer, RandomNumberGenerator{42}, triangleBuffer, meshBuffer, materialBuffer, samples, bounces, fieldOfView, skyColor);
 	
 	cxxtrace << "finished render";
 }
@@ -68,6 +70,13 @@ void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Cud
 			n0 = geometry.normalBuffer[triangle.normals[0]];
 			n1 = geometry.normalBuffer[triangle.normals[1]];
 			n2 = geometry.normalBuffer[triangle.normals[2]];
+			
+			cxxdebug <<
+				"Triangle =>\n" <<
+				"v0  := " << v0 << "\n" <<
+				"e01 := " << e01 << "\n" <<
+				"e02 := " << e02 << "\n" <<
+				"e12 := " << e12 << "\n";
 			
 			triangles.push_back(Cuda::Types::Triangle{v0, e01, e02, e12, n0, n1, n2, meshIndex});
 		}

@@ -10,8 +10,8 @@ namespace ToyPT
 RenderThread::RenderThread(QObject *parent) :
 	QThread(parent)
 {
-	this->_renderer = std::make_unique<Rendering::SimdRenderer>();
-//	this->_renderer = std::make_unique<Rendering::Cuda::CudaRenderer>();
+//	this->_renderer = std::make_unique<Rendering::SimdRenderer>();
+	this->_renderer = std::make_unique<Rendering::Cuda::CudaRenderer>();
 	connect(this, &RenderThread::finished, this, &RenderThread::_onFinished);
 }
 
@@ -27,7 +27,9 @@ void RenderThread::run()
 	   [this](const uint32_t x0, const uint32_t y0, const uint32_t x1, const uint32_t y1){
 		   emit this->tileFinished(x0, y0, x1, y1);
 	   },
-	this->_abort, this->_fieldOfView, this->_samples, this->_bounces, this->_tileSize, {1.0f, 1.0f, 1.0f});
+	this->_abort, this->_fieldOfView, this->_samples, this->_bounces, this->_tileSize, {0.0f, 0.0f, 0.0f});
+	
+	emit this->tileFinished(0, 0, this->_frameBuffer->width(), this->_frameBuffer->height());
 }
 
 void RenderThread::configure(Rendering::FrameBuffer *frameBuffer, Rendering::Obj::GeometryContainer *geometry, Rendering::Obj::GeometryContainer *lights, const float fieldOfView, const uint32_t samples,
