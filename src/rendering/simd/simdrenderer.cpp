@@ -228,7 +228,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
 	{
 		Math::Vector4 intersectionPoint;
-		IntersectionInfo objectIntersection, lightIntersection;
+		IntersectionInfo objectIntersection;
 		Math::Vector4 normal;
 		float objectDistance = this->_traceRay({currentOrigin, currentDirection}, geometry, objectIntersection);
 		

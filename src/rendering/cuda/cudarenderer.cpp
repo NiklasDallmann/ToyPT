@@ -35,7 +35,10 @@ void CudaRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 	
 	cxxtrace << "starting render";
 	
-	cudaRender(frameBuffer, RandomNumberGenerator{42}, triangleBuffer, meshBuffer, materialBuffer, samples, bounces, fieldOfView, skyColor);
+	std::random_device device;
+	RandomNumberGenerator rng{device()};
+	
+	cudaRender(frameBuffer, rng, triangleBuffer, meshBuffer, materialBuffer, samples, bounces, fieldOfView, skyColor);
 	
 	cxxtrace << "finished render";
 }
@@ -71,13 +74,6 @@ void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Cud
 			n1 = geometry.normalBuffer[triangle.normals[1]];
 			n2 = geometry.normalBuffer[triangle.normals[2]];
 			
-			cxxdebug <<
-				"Triangle =>\n" <<
-				"v0  := " << v0 << "\n" <<
-				"e01 := " << e01 << "\n" <<
-				"e02 := " << e02 << "\n" <<
-				"e12 := " << e12 << "\n";
-			
 			triangles.push_back(Cuda::Types::Triangle{v0, e01, e02, e12, n0, n1, n2, meshIndex});
 		}
 		
@@ -88,28 +84,20 @@ void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Cud
 	meshBuffer = CudaArray<Cuda::Types::Mesh>(CudaArray<Cuda::Types::Mesh>::size_type(meshes.size()));
 	materialBuffer = CudaArray<Material>(CudaArray<Material>::size_type(geometry.materialBuffer.size()));
 	
-	cxxtrace << "after buffer allocations";
-	
 	for (CudaArray<Cuda::Types::Triangle>::size_type i = 0; i < triangles.size(); i++)
 	{
 		triangleBuffer[i] = triangles[i];
 	}
-	
-	cxxtrace << "after triangles";
 	
 	for (CudaArray<Cuda::Types::Mesh>::size_type i = 0; i < meshes.size(); i++)
 	{
 		meshBuffer[i] = meshes[i];
 	}
 	
-	cxxtrace << "after meshes";
-	
 	for (CudaArray<Material>::size_type i = 0; i < geometry.materialBuffer.size(); i++)
 	{
 		materialBuffer[i] = geometry.materialBuffer[i];
 	}
-	
-	cxxtrace << "after buffer creations";
 }
 
 }

@@ -1,3 +1,6 @@
+#include <curand.h>
+#include <curand_kernel.h>
+
 #include "cuda/cudaarray.h"
 #include "cuda/cudatypes.h"
 #include "rendering/framebuffer.h"
@@ -78,26 +81,10 @@ __device__ float traceRay(const Rendering::Ray &ray, const Cuda::Types::Scene &s
 	// Intersect triangles
 	for (uint32_t triangleIndex = 0; triangleIndex < scene.triangleCount; triangleIndex++)
 	{
-//		auto &triangle = scene.triangleBuffer[triangleIndex];
+		float u, v;
+		bool intersected = intersect(ray, &dataPointer, newDistance, u, v);
 		
-//		printf("v0  := {%f, %f, %f}\n", triangle.v0.x(), triangle.v0.y(), triangle.v0.z());
-//		printf("e01 := {%f, %f, %f}\n", triangle.e01.x(), triangle.e01.y(), triangle.e01.z());
-//		printf("e02 := {%f, %f, %f}\n", triangle.e02.x(), triangle.e02.y(), triangle.e02.z());
-//		printf("e12 := {%f, %f, %f}\n", triangle.e12.x(), triangle.e12.y(), triangle.e12.z());
-		
-		float t, u, v;
-		bool intersected = intersect(ray, &dataPointer, t, u, v);
-		
-		if (intersected == true)
-		{
-			printf("intersection %f\n", t);
-		}
-		else
-		{
-			printf("no intersection %f\n", t);
-		}
-		
-		if ((newDistance < distance) & (intersected == true))
+		if ((newDistance < distance) & intersected)
 		{
 			nearestMesh		= &scene.meshBuffer[scene.triangleBuffer[triangleIndex].meshIndex];
 			distance		= newDistance;
@@ -135,7 +122,7 @@ __device__ Math::Vector4 createUniformHemisphere(const float r1, const float r2)
 	return {x, r1, z};
 }
 
-__device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, RandomNumberGenerator &rng, float &cosinusTheta)
+__device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, curandState &rng, float &cosinusTheta)
 {
 	float ratio;
 	
@@ -145,9 +132,8 @@ __device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, RandomNumb
 	createCoordinateSystem(normal, Nt, Nb);
 	
 	// Generate hemisphere
-	constexpr float scalingFactor	= 1.0f / float(0xFFFFFFFF);
-	cosinusTheta					= std::pow(rng.get(scalingFactor), 0.5f);
-	ratio							= rng.get(scalingFactor);
+	cosinusTheta					= std::pow(curand_uniform(&rng), 0.5f);
+	ratio							= curand_uniform(&rng);
 	
 	Math::Vector4 sample			= createUniformHemisphere(cosinusTheta, ratio);
 	
@@ -197,15 +183,14 @@ __device__ Math::Vector4 interpolateNormal(const Math::Vector4 &intersectionPoin
 	return returnValue;
 }
 
-__device__ Ray createCameraRay(const uint pixelX, const uint pixelY, const uint width, const uint height, const float fieldOfView, RandomNumberGenerator &rng)
+__device__ Ray createCameraRay(const uint pixelX, const uint pixelY, const uint width, const uint height, const float fieldOfView, curandState &rng)
 {
-	float fovRadians = fieldOfView / 180.0f * float(M_PI);
-	float zCoordinate = -(width/(2.0f * tanf(fovRadians / 2.0f)));
+	float fovRadians	= fieldOfView / 180.0f * float(M_PI);
+	float zCoordinate	= -(width/(2.0f * tanf(fovRadians / 2.0f)));
 	
 	float offsetX, offsetY;
-	constexpr float scalingFactor = 1.0f / float(0xFFFFFFFF);
-	offsetX = rng.get(scalingFactor)  - 0.5f;
-	offsetY = rng.get(scalingFactor) - 0.5f;
+	offsetX = curand_uniform(&rng)  - 0.5f;
+	offsetY = curand_uniform(&rng) - 0.5f;
 	
 	float x = (pixelX + offsetX + 0.5f) - (width / 2.0f);
 	float y = -(pixelY + offsetY + 0.5f) + (height / 2.0f);
@@ -216,8 +201,92 @@ __device__ Ray createCameraRay(const uint pixelX, const uint pixelY, const uint 
 	return Ray{Math::Vector4{}, direction};
 }
 
-__global__ void castRay(const Cuda::Types::Tile tile, RandomNumberGenerator *rngs, const uint32_t width, const uint32_t height, const float fieldOfView,
+__global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const uint32_t width, const uint32_t height, const float fieldOfView,
 						const Cuda::Types::Scene scene, const size_t maxBounces, const Math::Vector4 skyColor, Math::Vector4 *pixels)
+{
+	const uint pixelX				= blockIdx.x * blockDim.x + threadIdx.x;
+	const uint pixelY				= blockIdx.y * blockDim.y + threadIdx.y;
+	const uint pixelIndex			= pixelY * width + pixelX;
+	
+	// Return early if pixel is outside tile
+	if ((pixelX >= tile.x1) | (pixelY >= tile.y1))
+	{
+		return;
+	}
+	
+	curandState rng					= rngs[pixelIndex];
+	Ray ray							= createCameraRay(pixelX, pixelY, width, height, fieldOfView, rng);
+	
+	Math::Vector4 returnValue		= pixels[pixelIndex];
+	Math::Vector4 mask				= {1.0f, 1.0f, 1.0f};
+	
+	Math::Vector4 currentDirection	= ray.direction;
+	Math::Vector4 currentOrigin		= ray.origin;
+	
+	float cosinusTheta;
+	
+	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
+	{
+		Math::Vector4 intersectionPoint;
+		Types::IntersectionInfo objectIntersection;
+		Math::Vector4 normal;
+		float objectDistance	= traceRay({currentOrigin, currentDirection}, scene, objectIntersection);
+		
+		intersectionPoint		= currentOrigin + (objectDistance * currentDirection);
+		
+		if (objectIntersection.mesh != nullptr)
+		{
+			Material objectMaterial		= scene.materialBuffer[objectIntersection.mesh->materialOffset];
+			Math::Vector4 objectColor	= objectMaterial.color;
+			
+			// Calculate normal
+			const Cuda::Types::Triangle *dataPointer = scene.triangleBuffer + objectIntersection.triangleOffset;
+			normal						= interpolateNormal(intersectionPoint, dataPointer);
+			
+			// Calculate new origin and offset
+			currentOrigin				= intersectionPoint + (Math::epsilon * normal);
+			
+			// Global illumination
+			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
+			Math::Vector4 diffuse, specular;
+			
+			diffuseDirection			= randomDirection(normal, rng, cosinusTheta);
+			reflectedDirection			= (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
+			
+			newDirection				= Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness);
+			
+//			specular					= Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness);
+//			diffuse						= Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
+			
+			float random				= curand_uniform(&rng);
+			if (random > objectMaterial.roughness)
+			{
+				newDirection = reflectedDirection;
+			}
+			else
+			{
+				newDirection = diffuseDirection;
+			}
+			
+			currentDirection			= newDirection;
+			
+//			returnValue					+= objectMaterial.emittance * mask;
+//			mask						*= (2.0f * objectColor * diffuse + specular) * cosinusTheta;
+			returnValue					+= objectMaterial.emittance * objectColor * mask;
+			mask						*= 2.0f * objectColor * cosinusTheta;
+		}
+		else
+		{
+			returnValue					+= skyColor * mask;
+			break;
+		}
+	}
+	
+	rngs[pixelIndex]	= rng;
+	pixels[pixelIndex]	= returnValue;
+}
+
+__global__ void setupRngs(curandState *rngs, const uint32_t seed, const Cuda::Types::Tile tile, const uint32_t width)
 {
 	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
 	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
@@ -229,70 +298,42 @@ __global__ void castRay(const Cuda::Types::Tile tile, RandomNumberGenerator *rng
 		return;
 	}
 	
-	RandomNumberGenerator &rng = rngs[pixelIndex];
-	Ray ray = createCameraRay(pixelX, pixelY, width, height, fieldOfView, rng);
+	curand_init(seed, pixelIndex, 0, &rngs[pixelIndex]);
+}
+
+__global__ void initializePixels(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width)
+{
+	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
+	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
+	const uint pixelIndex	= pixelY * width + pixelX;
 	
-	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
-	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
-	
-	Math::Vector4 currentDirection = ray.direction;
-	Math::Vector4 currentOrigin = ray.origin;
-	
-	float cosinusTheta;
-	
-//	for (size_t currentBounce = 0; currentBounce < maxBounces; currentBounce++)
+	// Return early if pixel is outside tile
+	if ((pixelX >= tile.x1) | (pixelY >= tile.y1))
 	{
-		Math::Vector4 intersectionPoint;
-		Types::IntersectionInfo objectIntersection;
-		Math::Vector4 normal;
-		float objectDistance = traceRay({currentOrigin, currentDirection}, scene, objectIntersection);
-		
-		intersectionPoint = currentOrigin + (objectDistance * currentDirection);
-		
-		if (objectIntersection.mesh != nullptr)
-		{
-			Material objectMaterial = scene.materialBuffer[objectIntersection.mesh->materialOffset];
-			Math::Vector4 objectColor = objectMaterial.color;
-			
-			// Calculate normal
-			const Cuda::Types::Triangle *dataPointer = scene.triangleBuffer + objectIntersection.triangleOffset;
-			normal = interpolateNormal(intersectionPoint, dataPointer);
-			
-			// Calculate new origin and offset
-//			currentOrigin = intersectionPoint + (Math::epsilon * normal);
-			
-//			// Global illumination
-//			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
-//			Math::Vector4 diffuse, specular;
-			
-//			diffuseDirection = randomDirection(normal, rng, cosinusTheta);
-//			reflectedDirection = (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
-			
-//			newDirection = Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness);
-			
-//			specular = Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness);
-//			diffuse = Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
-			
-//			currentDirection = newDirection;
-			
-//			returnValue += objectMaterial.emittance * mask;
-//			mask *= (2.0f * objectColor * diffuse + specular) * cosinusTheta;
-			returnValue = objectColor;
-//			returnValue = {0.0f, 1.0f, 0.0f};
-		}
-		else
-		{
-//			returnValue = {1.0f, 0.0f, 0.0f};
-			returnValue += skyColor * mask;
-//			break;
-		}
+		return;
 	}
 	
-	pixels[pixelIndex] = returnValue;
+	pixels[pixelIndex] = {};
+}
+
+__global__ void finalizePixels(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width, const uint32_t samples)
+{
+	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
+	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
+	const uint pixelIndex	= pixelY * width + pixelX;
+	
+	// Return early if pixel is outside tile
+	if ((pixelX >= tile.x1) | (pixelY >= tile.y1))
+	{
+		return;
+	}
+	
+	pixels[pixelIndex] /= float(samples);
 }
 
 __host__ void cudaRender(
-	FrameBuffer &frameBuffer, RandomNumberGenerator rng,
+	FrameBuffer &frameBuffer,
+	RandomNumberGenerator rng,
 	const CudaArray<Types::Triangle> &triangleBuffer,
 	const CudaArray<Types::Mesh> &meshBuffer,
 	const CudaArray<Material> &materialBuffer,
@@ -302,7 +343,7 @@ __host__ void cudaRender(
 	const Math::Vector4 &skyColor)
 {
 	const uint32_t pixelCount		= frameBuffer.width() * frameBuffer.height();
-	const uint32_t threadsPerBlock	= 32;
+	const uint32_t threadsPerBlock	= 16;
 	const uint32_t gridSizeX		= (frameBuffer.width() / threadsPerBlock) + 1;
 	const uint32_t gridkSizeY		= (frameBuffer.height() / threadsPerBlock) + 1;
 	
@@ -315,42 +356,52 @@ __host__ void cudaRender(
 		materialBuffer.size()
 	};
 	
+	Types::Tile tile{0, 0, frameBuffer.width(), frameBuffer.height()};
+	
 	dim3 blockSize(threadsPerBlock, threadsPerBlock, 1);
 	dim3 gridSize(gridSizeX, gridkSizeY, 1);
 	
-	printf("width=%u height=%u\n", frameBuffer.width(), frameBuffer.height());
-	
-	CudaArray<RandomNumberGenerator> rngs(pixelCount);
-	
-	for (uint32_t i = 0; i < rngs.size(); i++)
-	{
-		rngs[i] = rng.get();
-	}
-	
-	printf("created rngs\n");
-	
+	CudaArray<curandState> rngBuffer(pixelCount);
 	CudaArray<Math::Vector4> gpuFrameBuffer(pixelCount);
 	
-	printf("allocated GPU framebuffer... launching kernel...\n");
-	
-	printf("gridSize=(%u, %u, %u) blockSize=(%u, %u, %u)\n", gridSize.x, gridSize.y, gridSize.z, blockSize.x, blockSize.y, blockSize.z);
-	
-	castRay<<<gridSize, blockSize>>>(
+	setupRngs<<<gridSize, blockSize>>>(
+		rngBuffer.data(),
+		rng.get(),
 		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
-		rngs.data(),
-		frameBuffer.width(),
-		frameBuffer.height(),
-		fieldOfView,
-		scene,
-		maxBounces,
-		skyColor,
-		gpuFrameBuffer.data());
-	
+		frameBuffer.width());
 	cudaDeviceSynchronize();
-	
 	handleCudaError(cudaGetLastError());
 	
-	printf("finished kernel execution\n");
+	initializePixels<<<gridSize, blockSize>>>(
+		gpuFrameBuffer.data(),
+		tile,
+		frameBuffer.width());
+	cudaDeviceSynchronize();
+	handleCudaError(cudaGetLastError());
+	
+	for (uint32_t sample = 0; sample < samples; sample++)
+	{
+		castRay<<<gridSize, blockSize>>>(
+			tile,
+			rngBuffer.data(),
+			frameBuffer.width(),
+			frameBuffer.height(),
+			fieldOfView,
+			scene,
+			maxBounces,
+			skyColor,
+			gpuFrameBuffer.data());
+		cudaDeviceSynchronize();
+		handleCudaError(cudaGetLastError());
+	}
+	
+	finalizePixels<<<gridSize, blockSize>>>(
+		gpuFrameBuffer.data(),
+		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
+		frameBuffer.width(),
+		samples);
+	cudaDeviceSynchronize();
+	handleCudaError(cudaGetLastError());
 	
 	// Copy frame buffer back
 	frameBuffer = FrameBuffer::fromRawData(gpuFrameBuffer.data(), frameBuffer.width(), frameBuffer.height());

@@ -258,43 +258,43 @@ void Application::_initializeScene()
 										magentaLight,	yellowLight};
 	
 	// Objects
-//	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(0.75f, 16, 8, 7, this->_geometry);
-//	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-//	sphere.translate({-1.0f, -0.2f, -5.0f}, this->_geometry);
+	Rendering::Obj::Mesh sphere = Rendering::Obj::Mesh::sphere(0.75f, 16, 8, 7, this->_geometry);
+	sphere.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
+	sphere.translate({-1.0f, -0.2f, -5.0f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
-//	worldCube.invert(this->_geometry);
-//	worldCube.translate({0.0f, 9.0f, -2.0f}, this->_geometry);
+	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
+	worldCube.invert(this->_geometry);
+	worldCube.translate({0.0f, 9.0f, -2.0f}, this->_geometry);
 	
 	// Lights
 	Rendering::Obj::Mesh plane0 = Rendering::Obj::Mesh::plane(1.0f, 11, this->_geometry);
 	plane0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-//	plane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
-//	plane0.translate({-2.5f, -0.25f, -4.5f}, this->_geometry);
-	plane0.translate({0.0f, 0.0f, -1.0f}, this->_geometry);
+	plane0.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / 4.0f), this->_geometry);
+	plane0.translate({-2.5f, -0.25f, -4.5f}, this->_geometry);
+//	plane0.translate({0.0f, 0.0f, -1.0f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh plane1 = Rendering::Obj::Mesh::plane(1.0f, 12, this->_geometry);
-//	plane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-//	plane1.translate({0.0f, -0.25f, -6.5f}, this->_geometry);
+	Rendering::Obj::Mesh plane1 = Rendering::Obj::Mesh::plane(1.0f, 12, this->_geometry);
+	plane1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
+	plane1.translate({0.0f, -0.25f, -6.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh plane2 = Rendering::Obj::Mesh::plane(1.0f, 13, this->_geometry);
-//	plane2.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
-//	plane2.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
-//	plane2.translate({2.5f, -0.25f, -4.5f}, this->_geometry);
+	Rendering::Obj::Mesh plane2 = Rendering::Obj::Mesh::plane(1.0f, 13, this->_geometry);
+	plane2.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 2.0f), this->_geometry);
+	plane2.transform(Math::Matrix4x4::rotationMatrixY(float(M_PI) / -4.0f), this->_geometry);
+	plane2.translate({2.5f, -0.25f, -4.5f}, this->_geometry);
 	
-//	Rendering::Obj::Mesh plane3 = Rendering::Obj::Mesh::plane(3.0f, 10, this->_geometry);
-//	plane3.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
-//	plane3.translate({0.0f, 5.0f, -1.5f}, this->_geometry);
+	Rendering::Obj::Mesh plane3 = Rendering::Obj::Mesh::plane(3.0f, 10, this->_geometry);
+	plane3.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 1.0f), this->_geometry);
+	plane3.translate({0.0f, 5.0f, -1.5f}, this->_geometry);
 	
 	// Object buffer
-//	this->_geometry.meshBuffer.push_back(sphere);
-//	this->_geometry.meshBuffer.push_back(worldCube);
+	this->_geometry.meshBuffer.push_back(sphere);
+	this->_geometry.meshBuffer.push_back(worldCube);
 	
 	// Light buffer
 	this->_geometry.meshBuffer.push_back(plane0);
-//	this->_geometry.meshBuffer.push_back(plane1);
-//	this->_geometry.meshBuffer.push_back(plane2);
-//	this->_geometry.meshBuffer.push_back(plane3);
+	this->_geometry.meshBuffer.push_back(plane1);
+	this->_geometry.meshBuffer.push_back(plane2);
+	this->_geometry.meshBuffer.push_back(plane3);
 }
 
 bool Application::_applyRenderSettings()
