@@ -9,6 +9,7 @@
 #include "math/vector4.h"
 #include "rendering/ray.h"
 #include "rendering/randomnumbergenerator.h"
+#include "rendering/shader.h"
 
 namespace ToyPT
 {
@@ -247,33 +248,16 @@ __global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const u
 			currentOrigin				= intersectionPoint + (Math::epsilon * normal);
 			
 			// Global illumination
-			Math::Vector4 newDirection, reflectedDirection, diffuseDirection;
-			Math::Vector4 diffuse, specular;
+			Math::Vector4 newDirection;
 			
-			diffuseDirection			= randomDirection(normal, rng, cosinusTheta);
-			reflectedDirection			= (currentDirection - 2.0f * currentDirection.dotProduct(normal) * normal).normalize();
+			newDirection				= randomDirection(normal, rng, cosinusTheta);
 			
-			newDirection				= Math::lerp(diffuseDirection, reflectedDirection, objectMaterial.roughness);
-			
-//			specular					= Math::Vector4{1.0f, 1.0f, 1.0f} * (1.0f - objectMaterial.roughness);
-//			diffuse						= Math::Vector4{1.0f, 1.0f, 1.0f} - specular;
-			
-			float random				= curand_uniform(&rng);
-			if (random > objectMaterial.roughness)
-			{
-				newDirection = reflectedDirection;
-			}
-			else
-			{
-				newDirection = diffuseDirection;
-			}
+			Math::Vector4 brdf			= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal);
 			
 			currentDirection			= newDirection;
 			
-//			returnValue					+= objectMaterial.emittance * mask;
-//			mask						*= (2.0f * objectColor * diffuse + specular) * cosinusTheta;
 			returnValue					+= objectMaterial.emittance * objectColor * mask;
-			mask						*= 2.0f * objectColor * cosinusTheta;
+			mask						*= 2.0f * objectColor * brdf * cosinusTheta;
 		}
 		else
 		{
@@ -329,6 +313,21 @@ __global__ void finalizePixels(Math::Vector4 *pixels, const Cuda::Types::Tile ti
 	}
 	
 	pixels[pixelIndex] /= float(samples);
+}
+
+__global__ void encodeGamma(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width)
+{
+	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
+	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
+	const uint pixelIndex	= pixelY * width + pixelX;
+	
+	// Return early if pixel is outside tile
+	if ((pixelX >= tile.x1) | (pixelY >= tile.y1))
+	{
+		return;
+	}
+	
+	pixels[pixelIndex] = Shader::encodeGamma(pixels[pixelIndex], 2.2f);
 }
 
 __host__ void cudaRender(
@@ -400,6 +399,13 @@ __host__ void cudaRender(
 		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
 		frameBuffer.width(),
 		samples);
+	cudaDeviceSynchronize();
+	handleCudaError(cudaGetLastError());
+	
+	encodeGamma<<<gridSize, blockSize>>>(
+		gpuFrameBuffer.data(),
+		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
+		frameBuffer.width());
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());
 	
