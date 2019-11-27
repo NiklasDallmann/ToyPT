@@ -7,6 +7,7 @@
 #include "abstractrenderer.h"
 #include "cudaarray.h"
 #include "cudatypes.h"
+#include "cuda/cudakdtree.h"
 #include "framebuffer.h"
 #include "geometrycontainer.h"
 #include "material.h"
@@ -27,6 +28,11 @@ public:
 private:
 	void _geometryToBuffer(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
 						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
+	
+	void _buildKdTree(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
+						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
+	
+	void _traverseKdTree(const Node *node, std::vector<Cuda::Types::Node> &deviceNodes, std::vector<Cuda::Types::Triangle> &deviceTriangles);
 };
 
 } // namespace ToyPT::Rendering::Cuda

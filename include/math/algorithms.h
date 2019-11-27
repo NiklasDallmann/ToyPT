@@ -1,11 +1,11 @@
 #ifndef ALGORITHMS_H
 #define ALGORITHMS_H
 
-#ifdef __AVX__
+#include <cxxutility/definitions.h>
+
+#ifdef CXX_AVX
 #include <immintrin.h>
 #endif
-
-#include <cxxutility/definitions.h>
 
 #include "vector4.h"
 
@@ -16,30 +16,13 @@ namespace Math
 
 constexpr float epsilon = 1e-6f;
 
-template <typename T>
-HOST_DEVICE inline bool fuzzyCompareEqual(const T left, const T right);
-
-template<>
-HOST_DEVICE inline bool fuzzyCompareEqual<float>(const float left, const float right)
-{
-	bool returnValue = false;
-	
-#ifndef CXX_NVCC
-	returnValue = std::abs(std::abs(left) - std::abs(right)) < epsilon;
-#else
-	returnValue = fabsf(fabsf(left) - fabsf(right)) < epsilon;
-#endif
-	
-	return returnValue;
-}
-
 template<typename T>
 HOST_DEVICE inline T lerp(const T a, const T b, const float t)
 {
 	return (1.0f - t) * b + t * a;
 }
 
-#ifdef __AVX__
+#ifdef CXX_AVX
 template<>
 inline __m256 lerp<__m256>(const __m256 a, const __m256 b, const float t)
 {
@@ -107,6 +90,15 @@ HOST_DEVICE inline float sqrt(const float x)
 #else
 	return sqrtf(x);
 #endif
+}
+
+template <typename T>
+HOST_DEVICE inline bool fuzzyCompareEqual(const T left, const T right);
+
+template<>
+HOST_DEVICE inline bool fuzzyCompareEqual<float>(const float left, const float right)
+{
+	return Math::abs(Math::abs(left) - Math::abs(right)) < epsilon;
 }
 
 } // namespace Math

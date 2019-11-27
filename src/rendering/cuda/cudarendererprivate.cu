@@ -1,5 +1,6 @@
 #include <curand.h>
 #include <curand_kernel.h>
+#include <cuda_profiler_api.h>
 
 #include "cuda/cudaarray.h"
 #include "cuda/cudatypes.h"
@@ -113,7 +114,7 @@ __device__ void createCoordinateSystem(const Math::Vector4 &normal, Math::Vector
 	binormal				= normal.crossProduct(tangentNormal);
 }
 
-__device__ Math::Vector4 createUniformHemisphere(const float r1, const float r2)
+__device__ Math::Vector4 sampleUniform(const float r1, const float r2)
 {
 	float sinTheta	= sqrtf(1.0f - r1 * r1);
 	float phi		= 2.0f * float(M_PI) * r2;
@@ -123,9 +124,22 @@ __device__ Math::Vector4 createUniformHemisphere(const float r1, const float r2)
 	return {x, r1, z};
 }
 
-__device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, curandState &rng, float &cosinusTheta)
+__device__ Math::Vector4 sampleImportant(const float r1, const float r2, const float a)
 {
-	float ratio;
+	float theta		= acosf(sqrtf((1.0f - r1) / ((a * a - 1.0f) * r1 + 1.0f)));
+	float phi		= 2.0f * float(M_PI) * r2;
+//	float x			= cosf(phi) * sinf(theta);
+//	float y			= sinf(phi) * sinf(theta);
+//	float z			= cosf(theta);
+	float x			= theta * cosf(phi);
+	float z			= theta * sinf(phi);
+	
+	return {x, r1, z};
+}
+
+__device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, curandState &rng, float &cosinusTheta, const float roughness)
+{
+//	float ratio;
 	
 	Math::Vector4 Nt;
 	Math::Vector4 Nb;
@@ -133,10 +147,11 @@ __device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, curandStat
 	createCoordinateSystem(normal, Nt, Nb);
 	
 	// Generate hemisphere
-	cosinusTheta					= std::pow(curand_uniform(&rng), 0.5f);
-	ratio							= curand_uniform(&rng);
+//	cosinusTheta			= Math::pow(curand_uniform(&rng), 0.5f);
+//	ratio					= curand_uniform(&rng);
 	
-	Math::Vector4 sample			= createUniformHemisphere(cosinusTheta, ratio);
+//	Math::Vector4 sample	= sampleUniform(cosinusTheta, ratio);
+	Math::Vector4 sample	= sampleImportant(curand_uniform(&rng), curand_uniform(&rng), roughness);
 	
 	Math::Matrix4x4 localToWorldMatrix{
 		{Nb.x(), normal.x(), Nt.x()},
@@ -250,7 +265,8 @@ __global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const u
 			// Global illumination
 			Math::Vector4 newDirection;
 			
-			newDirection				= randomDirection(normal, rng, cosinusTheta);
+			newDirection				= randomDirection(normal, rng, cosinusTheta, objectMaterial.roughness * objectMaterial.roughness);
+			cosinusTheta				= normal.dotProduct(newDirection);
 			
 			Math::Vector4 diffuse		= Shader::diffuseLambert();
 			Math::Vector4 specular		= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal);

@@ -10,6 +10,7 @@ set(RENDERING_PUBLIC_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudaarrayprivate.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudarenderer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudatypes.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudakdtree.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/framebuffer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/geometrycontainer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/material.h"
@@ -21,7 +22,8 @@ set(RENDERING_PUBLIC_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/rendering/storage.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/triangle.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/simd/kdtree.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/shader.h")
+	"${TOYPT_PROJECT_DIR}/include/rendering/shader.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/kdtreebuilder.h")
 
 set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/color.cpp"
@@ -39,7 +41,8 @@ set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/storage.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/triangle.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/simd/kdtree.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/shader.cpp")
+	"${TOYPT_PROJECT_DIR}/src/rendering/shader.cpp"
+	"${TOYPT_PROJECT_DIR}/src/rendering/kdtreebuilder.cpp")
 
 # Rendering library
 add_library(rendering SHARED					${RENDERING_SOURCES})

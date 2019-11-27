@@ -8,7 +8,10 @@
 
 #include <math/vector4.h>
 
-namespace ToyPT::Rendering::Obj{ class GeometryContainer; }
+namespace ToyPT::Rendering::Obj
+{
+	class GeometryContainer;
+}
 
 namespace ToyPT::Rendering::Storage
 {

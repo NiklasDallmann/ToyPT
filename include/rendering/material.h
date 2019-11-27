@@ -1,6 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
 
+#include <math/algorithms.h>
 #include <math/vector4.h>
 
 namespace ToyPT
@@ -15,7 +16,7 @@ public:
 			 const float cavity = 0.04f, const Math::Vector4 reflectance = {0.5f}) :
 		color(color),
 		emittance(emittance),
-		roughness(roughness),
+		roughness(Math::saturate(roughness - Math::epsilon) + Math::epsilon),
 		metallic(metallic),
 		cavity(cavity),
 		reflectance(reflectance)
