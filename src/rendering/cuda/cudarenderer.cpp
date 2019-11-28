@@ -1,7 +1,8 @@
-#include <stdint.h>
 #include <cmath>
 #include <fstream>
 #include <random>
+#include <stack>
+#include <stdint.h>
 #include <vector>
 
 #include <cxxutility/debugstream.h>
@@ -142,7 +143,33 @@ void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArra
 
 void CudaRenderer::_traverseKdTree(const Node *node, std::vector<Types::Node> &deviceNodes, std::vector<Types::Triangle> &deviceTriangles)
 {
+	std::stack<const Node *, std::vector<const Node *>> stack;
 	
+	stack.push(node);
+	
+	while (!stack.empty())
+	{
+		const Node *parent = stack.top();
+		
+		if (!parent->leafs.empty())
+		{
+			if (parent->left != nullptr)
+			{
+				stack.push(parent->left.get());
+			}
+			
+			if (parent->right != nullptr)
+			{
+				stack.push(parent->right.get());
+			}
+			
+			stack.pop();
+		}
+		else
+		{
+			
+		}
+	}
 }
 
 }
