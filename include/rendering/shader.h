@@ -30,16 +30,18 @@ public:
 		const Material &material,
 		const Math::Vector4 &v,
 		const Math::Vector4 &l,
-		const Math::Vector4 &n)
+		const Math::Vector4 &n,
+		Math::Vector4 &ks)
 	{
 		const Math::Vector4	h			= (l + v).normalized();
 		const float			nDotH		= Math::saturate(n.dotProduct(h));
 		const float			vDotH		= Math::saturate(v.dotProduct(h));
 		const float			a			= Math::pow(material.roughness, 2.0f);
 		
+		ks								= _fresnel_schlick(vDotH, material.reflectance);
 		Math::Vector4		numerator;
 							numerator	= _distribution_ggx(nDotH, a);
-							numerator	*= _fresnel_schlick(vDotH, material.reflectance);
+							numerator	*= ks;
 							numerator	*= _geometric_ggx(v, n, a * a);
 		
 		const float			denominator	= 4.0f * n.dotProduct(v) * n.dotProduct(l);
@@ -63,6 +65,11 @@ public:
 		returnValue = {Math::pow(pixel.x(), inverseExponent), Math::pow(pixel.y(), inverseExponent), Math::pow(pixel.z(), inverseExponent)};
 		
 		return returnValue;
+	}
+	
+	HOST_DEVICE static inline Math::Vector4 reflect(const Math::Vector4 &direction, const Math::Vector4 &normal)
+	{
+		return 2.0f * normal.dotProduct(direction) * normal - direction;
 	}
 	
 private:

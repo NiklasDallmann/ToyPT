@@ -19,7 +19,7 @@ public:
 		roughness(Math::saturate(roughness - Math::epsilon) + Math::epsilon),
 		metallic(metallic),
 		cavity(cavity),
-		reflectance(reflectance)
+		reflectance(Math::saturate(0.16f * reflectance * reflectance))
 	{
 	}
 	

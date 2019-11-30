@@ -128,13 +128,11 @@ __device__ Math::Vector4 sampleImportant(const float r1, const float r2, const f
 {
 	float theta		= acosf(sqrtf((1.0f - r1) / ((a * a - 1.0f) * r1 + 1.0f)));
 	float phi		= 2.0f * float(M_PI) * r2;
-//	float x			= cosf(phi) * sinf(theta);
-//	float y			= sinf(phi) * sinf(theta);
-//	float z			= cosf(theta);
-	float x			= theta * cosf(phi);
-	float z			= theta * sinf(phi);
+	float x			= cosf(phi) * sinf(theta);
+	float y			= cosf(theta);
+	float z			= sinf(phi) * sinf(theta);
 	
-	return {x, r1, z};
+	return {x, y, z};
 }
 
 __device__ Math::Vector4 randomDirection(const Math::Vector4 &normal, curandState &rng, float &cosinusTheta, const float roughness)
@@ -252,29 +250,31 @@ __global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const u
 		
 		if (objectIntersection.mesh != nullptr)
 		{
+			const Cuda::Types::Triangle *dataPointer;
+			Math::Vector4 objectColor, newDirection, diffuse, specular, kd, ks;
 			Material objectMaterial		= scene.materialBuffer[objectIntersection.mesh->materialOffset];
-			Math::Vector4 objectColor	= objectMaterial.color;
+			
+			objectColor					= objectMaterial.color;
 			
 			// Calculate normal
-			const Cuda::Types::Triangle *dataPointer = scene.triangleBuffer + objectIntersection.triangleOffset;
+			dataPointer					= scene.triangleBuffer + objectIntersection.triangleOffset;
 			normal						= interpolateNormal(intersectionPoint, dataPointer);
 			
 			// Calculate new origin and offset
 			currentOrigin				= intersectionPoint + (Math::epsilon * normal);
 			
 			// Global illumination
-			Math::Vector4 newDirection;
-			
 			newDirection				= randomDirection(normal, rng, cosinusTheta, objectMaterial.roughness * objectMaterial.roughness);
 			cosinusTheta				= normal.dotProduct(newDirection);
 			
-			Math::Vector4 diffuse		= Shader::diffuseLambert();
-			Math::Vector4 specular		= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal);
+			diffuse						= objectColor * Shader::diffuseLambert();
+			specular					= Shader::specularCookTorrance(objectMaterial, -currentDirection, newDirection, normal, ks);
+			kd							= (Math::Vector4{1.0f} - ks) * (1.0f - objectMaterial.metallic);
 			
 			currentDirection			= newDirection;
 			
 			returnValue					+= objectMaterial.emittance * objectColor * mask;
-			mask						*= objectColor * (diffuse + specular) * cosinusTheta;
+			mask						*= ((kd * diffuse) + specular) * cosinusTheta;
 		}
 		else
 		{

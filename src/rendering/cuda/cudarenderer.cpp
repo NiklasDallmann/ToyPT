@@ -141,7 +141,10 @@ void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArra
 	}
 }
 
-void CudaRenderer::_traverseKdTree(const Node *node, std::vector<Types::Node> &deviceNodes, std::vector<Types::Triangle> &deviceTriangles)
+void CudaRenderer::_traverseKdTree(
+	const Obj::GeometryContainer &geometry,
+	const Node *node, std::vector<Types::Node> &deviceNodes,
+	std::vector<Types::Triangle> &deviceTriangles)
 {
 	std::stack<const Node *, std::vector<const Node *>> stack;
 	
@@ -151,10 +154,15 @@ void CudaRenderer::_traverseKdTree(const Node *node, std::vector<Types::Node> &d
 	{
 		const Node *parent = stack.top();
 		
+		// FIXME Put append nodes to buffer
+		Cuda::Types::Node deviceNode;
+		
+		// Put child nodes on the stack if there are no leafs present
 		if (!parent->leafs.empty())
 		{
 			if (parent->left != nullptr)
 			{
+//				deviceNode.leftNodeIndex = 
 				stack.push(parent->left.get());
 			}
 			
@@ -162,13 +170,34 @@ void CudaRenderer::_traverseKdTree(const Node *node, std::vector<Types::Node> &d
 			{
 				stack.push(parent->right.get());
 			}
-			
-			stack.pop();
 		}
+		// Otherwise iterate over the leafs and append them to the buffer
 		else
 		{
-			
+			for (const Leaf &leaf : parent->leafs)
+			{
+				const Obj::Mesh &objMesh = geometry.meshBuffer[leaf.meshIndex];
+				const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset + leaf.triangleIndex];
+				
+				Math::Vector4 v0, v1, v2, e01, e02, e12, n0, n1, n2;
+				
+				v0	= geometry.vertexBuffer[triangle.vertices[0]];
+				v1	= geometry.vertexBuffer[triangle.vertices[1]];
+				v2	= geometry.vertexBuffer[triangle.vertices[2]];
+				e01	= v1 - v0;
+				e02	= v2 - v0;
+				e12	= v2 - v1;
+				
+				n0	= geometry.normalBuffer[triangle.normals[0]];
+				n1	= geometry.normalBuffer[triangle.normals[1]];
+				n2	= geometry.normalBuffer[triangle.normals[2]];
+				
+				deviceTriangles.push_back(Cuda::Types::Triangle{v0, e01, e02, e12, n0, n1, n2, leaf.meshIndex});
+			}
 		}
+		
+		deviceNodes.push_back(deviceNode);
+		stack.pop();
 	}
 }
 

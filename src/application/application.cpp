@@ -244,13 +244,13 @@ void Application::_initializeScene()
 	Rendering::Material yellow{{1.0f, 1.0f, 0.0f}};
 	Rendering::Material black{{0.0f, 0.0f, 0.0f}};
 	Rendering::Material halfWhite{{1.0f, 1.0f, 1.0f}};
-	Rendering::Material white{{1.0f, 1.0f, 1.0f}, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f};
+	Rendering::Material white{{1.0f, 1.0f, 1.0f}, 0.0f, 0.5f, 0.0f, 0.0f, 1.0f};
 	Rendering::Material halfGrey{{0.9f, 0.9f, 0.9f}};
-	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.8f};
-	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 5.0f};
-	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 2.0f};
-	Rendering::Material magentaLight{{1.0f, 0.0f, 1.0f}, 2.0f};
-	Rendering::Material yellowLight{{1.0f, 1.0f, 0.0f}, 2.0f};
+	Rendering::Material grey{{0.8f, 0.8f, 0.8f}, 0.0f, 0.5f};
+	Rendering::Material whiteLight{{1.0f, 1.0f, 1.0f}, 2.0f};
+	Rendering::Material cyanLight{{0.0f, 1.0f, 1.0f}, 4.0f};
+	Rendering::Material magentaLight{{1.0f, 0.0f, 1.0f}, 4.0f};
+	Rendering::Material yellowLight{{1.0f, 1.0f, 0.0f}, 4.0f};
 	
 	//									0		1		2		3		4			5		6		7		8			9		10			11
 	this->_geometry.materialBuffer = {	red,	green,	blue,	cyan,	magenta,	yellow,	black,	white,	halfGrey,	grey,	whiteLight,	cyanLight,
@@ -260,11 +260,11 @@ void Application::_initializeScene()
 	// Objects
 	Rendering::Obj::Mesh sphere0 = Rendering::Obj::Mesh::sphere(0.75f, 16, 8, 7, this->_geometry);
 	sphere0.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-	sphere0.translate({-1.0f, -0.2f, -5.0f}, this->_geometry);
+	sphere0.translate({-1.0f, -0.2f, -4.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh sphere1 = Rendering::Obj::Mesh::sphere(0.25f, 16, 8, 7, this->_geometry);
 	sphere1.transform(Math::Matrix4x4::rotationMatrixX(float(M_PI) / 4.0f), this->_geometry);
-	sphere1.translate({1.0f, -0.3f, -3.0f}, this->_geometry);
+	sphere1.translate({1.0f, -0.5f, -3.0f}, this->_geometry);
 	
 	Rendering::Obj::Mesh worldCube = Rendering::Obj::Mesh::cube(20, 9, this->_geometry);
 	worldCube.invert(this->_geometry);

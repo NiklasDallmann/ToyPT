@@ -32,7 +32,7 @@ private:
 	void _buildKdTree(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
 						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
 	
-	void _traverseKdTree(const Node *node, std::vector<Cuda::Types::Node> &deviceNodes, std::vector<Cuda::Types::Triangle> &deviceTriangles);
+	void _traverseKdTree(const Obj::GeometryContainer &geometry, const Node *node, std::vector<Cuda::Types::Node> &deviceNodes, std::vector<Cuda::Types::Triangle> &deviceTriangles);
 };
 
 } // namespace ToyPT::Rendering::Cuda
