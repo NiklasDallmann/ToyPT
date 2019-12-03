@@ -9,13 +9,6 @@
 
 #include "framebuffer.h"
 #include "geometrycontainer.h"
-#include "mesh.h"
-#include "material.h"
-#include "pointlight.h"
-#include "randomnumbergenerator.h"
-#include "ray.h"
-#include "storage.h"
-#include "triangle.h"
 
 namespace ToyPT
 {

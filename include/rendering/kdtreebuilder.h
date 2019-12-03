@@ -9,6 +9,12 @@
 #include "mesh.h"
 #include "triangle.h"
 
+#include <cxxutility/definitions.h>
+
+#ifndef CXX_NVCC
+#include <cxxutility/debugstream.h>
+#endif
+
 namespace ToyPT::Rendering
 {
 
@@ -40,22 +46,77 @@ struct Node
 	std::vector<Leaf>		leafs;
 };
 
+#ifndef CXX_NVCC
+inline std::ostream &operator<<(std::ostream &stream, const Axis &object)
+{
+	switch (object)
+	{
+		case Axis::X:
+			stream << "Axis::X";
+			break;
+		case Axis::Y:
+			stream << "Axis::X";
+			break;
+		case Axis::Z:
+			stream << "Axis::X";
+			break;
+	}
+	
+	return stream;
+}
+
+inline std::ostream &operator<<(std::ostream &stream, const Box &object)
+{
+	stream << "Box{min=" << object.min << ", max=" << object.max << "}";
+	
+	return stream;
+}
+
+inline std::ostream &operator<<(std::ostream &stream, const Leaf &object)
+{
+	stream << "Leaf{triangleIndex=" << object.triangleIndex << ", meshIndex=" << object.meshIndex << "}";
+	
+	return stream;
+}
+
+inline std::ostream &operator<<(std::ostream &stream, const Node &object)
+{
+	stream << "";
+	
+	return stream;
+}
+#endif
+
 class KdTreeBuilder
 {
 public:
-	void build(const Obj::GeometryContainer &geometry);
+	void			build(const Obj::GeometryContainer &geometry);
 	
-	Node *root();
+	Node			*root();
+	
+	static uint32_t	treeSize(const Node *node);
 	
 private:
-	static constexpr uint32_t _threshold = 128;
-	std::unique_ptr<Node> _root;
+	static constexpr uint32_t	_threshold = 128;
+	std::unique_ptr<Node>		_root;
 	
-	Axis _nextAxis(Axis axis);
-	Box _boundingBox(const Obj::GeometryContainer &geometry, const Node &node) const;
-	Box _boundingBox(const Obj::GeometryContainer &geometry, const Obj::Triangle &triangle) const;
-	void _initializeRoot(const Obj::GeometryContainer &geometry);
-	void _split(const Obj::GeometryContainer &geometry, Node &node);
+	Axis	_nextAxis(
+				Axis axis);
+	
+	Box		_boundingBox(
+				const Obj::GeometryContainer &geometry,
+				const Node &node) const;
+	
+	Box		_boundingBox(
+				const Obj::GeometryContainer &geometry,
+				const Obj::Triangle &triangle) const;
+	
+	void	_initializeRoot(
+				const Obj::GeometryContainer &geometry);
+	
+	void	_split(
+				const Obj::GeometryContainer &geometry,
+				Node &node);
 };
 
 }

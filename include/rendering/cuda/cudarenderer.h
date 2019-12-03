@@ -21,18 +21,35 @@ class CudaRenderer : public AbstractRenderer
 public:
 	CudaRenderer() = default;
 	
-	virtual void render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, const CallBack &callBack,
-						const bool &abort, const float fieldOfView = 75.0f, const uint32_t samples = 10, const uint32_t bounces = 2,
-						const uint32_t tileSize = 32, const Math::Vector4 &skyColor = {});
+	virtual void render(
+		FrameBuffer						&frameBuffer,
+		const Obj::GeometryContainer	&geometry, 
+		const Obj::GeometryContainer	&lights, 
+		const CallBack					&callBack,
+		const bool						&abort, 
+		const float						fieldOfView, 
+		const uint32_t					samples, 
+		const uint32_t					bounces,
+		const uint32_t					tileSize, 
+		const Math::Vector4				&skyColor);
 	
 private:
-	void _geometryToBuffer(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
-						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
+	void		_geometryToBuffer(
+					const Obj::GeometryContainer		&geometry,
+					CudaArray<Cuda::Types::Triangle>	&triangleBuffer,
+					CudaArray<Cuda::Types::Mesh>		&meshBuffer,
+					CudaArray<Material>					&materialBuffer);
 	
-	void _buildKdTree(const Obj::GeometryContainer &geometry, CudaArray<Cuda::Types::Triangle> &triangleBuffer,
-						   CudaArray<Cuda::Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer);
+	void		_buildKdTree(const Obj::GeometryContainer		&geometry, CudaArray<Types::Node> &nodeBuffer,
+					CudaArray<Cuda::Types::Triangle>	&triangleBuffer,
+					CudaArray<Cuda::Types::Mesh>		&meshBuffer,
+					CudaArray<Material>					&materialBuffer);
 	
-	void _traverseKdTree(const Obj::GeometryContainer &geometry, const Node *node, std::vector<Cuda::Types::Node> &deviceNodes, std::vector<Cuda::Types::Triangle> &deviceTriangles);
+	void		_traverseKdTree(
+					const Obj::GeometryContainer		&geometry,
+					const Node							*node,
+					std::vector<Cuda::Types::Node>		&deviceNodes,
+					std::vector<Cuda::Types::Triangle>	&deviceTriangles);
 };
 
 } // namespace ToyPT::Rendering::Cuda

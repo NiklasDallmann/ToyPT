@@ -40,6 +40,38 @@ Node *KdTreeBuilder::root()
 	return this->_root.get();
 }
 
+uint32_t KdTreeBuilder::treeSize(const Node *node)
+{
+	uint32_t returnValue = 0;
+	std::stack<const Node *, std::vector<const Node *>>	stack;
+	
+	stack.push(node);
+	
+	while (!stack.empty())
+	{
+		const Node *parent = stack.top();
+		
+		stack.pop();
+		
+		if (!parent->leafs.empty())
+		{
+			if (parent->right != nullptr)
+			{
+				stack.push(parent->right.get());
+				returnValue++;
+			}
+			
+			if (parent->left != nullptr)
+			{
+				stack.push(parent->left.get());
+				returnValue++;
+			}
+		}
+	}
+	
+	return returnValue;
+}
+
 Axis KdTreeBuilder::_nextAxis(ToyPT::Rendering::Axis axis)
 {
 	Axis returnValue;

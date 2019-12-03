@@ -20,7 +20,9 @@ namespace Types
 
 struct Node
 {
+	Axis		axis			= Axis::X;
 	Box			boundingBox;
+	uint32_t	parentNodeIndex	= 0;
 	uint32_t	leftNodeIndex	= 0;
 	uint32_t	rightNodeIndex	= 0;
 	uint32_t	leafBeginIndex	= 0;

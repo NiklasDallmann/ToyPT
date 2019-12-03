@@ -2,6 +2,7 @@
 #include <curand_kernel.h>
 #include <cuda_profiler_api.h>
 
+//#include "abstractrenderer.h"
 #include "cuda/cudaarray.h"
 #include "cuda/cudatypes.h"
 #include "rendering/framebuffer.h"
@@ -348,15 +349,18 @@ __global__ void encodeGamma(Math::Vector4 *pixels, const Cuda::Types::Tile tile,
 }
 
 __host__ void cudaRender(
-	FrameBuffer &frameBuffer,
-	RandomNumberGenerator rng,
-	const CudaArray<Types::Triangle> &triangleBuffer,
-	const CudaArray<Types::Mesh> &meshBuffer,
-	const CudaArray<Material> &materialBuffer,
-	const uint32_t samples,
-	const uint32_t maxBounces,
-	const float fieldOfView,
-	const Math::Vector4 &skyColor)
+	FrameBuffer							&frameBuffer,
+	RandomNumberGenerator				rng,
+	const CudaArray<Types::Triangle>	&triangleBuffer,
+	const CudaArray<Types::Mesh>		&meshBuffer,
+	const CudaArray<Material>			&materialBuffer,
+//	const AbstractRenderer::CallBack	&callback,
+	const bool							&abort,
+	const uint32_t						samples,
+	const uint32_t						maxBounces,
+	const uint32_t						tileSize,
+	const float							fieldOfView,
+	const Math::Vector4					&skyColor)
 {
 	const uint32_t pixelCount		= frameBuffer.width() * frameBuffer.height();
 	const uint32_t threadsPerBlock	= 16;
@@ -395,21 +399,42 @@ __host__ void cudaRender(
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());
 	
-	for (uint32_t sample = 0; sample < samples; sample++)
-	{
-		castRay<<<gridSize, blockSize>>>(
-			tile,
-			rngBuffer.data(),
-			frameBuffer.width(),
-			frameBuffer.height(),
-			fieldOfView,
-			scene,
-			maxBounces,
-			skyColor,
-			gpuFrameBuffer.data());
-		cudaDeviceSynchronize();
-		handleCudaError(cudaGetLastError());
-	}
+//	const uint32_t tilesVertical	= frameBuffer.height() / tileSize + ((frameBuffer.height() % tileSize) > 0);
+//	const uint32_t tilesHorizontal	= frameBuffer.width() / tileSize + ((frameBuffer.width() % tileSize) > 0);
+	
+//	for (uint32_t tileVertical = 0; tileVertical < tilesVertical; tileVertical++)
+//	{
+//		for (uint32_t tileHorizontal = 0; tileHorizontal < tilesHorizontal; tileHorizontal++)
+//		{
+//			uint32_t startVertical		= tileSize * tileVertical;
+//			uint32_t startHorizontal	= tileSize * tileHorizontal;
+//			uint32_t endVertical		= std::min(startVertical + tileSize, frameBuffer.height());
+//			uint32_t endHorizontal		= std::min(startHorizontal + tileSize, frameBuffer.width());
+			
+//			tile = {startHorizontal, startVertical, endHorizontal, endVertical};
+			
+			for (uint32_t sample = 0; sample < samples; sample++)
+			{
+				castRay<<<gridSize, blockSize>>>(
+					tile,
+					rngBuffer.data(),
+					frameBuffer.width(),
+					frameBuffer.height(),
+					fieldOfView,
+					scene,
+					maxBounces,
+					skyColor,
+					gpuFrameBuffer.data());
+				cudaDeviceSynchronize();
+				handleCudaError(cudaGetLastError());
+			}
+			
+//			if (!abort)
+//			{
+//				callBack(startHorizontal, startVertical, endHorizontal, endVertical);
+//			}
+//		}
+//	}
 	
 	finalizePixels<<<gridSize, blockSize>>>(
 		gpuFrameBuffer.data(),

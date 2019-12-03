@@ -1,3 +1,4 @@
+#include <cassert>
 #include <cmath>
 #include <fstream>
 #include <random>
@@ -16,31 +17,46 @@
 namespace ToyPT::Rendering::Cuda
 {
 
-extern void cudaRender(FrameBuffer &frameBuffer, RandomNumberGenerator rng,
-					 const CudaArray<Cuda::Types::Triangle> &triangleBuffer,
-					 const CudaArray<Cuda::Types::Mesh> &meshBuffer,
-					 const CudaArray<Material> &materialBuffer,
-					 const uint32_t samples,
-					 const uint32_t maxBounces,
-					 const float fieldOfView,
-					 const Math::Vector4 &skyColor);
+extern void cudaRender(
+		FrameBuffer							&frameBuffer,
+		RandomNumberGenerator				rng,
+		const CudaArray<Types::Triangle>	&triangleBuffer,
+		const CudaArray<Types::Mesh>		&meshBuffer,
+		const CudaArray<Material>			&materialBuffer,
+//		const AbstractRenderer::CallBack	&callback,
+		const bool							&abort,
+		const uint32_t						samples,
+		const uint32_t						maxBounces,
+		const uint32_t						tileSize,
+		const float							fieldOfView,
+		const Math::Vector4					&skyColor);
 
-void CudaRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights,
-						  const AbstractRenderer::CallBack &callBack, const bool &abort, const float fieldOfView, const uint32_t samples,
-						  const uint32_t bounces, const uint32_t tileSize, const Math::Vector4 &skyColor)
+void CudaRenderer::render(
+		FrameBuffer						&frameBuffer,
+		const Obj::GeometryContainer	&geometry, 
+		const Obj::GeometryContainer	&lights, 
+		const CallBack					&callBack,
+		const bool						&abort, 
+		const float						fieldOfView, 
+		const uint32_t					samples, 
+		const uint32_t					bounces,
+		const uint32_t					tileSize, 
+		const Math::Vector4				&skyColor)
 {
+	CudaArray<Cuda::Types::Node> nodeBuffer;
 	CudaArray<Cuda::Types::Triangle> triangleBuffer;
 	CudaArray<Cuda::Types::Mesh> meshBuffer;
 	CudaArray<Material> materialBuffer;
 	
 	this->_geometryToBuffer(geometry, triangleBuffer, meshBuffer, materialBuffer);
+//	this->_buildKdTree(geometry, nodeBuffer, triangleBuffer, meshBuffer, materialBuffer);
 	
 	cxxtrace << "starting render";
 	
 	std::random_device device;
 	RandomNumberGenerator rng{device()};
 	
-	cudaRender(frameBuffer, rng, triangleBuffer, meshBuffer, materialBuffer, samples, bounces, fieldOfView, skyColor);
+	cudaRender(frameBuffer, rng, triangleBuffer, meshBuffer, materialBuffer, abort, samples, bounces, tileSize, fieldOfView, skyColor);
 	
 	cxxtrace << "finished render";
 }
@@ -102,7 +118,7 @@ void CudaRenderer::_geometryToBuffer(const Obj::GeometryContainer &geometry, Cud
 	}
 }
 
-void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArray<Types::Triangle> &triangleBuffer, CudaArray<Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer)
+void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArray<Types::Node> &nodeBuffer, CudaArray<Types::Triangle> &triangleBuffer, CudaArray<Types::Mesh> &meshBuffer, CudaArray<Material> &materialBuffer)
 {
 	std::vector<Cuda::Types::Node>		nodes;
 	std::vector<Cuda::Types::Triangle>	triangles;
@@ -120,10 +136,17 @@ void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArra
 	builder.build(geometry);
 	
 	// Traverse tree
+	this->_traverseKdTree(geometry, builder.root(), nodes, triangles);
 	
+	nodeBuffer		= CudaArray<Cuda::Types::Node>(CudaArray<Cuda::Types::Node>::size_type(nodes.size()));
 	triangleBuffer	= CudaArray<Cuda::Types::Triangle>(CudaArray<Cuda::Types::Triangle>::size_type(triangles.size()));
 	meshBuffer		= CudaArray<Cuda::Types::Mesh>(CudaArray<Cuda::Types::Mesh>::size_type(meshes.size()));
 	materialBuffer	= CudaArray<Material>(CudaArray<Material>::size_type(geometry.materialBuffer.size()));
+	
+	for (CudaArray<Cuda::Types::Node>::size_type i = 0; i < nodes.size(); i++)
+	{
+		nodeBuffer[i] = nodes[i];
+	}
 	
 	for (CudaArray<Cuda::Types::Triangle>::size_type i = 0; i < triangles.size(); i++)
 	{
@@ -142,11 +165,15 @@ void CudaRenderer::_buildKdTree(const Obj::GeometryContainer &geometry, CudaArra
 }
 
 void CudaRenderer::_traverseKdTree(
-	const Obj::GeometryContainer &geometry,
-	const Node *node, std::vector<Types::Node> &deviceNodes,
-	std::vector<Types::Triangle> &deviceTriangles)
+	const Obj::GeometryContainer	&geometry,
+	const Node						*node,
+	std::vector<Types::Node>		&deviceNodes,
+	std::vector<Types::Triangle>	&deviceTriangles)
 {
 	std::stack<const Node *, std::vector<const Node *>> stack;
+	uint32_t ownIndex = 0;
+	
+	deviceNodes.resize(KdTreeBuilder::treeSize(node));
 	
 	stack.push(node);
 	
@@ -154,30 +181,35 @@ void CudaRenderer::_traverseKdTree(
 	{
 		const Node *parent = stack.top();
 		
-		// FIXME Put append nodes to buffer
-		Cuda::Types::Node deviceNode;
+		stack.pop();
 		
-		// Put child nodes on the stack if there are no leafs present
+		deviceNodes[ownIndex].axis			= parent->axis;
+		deviceNodes[ownIndex].boundingBox	= parent->boundingBox;
+		
 		if (!parent->leafs.empty())
 		{
-			if (parent->left != nullptr)
-			{
-//				deviceNode.leftNodeIndex = 
-				stack.push(parent->left.get());
-			}
+			assert(parent->left.get()	!= nullptr);
+			assert(parent->right.get()	!= nullptr);
 			
-			if (parent->right != nullptr)
-			{
-				stack.push(parent->right.get());
-			}
+			uint32_t rightNodeIndex	= ownIndex + KdTreeBuilder::treeSize(parent->left.get()) + 1;
+			uint32_t leftNodeIndex	= ownIndex + 1;
+			
+			deviceNodes[ownIndex].rightNodeIndex		= rightNodeIndex;
+			deviceNodes[rightNodeIndex].parentNodeIndex	= ownIndex;
+			stack.push(parent->right.get());
+			
+			deviceNodes[ownIndex].leftNodeIndex			= leftNodeIndex;
+			deviceNodes[leftNodeIndex].parentNodeIndex	= ownIndex;
+			stack.push(parent->left.get());
 		}
-		// Otherwise iterate over the leafs and append them to the buffer
 		else
 		{
+			deviceNodes[ownIndex].leafBeginIndex = uint32_t(deviceTriangles.size());
+			
 			for (const Leaf &leaf : parent->leafs)
 			{
-				const Obj::Mesh &objMesh = geometry.meshBuffer[leaf.meshIndex];
-				const Obj::Triangle &triangle = geometry.triangleBuffer[objMesh.triangleOffset + leaf.triangleIndex];
+				const Obj::Mesh		&objMesh	= geometry.meshBuffer[leaf.meshIndex];
+				const Obj::Triangle &triangle	= geometry.triangleBuffer[objMesh.triangleOffset + leaf.triangleIndex];
 				
 				Math::Vector4 v0, v1, v2, e01, e02, e12, n0, n1, n2;
 				
@@ -194,10 +226,11 @@ void CudaRenderer::_traverseKdTree(
 				
 				deviceTriangles.push_back(Cuda::Types::Triangle{v0, e01, e02, e12, n0, n1, n2, leaf.meshIndex});
 			}
+			
+			deviceNodes[ownIndex].leafEndIndex = uint32_t(deviceTriangles.size() - 1);
 		}
 		
-		deviceNodes.push_back(deviceNode);
-		stack.pop();
+		ownIndex++;
 	}
 }
 
