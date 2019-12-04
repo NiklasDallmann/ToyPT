@@ -24,13 +24,12 @@ SimdRenderer::SimdRenderer() :
 {
 }
 
-void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, const CallBack &callBack,
-						  const bool &abort, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize,
-						  const Math::Vector4 &skyColor)
+void SimdRenderer::render(FrameBuffer &frameBuffer, const RenderSettings &settings, const Obj::GeometryContainer &geometry, const CallBack &callBack,
+						  const bool &abort)
 {
 	const uint32_t width = frameBuffer.width();
 	const uint32_t height = frameBuffer.height();
-	float fovRadians = fieldOfView / 180.0f * float(M_PI);
+	float fovRadians = settings.fieldOfView / 180.0f * float(M_PI);
 	float zCoordinate = -(width/(2.0f * std::tan(fovRadians / 2.0f)));
 	std::stringstream stream;
 	
@@ -39,18 +38,18 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 	this->_geometryToBuffer(geometry, this->_objectTriangleBuffer, this->_objectMeshBuffer);
 	
 	std::random_device device;
-	const uint32_t tilesVertical = height / tileSize + ((height % tileSize) > 0);
-	const uint32_t tilesHorizontal = width / tileSize + ((width % tileSize) > 0);
+	const uint32_t tilesVertical = height / settings.tileSize + ((height % settings.tileSize) > 0);
+	const uint32_t tilesHorizontal = width / settings.tileSize + ((width % settings.tileSize) > 0);
 	
 #pragma omp parallel for schedule(dynamic, 1) collapse(2)
 	for (uint32_t tileVertical = 0; tileVertical < tilesVertical; tileVertical++)
 	{
 		for (uint32_t tileHorizontal = 0; tileHorizontal < tilesHorizontal; tileHorizontal++)
 		{
-			uint32_t startVertical = tileSize * tileVertical;
-			uint32_t startHorizontal = tileSize * tileHorizontal;
-			uint32_t endVertical = std::min(startVertical + tileSize, height);
-			uint32_t endHorizontal = std::min(startHorizontal + tileSize, width);
+			uint32_t startVertical = settings.tileSize * tileVertical;
+			uint32_t startHorizontal = settings.tileSize * tileHorizontal;
+			uint32_t endVertical = std::min(startVertical + settings.tileSize, height);
+			uint32_t endHorizontal = std::min(startHorizontal + settings.tileSize, width);
 			
 			for (uint32_t h = startVertical; h < endVertical; h++)
 			{
@@ -59,7 +58,7 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 					RandomNumberGenerator rng(device());
 					Math::Vector4 color;
 					
-					for (size_t sample = 1; sample <= samples; sample++)
+					for (size_t sample = 1; sample <= settings.samples; sample++)
 					{
 						float offsetX, offsetY;
 						const float scalingFactor = 1.0f / float(std::numeric_limits<uint32_t>::max());
@@ -72,10 +71,10 @@ void SimdRenderer::render(FrameBuffer &frameBuffer, const Obj::GeometryContainer
 						Math::Vector4 direction{x, y, zCoordinate};
 						direction.normalize();
 					
-						color += this->_castRay({{0, 0, 0}, direction}, geometry, lights, rng, bounces, skyColor);
+						color += this->_castRay({{0, 0, 0}, direction}, geometry, rng, settings.bounces, settings.skyColor);
 					}
 					
-					frameBuffer.setPixel(w, h, (color / float(samples)));
+					frameBuffer.setPixel(w, h, (color / float(settings.samples)));
 				}
 			}
 			
@@ -167,7 +166,7 @@ __m256 SimdRenderer::_intersectSimd(const Ray &ray, Storage::PrecomputedTriangle
 	return returnValue;
 }
 
-float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geometry, IntersectionInfo &intersection)
+float SimdRenderer::_traceRay(const Ray &ray, IntersectionInfo &intersection)
 {
 	float returnValue = 0.0f;
 	
@@ -215,7 +214,7 @@ float SimdRenderer::_traceRay(const Ray &ray, const Obj::GeometryContainer &geom
 	return returnValue;
 }
 
-Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, const Obj::GeometryContainer &lights, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
+Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContainer &geometry, RandomNumberGenerator rng, const size_t maxBounces, const Math::Vector4 &skyColor)
 {
 	Math::Vector4 returnValue = {0.0f, 0.0f, 0.0f};
 	Math::Vector4 mask = {1.0f, 1.0f, 1.0f};
@@ -230,7 +229,7 @@ Math::Vector4 SimdRenderer::_castRay(const Ray &ray, const Obj::GeometryContaine
 		Math::Vector4 intersectionPoint;
 		IntersectionInfo objectIntersection;
 		Math::Vector4 normal;
-		float objectDistance = this->_traceRay({currentOrigin, currentDirection}, geometry, objectIntersection);
+		float objectDistance = this->_traceRay({currentOrigin, currentDirection}, objectIntersection);
 		
 		intersectionPoint = currentOrigin + (objectDistance * currentDirection);
 		
@@ -358,81 +357,6 @@ Math::Vector4 SimdRenderer::_interpolateNormal(const Math::Vector4 &intersection
 	v2ab = vab - v2;
 	
 	returnValue = Math::lerp(n01, n2, (v2p.magnitude() / v2ab.magnitude())).normalize();
-	
-	return returnValue;
-}
-
-float SimdRenderer::_ggxChi(const float x)
-{
-	return x > 0 ? 1.0f : 0.0f;
-}
-
-float SimdRenderer::_ggxPartial(const Math::Vector4 &v, const Math::Vector4 &h, const Math::Vector4 &n, const float a_2)
-{
-	const float vDotH = Math::saturate(v.dotProduct(h));
-	const float vDotN = Math::saturate(v.dotProduct(n));
-	const float chi_f = this->_ggxChi(vDotH / vDotN);
-	const float vDotH_2 = vDotH * vDotH;
-	const float temporary = (1.0f - vDotH_2) / vDotH_2;
-	const float returnValue = (chi_f * 2.0f) / (1.0f + std::sqrt(1.0f + a_2 * temporary));
-	
-	return returnValue;
-}
-
-Math::Vector4 SimdRenderer::_brdf(const Material &material, const Math::Vector4 &n, const Math::Vector4 &l, const Math::Vector4 &v, const float cosinusTheta)
-{
-	Math::Vector4 returnValue;
-	
-	// specular color
-	const Math::Vector4 c_spec = {1.0f, 1.0f, 1.0f};
-	
-	// half vector
-	const Math::Vector4 h = (l + v).normalized();
-	
-	// a (alpha) = roughness^2
-	const float a = material.roughness * material.roughness;
-	const float a_2 = a * a;
-	
-	// D term (GGX - Trowbridge-Reitz)
-	const float nDotH = n.dotProduct(h);
-	const float nDotH_2 = nDotH * nDotH;
-//	const float chi_d = this->_ggxChi(nDotH);
-//	const float denominator = nDotH_2 * a_2 + (1.0f - nDotH_2);
-//	const float denominator = (a_2 - 1.0f) * nDotH_2 + 1.0f;
-//	const float d = a_2 / (float(M_PI) * denominator * denominator);
-	const float acos = std::acos(nDotH);
-	const float eTerm = std::pow(float(M_E), (-1.0f * std::pow(std::tan(acos) / a, 2.0f)));
-	const float d = (eTerm) / (a_2 * std::pow(a, 4.0f));
-	
-	// F (fresnel) term (Schlick approximation)
-	// FIXME Dialectric materials only
-	const Math::Vector4 f01 = {0.0f, 0.0f, 0.0f};
-	const Math::Vector4 f0 = Math::lerp(material.color, f01, Math::saturate(material.metallic));
-	const Math::Vector4 f = f0 + (Math::Vector4{1.0f, 1.0f, 1.0f} - f0) * std::pow(1.0f - cosinusTheta, 5.0f);
-	
-	// G term (Schlick-GGX)
-	const float g = this->_ggxPartial(v, h, n, a_2) * this->_ggxPartial(l, h, n, a_2);
-//	const float vDotH = Math::saturate(v.dotProduct(h));
-//	const float vDotN = Math::saturate(v.dotProduct(n));
-//	const float temp = (2.0f * n.dotProduct(h)) / v.dotProduct(h);
-//	const float g0 = 1.0f;
-//	const float g1 = temp * n.dotProduct(v);
-//	const float g2 = temp * n.dotProduct(l);
-//	const float g = std::min(g0, std::min(g1, g2));
-	
-	returnValue = Math::saturate((d * f * g) / (4 * n.dotProduct(l) * n.dotProduct(v)));
-	
-//	if (returnValue != Math::Vector4{0.0f, 0.0f, 0.0f})
-//	{
-//		std::stringstream stream;
-//		stream << "a^2 " << a_2 << "\n";
-//		stream << "d " << d << "\n";
-////		stream << "d1 " << d1 << "\n";
-////		stream << "g " << g << "\n";
-////		stream << "f " << f << "\n";
-//		stream << returnValue << "\n\n";
-//		std::cout << stream.str();
-//	}
 	
 	return returnValue;
 }

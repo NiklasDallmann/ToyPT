@@ -23,15 +23,10 @@ public:
 	
 	virtual void render(
 		FrameBuffer						&frameBuffer,
-		const Obj::GeometryContainer	&geometry, 
-		const Obj::GeometryContainer	&lights, 
+		const RenderSettings			&settings,
+		const Obj::GeometryContainer	&geometry,
 		const CallBack					&callBack,
-		const bool						&abort, 
-		const float						fieldOfView, 
-		const uint32_t					samples, 
-		const uint32_t					bounces,
-		const uint32_t					tileSize, 
-		const Math::Vector4				&skyColor);
+		const bool						&abort);
 	
 private:
 	void		_geometryToBuffer(

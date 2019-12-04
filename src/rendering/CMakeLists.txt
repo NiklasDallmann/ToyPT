@@ -23,7 +23,9 @@ set(RENDERING_PUBLIC_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/rendering/triangle.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/simd/kdtree.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/shader.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/kdtreebuilder.h")
+	"${TOYPT_PROJECT_DIR}/include/rendering/kdtreebuilder.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/rendersettings.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/tile.h")
 
 set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/color.cpp"

@@ -11,7 +11,9 @@
 #include "math/vector4.h"
 #include "rendering/ray.h"
 #include "rendering/randomnumbergenerator.h"
+#include "rendering/rendersettings.h"
 #include "rendering/shader.h"
+#include "rendering/tile.h"
 
 namespace ToyPT
 {
@@ -216,7 +218,7 @@ __device__ Ray createCameraRay(const uint pixelX, const uint pixelY, const uint 
 	return Ray{Math::Vector4{}, direction};
 }
 
-__global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const uint32_t width, const uint32_t height, const float fieldOfView,
+__global__ void castRay(const Tile tile, curandState *rngs, const uint32_t width, const uint32_t height, const float fieldOfView,
 						const Cuda::Types::Scene scene, const size_t maxBounces, const Math::Vector4 skyColor, Math::Vector4 *pixels)
 {
 	const uint pixelX				= blockIdx.x * blockDim.x + threadIdx.x;
@@ -288,7 +290,7 @@ __global__ void castRay(const Cuda::Types::Tile tile, curandState *rngs, const u
 	pixels[pixelIndex]	= returnValue;
 }
 
-__global__ void setupRngs(curandState *rngs, const uint32_t seed, const Cuda::Types::Tile tile, const uint32_t width)
+__global__ void setupRngs(curandState *rngs, const uint32_t seed, const Tile tile, const uint32_t width)
 {
 	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
 	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
@@ -303,7 +305,7 @@ __global__ void setupRngs(curandState *rngs, const uint32_t seed, const Cuda::Ty
 	curand_init(seed, pixelIndex, 0, &rngs[pixelIndex]);
 }
 
-__global__ void initializePixels(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width)
+__global__ void initializePixels(Math::Vector4 *pixels, const Tile tile, const uint32_t width)
 {
 	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
 	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
@@ -318,7 +320,7 @@ __global__ void initializePixels(Math::Vector4 *pixels, const Cuda::Types::Tile 
 	pixels[pixelIndex] = {};
 }
 
-__global__ void finalizePixels(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width, const uint32_t samples)
+__global__ void finalizePixels(Math::Vector4 *pixels, const Tile tile, const uint32_t width, const uint32_t samples)
 {
 	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
 	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
@@ -333,7 +335,7 @@ __global__ void finalizePixels(Math::Vector4 *pixels, const Cuda::Types::Tile ti
 	pixels[pixelIndex] /= float(samples);
 }
 
-__global__ void encodeGamma(Math::Vector4 *pixels, const Cuda::Types::Tile tile, const uint32_t width)
+__global__ void encodeGamma(Math::Vector4 *pixels, const Tile tile, const uint32_t width)
 {
 	const uint pixelX		= blockIdx.x * blockDim.x + threadIdx.x;
 	const uint pixelY		= blockIdx.y * blockDim.y + threadIdx.y;
@@ -350,17 +352,12 @@ __global__ void encodeGamma(Math::Vector4 *pixels, const Cuda::Types::Tile tile,
 
 __host__ void cudaRender(
 	FrameBuffer							&frameBuffer,
+	const RenderSettings				&settings,
 	RandomNumberGenerator				rng,
 	const CudaArray<Types::Triangle>	&triangleBuffer,
 	const CudaArray<Types::Mesh>		&meshBuffer,
 	const CudaArray<Material>			&materialBuffer,
-//	const AbstractRenderer::CallBack	&callback,
-	const bool							&abort,
-	const uint32_t						samples,
-	const uint32_t						maxBounces,
-	const uint32_t						tileSize,
-	const float							fieldOfView,
-	const Math::Vector4					&skyColor)
+	const bool							&abort)
 {
 	const uint32_t pixelCount		= frameBuffer.width() * frameBuffer.height();
 	const uint32_t threadsPerBlock	= 16;
@@ -376,7 +373,7 @@ __host__ void cudaRender(
 		materialBuffer.size()
 	};
 	
-	Types::Tile tile{0, 0, frameBuffer.width(), frameBuffer.height()};
+	Tile tile{0, 0, frameBuffer.width(), frameBuffer.height()};
 	
 	dim3 blockSize(threadsPerBlock, threadsPerBlock, 1);
 	dim3 gridSize(gridSizeX, gridkSizeY, 1);
@@ -387,7 +384,7 @@ __host__ void cudaRender(
 	setupRngs<<<gridSize, blockSize>>>(
 		rngBuffer.data(),
 		rng.get(),
-		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
+		tile,
 		frameBuffer.width());
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());
@@ -399,54 +396,33 @@ __host__ void cudaRender(
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());
 	
-//	const uint32_t tilesVertical	= frameBuffer.height() / tileSize + ((frameBuffer.height() % tileSize) > 0);
-//	const uint32_t tilesHorizontal	= frameBuffer.width() / tileSize + ((frameBuffer.width() % tileSize) > 0);
-	
-//	for (uint32_t tileVertical = 0; tileVertical < tilesVertical; tileVertical++)
-//	{
-//		for (uint32_t tileHorizontal = 0; tileHorizontal < tilesHorizontal; tileHorizontal++)
-//		{
-//			uint32_t startVertical		= tileSize * tileVertical;
-//			uint32_t startHorizontal	= tileSize * tileHorizontal;
-//			uint32_t endVertical		= std::min(startVertical + tileSize, frameBuffer.height());
-//			uint32_t endHorizontal		= std::min(startHorizontal + tileSize, frameBuffer.width());
-			
-//			tile = {startHorizontal, startVertical, endHorizontal, endVertical};
-			
-			for (uint32_t sample = 0; sample < samples; sample++)
-			{
-				castRay<<<gridSize, blockSize>>>(
-					tile,
-					rngBuffer.data(),
-					frameBuffer.width(),
-					frameBuffer.height(),
-					fieldOfView,
-					scene,
-					maxBounces,
-					skyColor,
-					gpuFrameBuffer.data());
-				cudaDeviceSynchronize();
-				handleCudaError(cudaGetLastError());
-			}
-			
-//			if (!abort)
-//			{
-//				callBack(startHorizontal, startVertical, endHorizontal, endVertical);
-//			}
-//		}
-//	}
+	for (uint32_t sample = 0; sample < settings.samples; sample++)
+	{
+		castRay<<<gridSize, blockSize>>>(
+			tile,
+			rngBuffer.data(),
+			frameBuffer.width(),
+			frameBuffer.height(),
+			settings.fieldOfView,
+			scene,
+			settings.bounces,
+			settings.skyColor,
+			gpuFrameBuffer.data());
+		cudaDeviceSynchronize();
+		handleCudaError(cudaGetLastError());
+	}
 	
 	finalizePixels<<<gridSize, blockSize>>>(
 		gpuFrameBuffer.data(),
-		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
+		tile,
 		frameBuffer.width(),
-		samples);
+		settings.samples);
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());
 	
 	encodeGamma<<<gridSize, blockSize>>>(
 		gpuFrameBuffer.data(),
-		Types::Tile{0, 0, frameBuffer.width(), frameBuffer.height()},
+		tile,
 		frameBuffer.width());
 	cudaDeviceSynchronize();
 	handleCudaError(cudaGetLastError());

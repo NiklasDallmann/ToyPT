@@ -20,10 +20,11 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 
-#include <framebuffer.h>
-#include <geometrycontainer.h>
+#include <rendering/framebuffer.h>
+#include <rendering/geometrycontainer.h>
+#include <rendering/rendersettings.h>
 
-#include <renderthread.h>
+#include "renderthread.h"
 
 namespace ToyPT
 {
@@ -36,7 +37,7 @@ public:
 	Application(QWidget *parent = nullptr);
 	virtual ~Application() override;
 	
-	void render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize);
+	void render();
 	
 signals:
 	void dataAvailable(const quint32 x, const quint32 y);
@@ -51,54 +52,43 @@ protected:
 	virtual void resizeEvent(QResizeEvent *event) override;
 	
 private:
-	struct RenderSettings
-	{
-		uint32_t width = 400;
-		uint32_t height = 200;
-		float fieldOfView = 70.0f;
-		uint32_t samples = 32;
-		uint32_t bounces = 4;
-		uint32_t tileSize = 32;
-	};
+	Rendering::Obj::GeometryContainer	_geometry;
+	Rendering::FrameBuffer				_frameBuffer;
+	Rendering::FrameBuffer				_albedoMap;
+	Rendering::FrameBuffer				_normalMap;
+	Rendering::RenderSettings			_settings;
 	
-	Rendering::Obj::GeometryContainer _geometry;
-	Rendering::Obj::GeometryContainer _lights;
-	Rendering::FrameBuffer _frameBuffer;
-	Rendering::FrameBuffer _albedoMap;
-	Rendering::FrameBuffer _normalMap;
-	RenderSettings _settings;
+	QTime								_renderTime;
+	QTimer								_timeUpdateTimer;
 	
-	QTime _renderTime;
-	QTimer _timeUpdateTimer;
+	QImage								_image;
+	QLabel								*_imageLabel				= nullptr;
+	QScrollArea							*_scrollArea				= nullptr;
 	
-	QImage _image;
-	QLabel *_imageLabel = nullptr;
-	QScrollArea *_scrollArea = nullptr;
+	QToolBar							*_toolBar					= nullptr;
 	
-	QToolBar *_toolBar = nullptr;
+	QVBoxLayout							*_renderSettingsLayout		= nullptr;
+	QGroupBox							*_renderSettingsGroupbox	= nullptr;
 	
-	QVBoxLayout *_renderSettingsLayout = nullptr;
-	QGroupBox *_renderSettingsGroupbox = nullptr;
+	QLineEdit							*_widthInput				= nullptr;
+	QLineEdit							*_heightInput				= nullptr;
+	QLineEdit							*_fovInput					= nullptr;
+	QLineEdit							*_samplesInput				= nullptr;
+	QLineEdit							*_bouncesInput				= nullptr;
+	QLineEdit							*_tileSizeInput				= nullptr;
 	
-	QLineEdit *_widthInput = nullptr;
-	QLineEdit *_heightInput = nullptr;
-	QLineEdit *_fovInput = nullptr;
-	QLineEdit *_samplesInput = nullptr;
-	QLineEdit *_bouncesInput = nullptr;
-	QLineEdit *_tileSizeInput = nullptr;
+	QHBoxLayout							*_startStopLayout			= nullptr;
+	QPushButton							*_startRenderButton			= nullptr;
+	QPushButton							*_stopRenderButton			= nullptr;
+	QPushButton							*_saveButton				= nullptr;
+	QPushButton							*_denoiseButton				= nullptr;
 	
-	QHBoxLayout *_startStopLayout = nullptr;
-	QPushButton *_startRenderButton = nullptr;
-	QPushButton *_stopRenderButton = nullptr;
-	QPushButton *_saveButton = nullptr;
-	QPushButton *_denoiseButton = nullptr;
+	QProgressBar						*_progressBar				= nullptr;
+	QLabel								*_statusLabel				= nullptr;
 	
-	QProgressBar *_progressBar = nullptr;
-	QLabel *_statusLabel = nullptr;
+	QFileDialog							*_fileDialog;
 	
-	QFileDialog *_fileDialog;
-	
-	RenderThread _renderThread;
+	RenderThread						_renderThread;
 	
 	void _updateImageLabel();
 	void _buildUi();

@@ -51,14 +51,6 @@ struct Scene
 	const uint32_t	materialCount	= 0u;
 };
 
-struct Tile
-{
-	uint32_t	x0;
-	uint32_t	y0;
-	uint32_t	x1;
-	uint32_t	y1;
-};
-
 } // namespace Types
 } // namespace Cuda
 } // namespace Rendering

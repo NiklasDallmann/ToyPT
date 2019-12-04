@@ -19,29 +19,19 @@ namespace ToyPT::Rendering::Cuda
 
 extern void cudaRender(
 		FrameBuffer							&frameBuffer,
+		const RenderSettings				&settings,
 		RandomNumberGenerator				rng,
 		const CudaArray<Types::Triangle>	&triangleBuffer,
 		const CudaArray<Types::Mesh>		&meshBuffer,
 		const CudaArray<Material>			&materialBuffer,
-//		const AbstractRenderer::CallBack	&callback,
-		const bool							&abort,
-		const uint32_t						samples,
-		const uint32_t						maxBounces,
-		const uint32_t						tileSize,
-		const float							fieldOfView,
-		const Math::Vector4					&skyColor);
+		const bool							&abort);
 
 void CudaRenderer::render(
 		FrameBuffer						&frameBuffer,
+		const RenderSettings			&settings,
 		const Obj::GeometryContainer	&geometry, 
-		const Obj::GeometryContainer	&lights, 
 		const CallBack					&callBack,
-		const bool						&abort, 
-		const float						fieldOfView, 
-		const uint32_t					samples, 
-		const uint32_t					bounces,
-		const uint32_t					tileSize, 
-		const Math::Vector4				&skyColor)
+		const bool						&abort)
 {
 	CudaArray<Cuda::Types::Node> nodeBuffer;
 	CudaArray<Cuda::Types::Triangle> triangleBuffer;
@@ -56,7 +46,7 @@ void CudaRenderer::render(
 	std::random_device device;
 	RandomNumberGenerator rng{device()};
 	
-	cudaRender(frameBuffer, rng, triangleBuffer, meshBuffer, materialBuffer, abort, samples, bounces, tileSize, fieldOfView, skyColor);
+	cudaRender(frameBuffer, settings, rng, triangleBuffer, meshBuffer, materialBuffer, abort);
 	
 	cxxtrace << "finished render";
 }

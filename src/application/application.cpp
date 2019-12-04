@@ -24,18 +24,18 @@ Application::~Application()
 	this->_renderThread.wait();
 }
 
-void Application::render(const uint32_t width, const uint32_t height, const float fieldOfView, const uint32_t samples, const uint32_t bounces, const uint32_t tileSize)
+void Application::render()
 {
-	const uint32_t tilesVertical = height / tileSize + ((height % tileSize) > 0);
-	const uint32_t tilesHorizontal = width / tileSize + ((width % tileSize) > 0);
+	const uint32_t tilesVertical = this->_settings.height / this->_settings.tileSize + ((this->_settings.height % this->_settings.tileSize) > 0);
+	const uint32_t tilesHorizontal = this->_settings.width / this->_settings.tileSize + ((this->_settings.width % this->_settings.tileSize) > 0);
 	
 	this->_progressBar->setRange(0, int(tilesVertical * tilesHorizontal));
 	this->_progressBar->setValue(0);
 //	this->_progressBar->setFormat(QStringLiteral("%v/%m samples"));
 	
-	this->_image = QImage(int(width), int(height), QImage::Format::Format_RGB888);
+	this->_image = QImage(int(this->_settings.width), int(this->_settings.height), QImage::Format::Format_RGB888);
 	this->_image.fill(Qt::GlobalColor::black);
-	this->_frameBuffer = {width, height};
+	this->_frameBuffer = {this->_settings.width, this->_settings.height};
 	this->_onTileFinished(0, 0, this->_frameBuffer.width(), this->_frameBuffer.height());
 	
 	connect(&this->_timeUpdateTimer, &QTimer::timeout, this, &Application::_onTimeUpdate);
@@ -43,7 +43,7 @@ void Application::render(const uint32_t width, const uint32_t height, const floa
 	this->_renderTime.start();
 	this->_timeUpdateTimer.start(30);
 	
-	this->_renderThread.configure(&this->_frameBuffer, &this->_geometry, &this->_lights, fieldOfView, samples, bounces, tileSize);
+	this->_renderThread.configure(&this->_frameBuffer, this->_settings, &this->_geometry);
 	this->_renderThread.start();
 }
 
@@ -88,7 +88,7 @@ void Application::_onTimeUpdate()
 	int mins = (elapsed / 60000) % 60;
 	int hours = (elapsed / 3600000) % 60;
 	QTime time(hours, mins, secs, msecs);
-	this->_statusLabel->setText(time.toString(QStringLiteral("HH:mm:ss:zzz")));
+	this->_statusLabel->setText(time.toString(QStringLiteral("HH:mm:ss.z")));
 }
 
 void Application::resizeEvent(QResizeEvent *event)
@@ -192,7 +192,7 @@ void Application::_doConnects()
 		
 		if (this->_applyRenderSettings())
 		{
-			this->render(this->_settings.width, this->_settings.height, this->_settings.fieldOfView, this->_settings.samples, this->_settings.bounces, this->_settings.tileSize);
+			this->render();
 		}
 		else
 		{
