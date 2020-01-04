@@ -12,7 +12,7 @@
 #include "cuda/cudatypes.h"
 #include "kdtreebuilder.h"
 #include "randomnumbergenerator.h"
-#include "geometrycontainer.h"
+#include "obj/geometrycontainer.h"
 
 namespace ToyPT::Rendering::Cuda
 {

@@ -1,8 +1,8 @@
 #include <cmath>
 #include <math.h>
 
-#include "geometrycontainer.h"
-#include "mesh.h"
+#include "obj/geometrycontainer.h"
+#include "obj/mesh.h"
 
 namespace ToyPT::Rendering::Obj
 {

@@ -12,20 +12,21 @@ set(RENDERING_PUBLIC_HEADERS
 	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudatypes.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/cuda/cudakdtree.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/framebuffer.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/geometrycontainer.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/obj/geometrycontainer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/material.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/mesh.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/obj/mesh.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/pointlight.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/randomnumbergenerator.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/ray.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/simd/simdrenderer.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/storage.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/triangle.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/obj/triangle.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/simd/kdtree.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/shader.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/kdtreebuilder.h"
 	"${TOYPT_PROJECT_DIR}/include/rendering/rendersettings.h"
-	"${TOYPT_PROJECT_DIR}/include/rendering/tile.h")
+	"${TOYPT_PROJECT_DIR}/include/rendering/tile.h"
+	"${TOYPT_PROJECT_DIR}/include/rendering/obj/parser.h")
 
 set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/color.cpp"
@@ -33,18 +34,18 @@ set(RENDERING_SOURCES
 	"${TOYPT_PROJECT_DIR}/src/rendering/cuda/cudarenderer.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/cuda/cudarendererprivate.cu"
 	"${TOYPT_PROJECT_DIR}/src/rendering/framebuffer.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/geometrycontainer.cpp"
+	"${TOYPT_PROJECT_DIR}/src/rendering/obj/geometrycontainer.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/material.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/mesh.cpp"
+	"${TOYPT_PROJECT_DIR}/src/rendering/obj/mesh.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/pointlight.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/randomnumbergenerator.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/ray.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/simd/simdrenderer.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/storage.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/triangle.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/simd/kdtree.cpp"
 	"${TOYPT_PROJECT_DIR}/src/rendering/shader.cpp"
-	"${TOYPT_PROJECT_DIR}/src/rendering/kdtreebuilder.cpp")
+	"${TOYPT_PROJECT_DIR}/src/rendering/kdtreebuilder.cpp"
+	"${TOYPT_PROJECT_DIR}/src/rendering/obj/parser.cpp")
 
 # Rendering library
 add_library(rendering SHARED					${RENDERING_SOURCES})

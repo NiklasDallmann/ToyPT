@@ -1,5 +1,5 @@
-#include "geometrycontainer.h"
-#include "mesh.h"
+#include "obj/geometrycontainer.h"
+#include "obj/mesh.h"
 #include "storage.h"
 
 #include <debugstream.h>
